@@ -1,4 +1,4 @@
-export default function App() {
+export default function Dashboard() {
   return (
     <main>
       <h1>Hello, World!</h1>
