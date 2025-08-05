@@ -4,17 +4,15 @@ import ThemeSwitcher from "../components/ThemeSwitcher";
 
 export default function Root() {
   return (
-    <>
+    <div className="app-container">
       <header>
         <Link to="/" className="header-link">
           <img src="/logo.svg" alt="Web Fundamentals Logo" />
-          <h1 className="logo">Web Fundamentals</h1>
+          <span className="logo">Web Fundamentals</span>
         </Link>
         <ThemeSwitcher />
       </header>
-      <main>
-        <Outlet />
-      </main>
-    </>
+      <Outlet />
+    </div>
   );
 }

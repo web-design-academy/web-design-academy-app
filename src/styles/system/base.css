@@ -10,6 +10,32 @@ body,
   height: 100%;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  color: var(--color-link);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+  user-select: none;
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--color-link-active);
+  outline: none;
+}
+
 body {
   margin: 0;
   font-family: var(--font-family);
