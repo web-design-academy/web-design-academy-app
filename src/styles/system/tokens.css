@@ -1,5 +1,6 @@
 :root {
-  --color-bg: #121214;
+  --color-bg: #000000;
+  --color-card: #121214;
   --color-text: rgba(230, 230, 230, 0.87);
   --color-border: rgba(230, 230, 230, 0.13);
   --color-primary: #10b981;
@@ -31,11 +32,14 @@
 
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-medium: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --header-height: 92px;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --color-bg: #fafafa;
+    --color-bg: #ffffff;
+    --color-card: #fafafa;
     --color-text: #121214;
     --color-border: rgba(230, 230, 230, 0.87);
 
@@ -46,7 +50,8 @@
 }
 
 [data-theme="dark"] {
-  --color-bg: #121214;
+  --color-bg: #000000;
+  --color-card: #121214;
   --color-text: rgba(230, 230, 230, 0.87);
   --color-border: rgba(230, 230, 230, 0.13);
 
@@ -56,7 +61,8 @@
 }
 
 [data-theme="light"] {
-  --color-bg: #fafafa;
+  --color-bg: #ffffff;
+  --color-card: #fafafa;
   --color-text: #121214;
   --color-border: rgba(230, 230, 230, 0.87);
 

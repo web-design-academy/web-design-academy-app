@@ -14,6 +14,9 @@ header {
   box-shadow: var(--shadow-sm);
   gap: var(--space-2);
   border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-card);
+  height: var(--header-height);
+  flex-shrink: 0;
 }
 
 .header-link {
