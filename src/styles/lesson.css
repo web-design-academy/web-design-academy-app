@@ -1,67 +1,58 @@
 .lesson-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: calc(100vh - var(--header-height));
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--header-height) - 1px);
+  overflow: hidden;
 }
 
-.lesson-editor,
-.lesson-right {
+.lesson-top-row {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lesson-top-inner {
+  display: flex;
   height: 100%;
-  min-height: 0;
 }
 
 .lesson-editor {
-  border-right: 1px solid var(--color-border);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.lesson-right {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: var(--space-4);
+  border-right: 1px solid var(--color-border);
   overflow: hidden;
 }
 
 .lesson-preview {
-  border-bottom: 1px solid var(--color-border);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  min-height: 0;
-}
-
-.lesson-preview iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
+  border-left: 1px solid var(--color-border);
 }
 
 .lesson-content {
+  flex: 1;
   overflow-y: auto;
   padding: var(--space-4);
-  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border);
 }
 
 @media (max-width: 768px) {
   .lesson-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    height: auto;
+    flex-direction: column;
   }
 
-  .lesson-editor {
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
-    height: 300px;
+  .lesson-top-inner {
+    flex-direction: column;
   }
 
-  .lesson-right {
-    grid-template-rows: auto auto;
-    height: auto;
-  }
-
+  .lesson-editor,
   .lesson-preview {
     height: 200px;
+    border: none;
   }
 
   .lesson-content {

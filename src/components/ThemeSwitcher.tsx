@@ -16,24 +16,22 @@ export default function ThemeSwitcher() {
     return getSystemTheme();
   };
 
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setTheme] = useState<string>(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     if (localStorage.getItem(THEME_KEY)) return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const handler = (e: MediaQueryListEvent) => {
+    const handler = (e: MediaQueryListEvent) =>
       setTheme(e.matches ? "dark" : "light");
-    };
 
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";

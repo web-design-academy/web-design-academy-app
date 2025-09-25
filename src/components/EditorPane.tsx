@@ -1,5 +1,6 @@
-import Editor from "@monaco-editor/react";
 import { useEffect, useState } from "react";
+import LoadingSpinner from "../components/LoadingSpinner";
+import MonacoEditor from "@monaco-editor/react";
 
 interface EditorPaneProps {
   value: string;
@@ -7,15 +8,15 @@ interface EditorPaneProps {
 }
 
 export default function EditorPane({ value, onChange }: EditorPaneProps) {
-  const [theme, setTheme] = useState<"vs-dark" | "light">("light");
+  const [theme, setTheme] = useState<"vs-dark" | "light">(
+    document.documentElement.getAttribute("data-theme") === "dark"
+      ? "vs-dark"
+      : "light",
+  );
 
   useEffect(() => {
     const stored = localStorage.getItem("preferred-theme");
-    if (stored === "dark") {
-      setTheme("vs-dark");
-    } else {
-      setTheme("light");
-    }
+    setTheme(stored === "dark" ? "vs-dark" : "light");
 
     const observer = new MutationObserver(() => {
       const currentTheme = document.documentElement.getAttribute("data-theme");
@@ -31,7 +32,8 @@ export default function EditorPane({ value, onChange }: EditorPaneProps) {
   }, []);
 
   return (
-    <Editor
+    <MonacoEditor
+      loading={<LoadingSpinner />}
       height="100%"
       defaultLanguage="html"
       theme={theme}

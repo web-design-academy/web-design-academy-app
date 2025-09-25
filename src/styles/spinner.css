@@ -1,10 +1,6 @@
 .spinner-container {
-  position: absolute;
-  top: var(--space-4);
-  bottom: var(--space-4);
-  left: var(--space-4);
-  right: var(--space-4);
   display: flex;
+  flex: 1;
   justify-content: center;
   align-items: center;
   pointer-events: none;
