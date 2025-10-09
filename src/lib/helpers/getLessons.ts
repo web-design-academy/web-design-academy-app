@@ -1,7 +1,7 @@
 import type { LessonMeta } from "../types";
 
 const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
-  "../../lessons/*.mdx",
+  "../../lessons/**/*.mdx",
   {
     eager: true,
   },

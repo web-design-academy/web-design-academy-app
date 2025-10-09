@@ -19,7 +19,6 @@
 .lesson-editor {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--color-border);
   overflow: hidden;
 }
 
@@ -33,6 +32,7 @@
 
 .lesson-content {
   flex: 1;
+  background-color: var(--color-card);
   overflow-y: auto;
   padding: var(--space-4);
   display: flex;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import LoadingSpinner from "../components/LoadingSpinner";
 import MonacoEditor from "@monaco-editor/react";
+
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface EditorPaneProps {
   value: string;

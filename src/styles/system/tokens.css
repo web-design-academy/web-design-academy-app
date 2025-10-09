@@ -1,11 +1,9 @@
 :root {
-  --color-bg: #000000;
-  --color-card: #121214;
-  --color-text: rgba(230, 230, 230, 0.87);
-  --color-border: rgba(230, 230, 230, 0.13);
-  --color-primary: #10b981;
-  --color-link: #0ea5e9;
-  --color-link-active: #38bdf8;
+  --color-bg: oklch(0.2 0 0);
+  --color-card: oklch(0 0 0);
+  --color-text: oklch(0.85 0 0);
+  --color-border: oklch(0.3 0 0);
+  --color-primary: oklch(0.59 0.158 241.966);
 
   --font-family: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-size-base: 1rem;
@@ -13,6 +11,8 @@
   --font-size-lg: 1.125rem;
   --font-weight-regular: 400;
   --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 900;
   --line-height-base: 1.5;
 
   --space-1: 0.25rem;
@@ -22,10 +22,6 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.8);
-
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -33,15 +29,15 @@
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-medium: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-  --header-height: 64px;
+  --header-height: 72px;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --color-bg: #ffffff;
-    --color-card: #fafafa;
-    --color-text: #121214;
-    --color-border: rgba(230, 230, 230, 0.87);
+    --color-bg: oklch(0.98 0 0);
+    --color-card: oklch(1 0 0);
+    --color-text: oklch(0.15 0 0);
+    --color-border: oklch(0.88 0 0);
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -50,10 +46,10 @@
 }
 
 [data-theme="dark"] {
-  --color-bg: #000000;
-  --color-card: #121214;
-  --color-text: rgba(230, 230, 230, 0.87);
-  --color-border: rgba(230, 230, 230, 0.13);
+  --color-bg: oklch(0.2 0 0);
+  --color-card: oklch(0.16 0 0);
+  --color-text: oklch(0.85 0 0);
+  --color-border: oklch(0.3 0 0);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.6);
@@ -61,10 +57,10 @@
 }
 
 [data-theme="light"] {
-  --color-bg: #ffffff;
-  --color-card: #fafafa;
-  --color-text: #121214;
-  --color-border: rgba(230, 230, 230, 0.87);
+  --color-bg: oklch(0.98 0 0);
+  --color-card: oklch(1 0 0);
+  --color-text: oklch(0.15 0 0);
+  --color-border: oklch(0.88 0 0);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);

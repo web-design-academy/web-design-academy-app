@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import sunIcon from "../assets/sun.svg";
-import moonIcon from "../assets/moon.svg";
+
+import sunIcon from "@/assets/sun.svg";
+import moonIcon from "@/assets/moon.svg";
 
 const THEME_KEY = "preferred-theme";
 
@@ -52,10 +53,9 @@ export default function ThemeSwitcher() {
       }}
     >
       <img
-        src={theme === "light" ? sunIcon : moonIcon}
-        alt={theme === "light" ? "Light mode" : "Dark mode"}
-        width={24}
-        height={24}
+        src={theme === "light" ? moonIcon : sunIcon}
+        alt={theme === "light" ? "Change to dark mode" : "Change to light mode"}
+        className="theme-switcher"
       />
     </button>
   );

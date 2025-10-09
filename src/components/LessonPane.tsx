@@ -1,6 +1,7 @@
 import { MDXProvider } from "@mdx-js/react";
 import { lazy, useMemo, Suspense } from "react";
-import LoadingSpinner from "../components/LoadingSpinner";
+
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface LessonPaneProps {
   slug: string | undefined;
@@ -8,7 +9,7 @@ interface LessonPaneProps {
 
 export default function LessonPane({ slug }: LessonPaneProps) {
   const LessonContent = useMemo(
-    () => lazy(() => import(`../lessons/${slug}.mdx`)),
+    () => lazy(() => import(`../lessons/${slug}/index.mdx`)),
     [slug],
   );
 

@@ -1,6 +1,7 @@
 import { Resizable, type ResizeCallback } from "re-resizable";
 import { useState, useRef } from "react";
-import "../styles/preview.css";
+
+import "@/styles/preview.css";
 
 interface PreviewPaneProps {
   html: string;

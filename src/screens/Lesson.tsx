@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 
-import "../styles/lesson.css";
-import EditorPane from "../components/EditorPane";
-import PreviewPane from "../components/PreviewPane";
-import LessonPane from "../components/LessonPane";
+import "@/styles/lesson.css";
+import EditorPane from "@/components/EditorPane";
+import PreviewPane from "@/components/PreviewPane";
+import LessonPane from "@/components/LessonPane";
 
 export default function Lesson() {
   const { slug } = useParams<{ slug: string }>();

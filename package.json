@@ -1,5 +1,5 @@
 {
-  "name": "bachelor-thesis",
+  "name": "web-academy",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "style": "prettier -w ."
+    "style": "prettier -w .",
+    "ts:check": "tsc --noEmit"
   },
   "dependencies": {
     "@mdx-js/react": "^3.1.0",
@@ -17,7 +18,8 @@
     "re-resizable": "^6.11.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router": "^7.8.0"
+    "react-router": "^7.8.0",
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
