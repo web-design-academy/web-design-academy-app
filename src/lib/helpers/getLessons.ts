@@ -1,4 +1,10 @@
-import type { LessonMeta } from "../types";
+export type LessonMeta = {
+  title: string;
+  description: string;
+  slug: string;
+  color: string;
+  order: number;
+};
 
 const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
   "../../lessons/**/*.mdx",

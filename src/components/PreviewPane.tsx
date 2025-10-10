@@ -54,22 +54,6 @@ export default function PreviewPane({ html }: PreviewPaneProps) {
     showOverlay();
   };
 
-  const htmlContent = `
-  <html>
-    <head>
-      <style>
-        body {
-          margin: 0;
-          padding: 0;
-        }
-      </style>
-    </head>
-    <body>
-      ${html}
-    </body>
-  </html>
-`;
-
   return (
     <div className="preview-inner">
       <div className="preview-selector">
@@ -113,8 +97,8 @@ export default function PreviewPane({ html }: PreviewPaneProps) {
           )}
           <iframe
             title="HTML Preview"
-            sandbox="allow-scripts allow-same-origin"
-            srcDoc={htmlContent}
+            sandbox="allow-scripts allow-same-origin allow-popups"
+            srcDoc={html}
             className="preview-iframe"
           />
         </Resizable>
