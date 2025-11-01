@@ -45,14 +45,17 @@ export default function Lesson() {
       <style>
         * {margin: 0; padding: 0;}
         ${currentTask.hiddenCss || ""}
+        ${currentTask.readonlyCss || ""}
         ${currentTaskState.editableCss || ""}
       </style>
     </head>
     <body>
       ${currentTask.hiddenHtml || ""}
+      ${currentTask.readonlyHtml || ""}
       ${currentTaskState.editableHtml || ""}
       <script>
         ${currentTask.hiddenJs || ""}
+        ${currentTask.readonlyJs || ""}
         ${currentTaskState.editableJs || ""}
       </script>
     </body>
@@ -105,6 +108,9 @@ export default function Lesson() {
                 totalTasks={tasks.length}
                 onTaskChange={updateTask}
                 onChangeTask={(idx) => setCurrentTaskIndex(idx)}
+                readonlyHtml={currentTask.readonlyHtml}
+                readonlyCss={currentTask.readonlyCss}
+                readonlyJs={currentTask.readonlyJs}
               />
             </Resizable>
 

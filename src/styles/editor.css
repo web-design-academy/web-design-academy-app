@@ -78,3 +78,16 @@
 .editor-pane > div:last-child > div:not([style*="display: block"]) {
   display: none;
 }
+
+.monaco-editor .readonly-line {
+  background: rgba(200, 200, 200, 0.14);
+  pointer-events: none;
+}
+
+.monaco-editor .readonly-line::after {
+  content: "🔒";
+  position: absolute;
+  right: 24px;
+  color: rgba(80, 80, 80, 0.7);
+  font-size: 12px;
+}

@@ -1,0 +1,37 @@
+header {
+  background-color: MidnightBlue;
+  color: white;
+  padding: 1rem;
+  position: relative;
+}
+
+#burger {
+  font-size: 2rem;
+  cursor: pointer;
+  display: none;
+}
+
+#nav-links ul {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#page-content {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+section {
+  background-color: WhiteSmoke;
+  padding: 2rem;
+  flex: 1;
+}
+
+#menu-toggle {
+  display: none;
+}
