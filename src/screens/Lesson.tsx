@@ -1,41 +1,73 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 
 import "@/styles/lesson.css";
 import EditorPane from "@/components/EditorPane";
 import PreviewPane from "@/components/PreviewPane";
-import { MDXProvider } from "@mdx-js/react";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
 import { getLessonTasksSync, type TaskCode } from "@/lib/helpers/getTasks";
+import * as runtime from "react/jsx-runtime";
+
+import { MDXProvider } from "@mdx-js/react";
+import { evaluate } from "@mdx-js/mdx";
 
 export default function Lesson() {
   const { slug } = useParams<{ slug: string }>();
-  const LessonContent = useMemo(
-    () => lazy(() => import(`../lessons/${slug}/index.mdx`)),
-    [slug],
-  );
 
-  const tasks = useMemo(() => getLessonTasksSync(slug!), [slug]);
+  const [tasks, setTasks] = useState<Partial<TaskCode>[]>([]);
+  const [taskStates, setTaskStates] = useState<Partial<TaskCode>[]>([]);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-
-  const [taskStates, setTaskStates] = useState(
-    tasks.map((t) => ({
-      editableHtml: t.editableHtml,
-      editableCss: t.editableCss,
-      editableJs: t.editableJs,
-    })),
-  );
-
   const [editorPercent, setEditorPercent] = useState(40);
   const [topRowPercent, setTopRowPercent] = useState(60);
+
+  const [BackendMdxComponent, setBackendMdxComponent] =
+    useState<React.ComponentType | null>(null);
+  const [LessonContent, setLessonContent] =
+    useState<React.LazyExoticComponent<any> | null>(null);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    if (FEATURE_FLAGS.useBackend) {
+      import("@/lib/api/getLesson").then((module) => {
+        module.getLessonBackend(slug!).then(async (data) => {
+          setTasks(data.tasks);
+          setTaskStates(
+            data.tasks.map((t) => ({
+              editableHtml: t.editableHtml,
+              editableCss: t.editableCss,
+              editableJs: t.editableJs,
+            })),
+          );
+
+          if (data.mdxContent) {
+            const evaluated = await evaluate(data.mdxContent, runtime);
+            setBackendMdxComponent(() => evaluated.default);
+          }
+        });
+      });
+    } else {
+      const localTasks = getLessonTasksSync(slug);
+      setTasks(localTasks);
+      setTaskStates(
+        localTasks.map((t) => ({
+          editableHtml: t.editableHtml,
+          editableCss: t.editableCss,
+          editableJs: t.editableJs,
+        })),
+      );
+      setLessonContent(lazy(() => import(`../lessons/${slug}/index.mdx`)));
+    }
+  }, [slug]);
+
+  if (!tasks.length) return <LoadingSpinner />;
 
   const currentTask = tasks[currentTaskIndex];
   const currentTaskState = taskStates[currentTaskIndex];
 
-  if (!currentTask) {
-    return <Navigate to="/" />;
-  }
+  if (!currentTask) return <Navigate to="/" />;
 
   const srcDoc = `
   <!DOCTYPE html>
@@ -72,7 +104,7 @@ export default function Lesson() {
     setTopRowPercent((ref.offsetHeight / containerHeight) * 100);
   };
 
-  const updateTask = (field: keyof TaskCode, value: string) => {
+  const updateTask = (field: keyof Partial<TaskCode>, value: string) => {
     setTaskStates((prev) =>
       prev.map((s, idx) =>
         idx === currentTaskIndex ? { ...s, [field]: value } : s,
@@ -128,7 +160,15 @@ export default function Lesson() {
           style={{ height: `${100 - topRowPercent}%` }}
         >
           <MDXProvider>
-            <LessonContent />
+            {FEATURE_FLAGS.useBackend ? (
+              BackendMdxComponent ? (
+                <BackendMdxComponent />
+              ) : (
+                <LoadingSpinner />
+              )
+            ) : (
+              LessonContent && <LessonContent />
+            )}
           </MDXProvider>
         </div>
       </Suspense>

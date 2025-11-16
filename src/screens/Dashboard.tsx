@@ -1,9 +1,32 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import "@/styles/dashboard.css";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { FEATURE_FLAGS } from "@/lib/config/featureFlags";
 import { getLessons } from "@/lib/helpers/getLessons";
 
+import type { LessonMeta } from "@/lib/api/getLessonsMeta";
+
 export default function Dashboard() {
-  const lessons = getLessons();
+  const [lessons, setLessons] = useState<LessonMeta[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadLessons = async () => {
+      if (FEATURE_FLAGS.useBackend) {
+        const module = await import("@/lib/api/getLessonsMeta");
+        const data = await module.getLessonsMeta();
+        setLessons(data);
+      } else {
+        setLessons(getLessons());
+      }
+      setLoading(false);
+    };
+
+    loadLessons();
+  }, []);
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <main className="dashboard-page">
