@@ -20,7 +20,3 @@ Back-end:
 ```sh
 node src/server.js
 ```
-```
-```
-```
-```
