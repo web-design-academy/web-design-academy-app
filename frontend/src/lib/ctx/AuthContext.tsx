@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  loginAdmin as apiLoginAdmin,
-  loginAnonymous as apiLoginAnonymous,
+  loginWithGoogle as apiLoginWithGoogle,
   getSession,
   saveSession,
   clearSession,
+  type AuthData,
 } from "@/lib/api/auth";
 import { AuthContext, type User } from "./useAuth";
 
@@ -26,18 +26,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const loginAnonymous = async (email: string, name: string) => {
-    const data = await apiLoginAnonymous(email, name);
-    saveSession(data);
-    setUser({ userId: data.userId, role: data.role, name: data.name });
-    setToken(data.token);
-  };
+  const loginWithGoogle = async (idToken: string): Promise<AuthData> => {
+    try {
+      const data = await apiLoginWithGoogle(idToken);
 
-  const loginAdmin = async (email: string, password: string) => {
-    const data = await apiLoginAdmin(email, password);
-    saveSession(data);
-    setUser({ userId: data.userId, role: data.role, name: data.name });
-    setToken(data.token);
+      saveSession(data);
+
+      setUser({
+        userId: data.userId,
+        role: data.role,
+        name: data.name
+      });
+      setToken(data.token);
+
+      return data;
+    } catch (err) {
+      throw err;
+    }
   };
 
   const logout = () => {
@@ -53,8 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         isAuthenticated: !!user,
         isLoading,
-        loginAnonymous,
-        loginAdmin,
+        loginWithGoogle,
         logout,
       }}
     >

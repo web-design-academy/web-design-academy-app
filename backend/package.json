@@ -4,11 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node src/server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Dmitrii Ivanushkin <dmitrii.unwritten183@passmail.net>",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
@@ -17,6 +16,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.3",
     "uuid": "^13.0.0"
   }

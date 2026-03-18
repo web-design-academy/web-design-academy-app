@@ -3,16 +3,55 @@ import { Link } from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { getLessons, type LessonMeta } from "@/lib/helpers/getLessons";
+import { getLessonTasksSync } from "@/lib/helpers/getTasks";
 import LessonIcon from "@/components/LessonIcon";
+import { useAuth } from "@/lib/ctx/useAuth";
+import { ArrowRight } from "lucide-react";
 
 export default function Dashboard() {
-  const [lessons, setLessons] = useState<LessonMeta[]>([]);
+  const [lessons, setLessons] = useState<(LessonMeta & { progress: number })[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, token, isAuthenticated } = useAuth();
+
+  const showProgress = isAuthenticated && user?.role === "student";
 
   useEffect(() => {
-    setLessons(getLessons());
-    setLoading(false);
-  }, []);
+    const fetchAllProgress = async () => {
+      const allLessons = getLessons();
+
+      if (!showProgress || !token) {
+        setLessons(allLessons.map(l => ({ ...l, progress: 0 })));
+        setLoading(false);
+        return;
+      }
+
+      const lessonsWithProgress = await Promise.all(
+        allLessons.map(async (lesson) => {
+          try {
+            const res = await fetch(`/api/progress/${lesson.slug}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            const completedCount = data.completedTaskIds?.length || 0;
+            const totalTasks = getLessonTasksSync(lesson.slug).length;
+
+            const progress = totalTasks > 0
+              ? Math.round((completedCount / totalTasks) * 100)
+              : 0;
+
+            return { ...lesson, progress };
+          } catch (err) {
+            return { ...lesson, progress: 0 };
+          }
+        })
+      );
+
+      setLessons(lessonsWithProgress);
+      setLoading(false);
+    };
+
+    fetchAllProgress();
+  }, [isAuthenticated, token]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -20,7 +59,7 @@ export default function Dashboard() {
     <main className="dashboard-page">
       <h1 className="dashboard-title">Lessons</h1>
       <ul className="dashboard-grid">
-        {lessons.map(({ slug, title, description, color, icon }) => (
+        {lessons.map(({ slug, title, description, color, icon, progress }) => (
           <li key={slug} className="lesson-card">
             <div className="lesson-card-header">
               <div
@@ -38,14 +77,33 @@ export default function Dashboard() {
 
             <p className="lesson-card-description">{description}</p>
 
-            <Link
-              to={`/lessons/${slug}`}
-              className="btn-primary"
-              style={{ alignSelf: "flex-end" }}
-              aria-label={`Start lesson "${title}"`}
-            >
-              Start →
-            </Link>
+            <div className="lesson-card-footer">
+              {showProgress && (
+                <div className="progress-container">
+                  <span className="progress-text">{progress}%</span>
+                  <div className="progress-bar-bg">
+                    <div
+                      className="progress-bar-fill"
+                      style={{
+                        width: `${progress}%`,
+                        backgroundColor: 'var(--color-primary)'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Link
+                to={`/lessons/${slug}`}
+                className="btn-primary"
+                aria-label={`Start lesson "${title}"`}
+              >
+                {showProgress && progress > 0
+                  ? (progress === 100 ? "Review" : "Continue")
+                  : (user?.role === "admin" ? "View" : "Start")}
+                <ArrowRight size={18} style={{ marginLeft: 8 }} />
+              </Link>
+            </div>
           </li>
         ))}
       </ul>

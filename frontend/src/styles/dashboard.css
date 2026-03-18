@@ -17,6 +17,7 @@
   width: 100%;
   margin: 0 auto;
   padding: 0;
+  list-style: none;
 }
 
 .dashboard-title {
@@ -47,6 +48,7 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  transition: border-color var(--transition-fast);
 }
 
 .lesson-card:hover {
@@ -79,6 +81,7 @@
 .lesson-card-title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
+  margin: 0;
 }
 
 .lesson-card-description {
@@ -88,4 +91,46 @@
   color: var(--color-text);
   opacity: 0.85;
   margin-bottom: var(--space-5);
+}
+
+.lesson-card-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-top: auto;
+  min-height: 40px;
+}
+
+.progress-container {
+  flex: 1;
+}
+
+.progress-text {
+  display: flex;
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-medium);
+}
+
+.lesson-card .btn-primary {
+  align-self: flex-end;
+  white-space: nowrap;
+  flex-shrink: 0;
 }

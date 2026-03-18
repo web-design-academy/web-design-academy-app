@@ -3,7 +3,6 @@ import {
   Navigate,
   useParams,
   useSearchParams,
-  useNavigate,
 } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import { MDXProvider } from "@mdx-js/react";
@@ -25,7 +24,6 @@ export default function Lesson() {
   const submissionId = searchParams.get("submissionId");
 
   const { token, isAuthenticated, user } = useAuth();
-  const navigate = useNavigate();
 
   const isAdmin = user?.role === "admin";
   const [isNew, setIsNew] = useState(false);
@@ -107,7 +105,6 @@ export default function Lesson() {
             setCompletedTasks(new Set(data.completedTaskIds));
           }
         })
-        .catch((err) => console.error("Failed to load progress", err));
     }
   }, [slug, isAuthenticated, token]);
 
@@ -260,7 +257,6 @@ export default function Lesson() {
                 onSubmit={handleSubmit}
                 completedTasks={completedTasks}
                 currentTaskId={currentTaskId}
-                isAdmin={isAdmin}
                 onAddTask={addTask}
                 lessonSlug={slug}
               />
@@ -296,19 +292,9 @@ export default function Lesson() {
           title="Authentication Required"
           isOpen={showLoginModal}
           onClose={() => setShowLoginModal(false)}
-          actions={
-            <button
-              onClick={() => navigate("/login")}
-              className="btn-primary"
-              style={{ padding: "8px 16px" }}
-            >
-              Go to Login
-            </button>
-          }
         >
           <p>
-            You need to be signed in to submit your solution. Would you like to
-            log in now?
+            You need to be signed in to submit your solution
           </p>
         </Modal>
       </Suspense>

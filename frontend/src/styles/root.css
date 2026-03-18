@@ -86,42 +86,36 @@ header {
   cursor: default;
 }
 
-.btn-primary {
+.btn-primary,
+.btn-ghost {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-primary);
-  color: white;
-  text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
-  border: none;
   cursor: pointer;
-  transition:
-    transform 0.1s,
-    opacity 0.2s;
+  transition: all 0.2s;
+  height: 2.25rem;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  text-decoration: none;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-}
-
-.btn-primary:active {
-  transform: translateY(1px);
+  opacity: 0.8;
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--color-text);
-  border: 1px solid var(--color-border);
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
+  border-color: var(--color-border);
 }
 
 .btn-ghost:hover {

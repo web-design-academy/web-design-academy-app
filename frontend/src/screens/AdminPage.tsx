@@ -29,7 +29,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!authLoading && user?.role !== "admin") {
-      navigate("/login");
+      navigate("/");
     }
 
     if (user?.role === "admin") {

@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { AuthData } from "../api/auth";
 
 export interface User {
   userId: string;
@@ -11,8 +12,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  loginAnonymous: (email: string, name: string) => Promise<void>;
-  loginAdmin: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<AuthData>;
   logout: () => void;
 }
 

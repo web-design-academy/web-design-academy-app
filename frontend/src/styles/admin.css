@@ -189,3 +189,20 @@
   white-space: pre-wrap;
   font-family: monospace;
 }
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group > input,
+textarea {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1rem;
+}
+

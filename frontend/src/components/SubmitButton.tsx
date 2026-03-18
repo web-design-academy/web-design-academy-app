@@ -19,8 +19,7 @@ export default function SubmitButton({ onClick }: SubmitButtonProps) {
       await onClick();
       setStatus("success");
       setTimeout(() => setStatus("idle"), 2000);
-    } catch (e) {
-      console.error(e);
+    } catch (_err) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 2000);
     }

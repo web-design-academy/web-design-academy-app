@@ -7,9 +7,10 @@ import SubmitButton from "./SubmitButton";
 import { getCustomCourses, clearCustomData } from "@/lib/helpers/adminStorage";
 import { generateCourseZip } from "@/lib/helpers/zipGenerator";
 import { getLessonTasksSync } from "@/lib/helpers/getTasks";
-import { Plus } from "lucide-react";
 import "@/styles/editor.css";
 import * as monaco from "monaco-editor";
+import { ArrowLeft, ArrowRight, Check, Download, Plus } from "lucide-react";
+import { useTheme } from "@/lib/ctx/useTheme";
 
 export interface EditorPaneProps {
   task: Partial<TaskCode>;
@@ -23,7 +24,6 @@ export interface EditorPaneProps {
   onSubmit: () => Promise<void>;
   completedTasks?: Set<string>;
   currentTaskId?: string;
-  isAdmin?: boolean;
   onAddTask?: () => void;
   lessonSlug?: string;
 }
@@ -42,16 +42,16 @@ export default function EditorPane({
   onSubmit,
   completedTasks,
   currentTaskId,
-  isAdmin,
   onAddTask,
   lessonSlug,
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<Tab>("html");
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const navigate = useNavigate();
+  const { theme } = useTheme()
 
   const { user } = useAuth();
-
+  const isAdmin = user?.role === "admin"
   const showSubmitButton = user && user.role !== "admin";
 
   const hasPrev = currentIndex > 0;
@@ -79,6 +79,12 @@ export default function EditorPane({
 
     clearCustomData(lessonSlug);
     navigate("/admin");
+  };
+
+  const handleDiscard = async () => {
+    if (!lessonSlug) return;
+    clearCustomData(lessonSlug);
+    window.location.reload()
   };
 
   const content = useMemo(() => {
@@ -174,38 +180,48 @@ export default function EditorPane({
 
   return (
     <div className="editor-pane">
-      <div
-        className="editor-tabs"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingRight: 10,
-        }}
-      >
-        <div style={{ display: "flex" }}>
-          <button
-            className={activeTab === "html" ? "active" : ""}
-            onClick={() => setActiveTab("html")}
-          >
-            HTML
-          </button>
-          <button
-            className={activeTab === "css" ? "active" : ""}
-            onClick={() => setActiveTab("css")}
-          >
-            CSS
-          </button>
-          <button
-            className={activeTab === "js" ? "active" : ""}
-            onClick={() => setActiveTab("js")}
-          >
-            JS
-          </button>
-        </div>
+      <div className="editor-footer">
+        {isAdmin && (
+          <div className="footer-admin-row">
+            <button onClick={onAddTask} className="btn-ghost">
+              <Plus size={20} style={{ marginRight: 8 }} /> Add new task
+            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleDiscard} className="btn-ghost">
+                Discard changes
+              </button>
+              <button onClick={handleDownloadZip} className="btn-primary">
+                <Download size={20} style={{ marginRight: 8 }} /> Download archive
+              </button>
+            </div>
+          </div>
+        )}
+        {showSubmitButton && (<div className="footer-student-row">
+          <SubmitButton onClick={onSubmit} /></div>)}
       </div>
 
-      <div className="editor-container" style={{ flex: 1 }}>
+      <div className="editor-tabs">
+        <button
+          className={`tab ${activeTab === "html" ? "active" : ""}`}
+          onClick={() => setActiveTab("html")}
+        >
+          index.html
+        </button>
+        <button
+          className={`tab ${activeTab === "css" ? "active" : ""}`}
+          onClick={() => setActiveTab("css")}
+        >
+          styles.css
+        </button>
+        <button
+          className={`tab ${activeTab === "js" ? "active" : ""}`}
+          onClick={() => setActiveTab("js")}
+        >
+          script.js
+        </button>
+      </div>
+
+      <div className="editor-container">
         <Editor
           key={activeTab}
           height="100%"
@@ -214,7 +230,7 @@ export default function EditorPane({
           value={content}
           onChange={handleEditorChange}
           onMount={handleEditorMount}
-          theme="vs-dark"
+          theme={theme === "dark" ? "vs-dark" : "vs-light"}
           options={{
             minimap: { enabled: false },
             fontSize: 14,
@@ -224,48 +240,26 @@ export default function EditorPane({
         />
       </div>
 
-      <div className="task-navigation">
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div className="footer-nav-row">
+        <div className="nav-controls">
           <button
             onClick={hasPrev ? onPrev : undefined}
             disabled={!hasPrev}
             className="btn-ghost"
           >
-            ← Previous
+            <ArrowLeft size={20} style={{ marginRight: 8 }} /> Previous
           </button>
-          <span>
-            Task {currentIndex + 1} of {totalTasks} {isCompleted && "✅"}
+          <span className="task-counter">
+            Task {currentIndex + 1} of {totalTasks} {isCompleted && <Check size={20} style={{ marginLeft: 8 }} color="green" />}
           </span>
           <button
             onClick={hasNext ? onNext : undefined}
             disabled={!hasNext}
             className="btn-ghost"
           >
-            Next →
+            Next <ArrowRight size={20} style={{ marginLeft: 8 }} />
           </button>
-          {isAdmin && (
-            <button
-              onClick={onAddTask}
-              className="btn-primary"
-              title="Add Task"
-              style={{ padding: 4, display: "flex", alignItems: "center" }}
-            >
-              <Plus size={18} />
-            </button>
-          )}
         </div>
-
-        {showSubmitButton && <SubmitButton onClick={onSubmit} />}
-
-        {isAdmin && (
-          <button
-            onClick={handleDownloadZip}
-            className="btn-primary"
-            style={{ padding: "8px 16px" }}
-          >
-            Download Zip
-          </button>
-        )}
       </div>
     </div>
   );

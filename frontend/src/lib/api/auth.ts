@@ -1,6 +1,3 @@
-const ANONYMOUS_URL = "/api/auth/anonymous";
-const LOGIN_URL = "/api/auth/login";
-
 export const STORAGE_KEYS = {
   TOKEN: "wa_auth_token",
   USER_ID: "wa_user_id",
@@ -15,36 +12,19 @@ export interface AuthData {
   name: string;
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
+export async function loginWithGoogle(idToken: string): Promise<AuthData> {
+  const response = await fetch("/api/auth/google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || "Request failed");
+    const error = await response.json();
+    throw new Error(error.error || "Login failed");
   }
+
   return response.json();
-}
-
-export async function loginAnonymous(
-  email: string,
-  name: string,
-): Promise<AuthData> {
-  const response = await fetch(ANONYMOUS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, name }),
-  });
-  return handleResponse<AuthData>(response);
-}
-
-export async function loginAdmin(
-  email: string,
-  password: string,
-): Promise<AuthData> {
-  const response = await fetch(LOGIN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  return handleResponse<AuthData>(response);
 }
 
 export function saveSession(data: AuthData) {
