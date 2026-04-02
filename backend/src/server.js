@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const path = require("path");
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
@@ -17,13 +18,20 @@ const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 app.use(cors());
 app.use(bodyParser.json());
+
+if (process.env.NODE_ENV === "production") {
+  const staticPath = path.join(__dirname, "../frontend/dist");
+  app.use(express.static(staticPath));
+}
 app.use((_, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "script-src 'self' https://accounts.google.com/gsi/client; " +
-    "frame-src https://accounts.google.com/gsi/; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com/gsi/client https://cdn.jsdelivr.net; " +
+    "worker-src 'self' blob:; " +
+    "frame-src 'self' https://accounts.google.com/gsi/; " +
     "connect-src 'self' https://accounts.google.com/gsi/; " +
-    "style-src 'self' https://accounts.google.com/gsi/style 'unsafe-inline';"
+    "font-src 'self' data: https://fonts.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://fonts.googleapis.com;"
   );
   next();
 });
@@ -134,6 +142,12 @@ app.get("/api/progress/:lessonSlug", authenticateToken, (req, res) => {
 
   res.json({ completedTaskIds: rows.map((r) => r.task_id) });
 });
+
+if (process.env.NODE_ENV === "production") {
+  app.get(/^.*$/, (_, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+  });
+}
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);

@@ -1,10 +1,10 @@
 # Web Design Learning Application
 
-## Usage
+## Development
 
-Front-end:
+### Frontend
 
-1. Set VITE_API_BASE and VITE_GOOGLE_CLIENT_ID in `./frontend/.env`
+1. Set `VITE_GOOGLE_CLIENT_ID` in `./frontend/.env`
 
 2. Run
 ```sh
@@ -13,12 +13,19 @@ npm install
 npm run dev
 ```
 
-Back-end:
+### Backend
 
-1. Set GOOGLE_CLIENT_ID, ADMIN_EMAIL and JWT_SECRET in `./backend/.env`
+1. Set `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL` and `JWT_SECRET` in `./backend/.env`
 
 2. Run
 ```sh
 cd backend
+npm install
 npm run start
+```
+
+## Docker
+
+```sh
+docker compose up
 ```

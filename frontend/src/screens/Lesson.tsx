@@ -168,6 +168,29 @@ export default function Lesson() {
     });
   };
 
+  const resetTask = () => {
+    if (window.confirm("Are you sure you want to reset this task? All your changes will be lost.")) {
+      setTaskStates((prev) => {
+        const updated = prev.map((s, idx) =>
+          idx === currentTaskIndex
+            ? {
+                ...s,
+                editableHtml: tasks[idx].editableHtml,
+                editableCss: tasks[idx].editableCss,
+                editableJs: tasks[idx].editableJs,
+              }
+            : s
+        );
+        if (isAdmin && slug) {
+          import("@/lib/helpers/adminStorage").then((m) => {
+            m.saveCustomTasks(slug, updated);
+          });
+        }
+        return updated;
+      });
+    }
+  };
+
   const addTask = () => {
     if (!isAdmin || !slug) return;
 
@@ -258,6 +281,7 @@ export default function Lesson() {
                 completedTasks={completedTasks}
                 currentTaskId={currentTaskId}
                 onAddTask={addTask}
+                onResetTask={resetTask}
                 lessonSlug={slug}
               />
             </Resizable>

@@ -9,8 +9,16 @@ import { generateCourseZip } from "@/lib/helpers/zipGenerator";
 import { getLessonTasksSync } from "@/lib/helpers/getTasks";
 import "@/styles/editor.css";
 import * as monaco from "monaco-editor";
-import { ArrowLeft, ArrowRight, Check, Download, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Download,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
 import { useTheme } from "@/lib/ctx/useTheme";
+// import VisualEditor from "visualeditor-html-css";
 
 export interface EditorPaneProps {
   task: Partial<TaskCode>;
@@ -25,6 +33,7 @@ export interface EditorPaneProps {
   completedTasks?: Set<string>;
   currentTaskId?: string;
   onAddTask?: () => void;
+  onResetTask?: () => void;
   lessonSlug?: string;
 }
 
@@ -43,15 +52,17 @@ export default function EditorPane({
   completedTasks,
   currentTaskId,
   onAddTask,
+  onResetTask,
   lessonSlug,
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<Tab>("html");
+  const [useVisualEditor, setUseVisualEditor] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const navigate = useNavigate();
-  const { theme } = useTheme()
+  const { theme } = useTheme();
 
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin"
+  const isAdmin = user?.role === "admin";
   const showSubmitButton = user && user.role !== "admin";
 
   const hasPrev = currentIndex > 0;
@@ -84,7 +95,7 @@ export default function EditorPane({
   const handleDiscard = async () => {
     if (!lessonSlug) return;
     clearCustomData(lessonSlug);
-    window.location.reload()
+    window.location.reload();
   };
 
   const content = useMemo(() => {
@@ -191,53 +202,132 @@ export default function EditorPane({
                 Discard changes
               </button>
               <button onClick={handleDownloadZip} className="btn-primary">
-                <Download size={20} style={{ marginRight: 8 }} /> Download archive
+                <Download size={20} style={{ marginRight: 8 }} /> Download
+                archive
               </button>
             </div>
           </div>
         )}
-        {showSubmitButton && (<div className="footer-student-row">
-          <SubmitButton onClick={onSubmit} /></div>)}
+        {showSubmitButton && (
+          <div className="footer-student-row">
+            <SubmitButton onClick={onSubmit} />
+          </div>
+        )}
       </div>
 
-      <div className="editor-tabs">
-        <button
-          className={`tab ${activeTab === "html" ? "active" : ""}`}
-          onClick={() => setActiveTab("html")}
+      <div className="editor-tabs" style={{ justifyContent: "space-between" }}>
+        <div style={{ display: "flex" }}>
+          <button
+            className={`tab ${activeTab === "html" ? "active" : ""}`}
+            onClick={() => setActiveTab("html")}
+          >
+            index.html
+          </button>
+          <button
+            className={`tab ${activeTab === "css" ? "active" : ""}`}
+            onClick={() => setActiveTab("css")}
+            disabled={useVisualEditor}
+            style={
+              useVisualEditor ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            styles.css
+          </button>
+          <button
+            className={`tab ${activeTab === "js" ? "active" : ""}`}
+            onClick={() => setActiveTab("js")}
+            disabled={useVisualEditor}
+            style={
+              useVisualEditor ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            script.js
+          </button>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            paddingRight: "16px",
+          }}
         >
-          index.html
-        </button>
-        <button
-          className={`tab ${activeTab === "css" ? "active" : ""}`}
-          onClick={() => setActiveTab("css")}
-        >
-          styles.css
-        </button>
-        <button
-          className={`tab ${activeTab === "js" ? "active" : ""}`}
-          onClick={() => setActiveTab("js")}
-        >
-          script.js
-        </button>
+          {onResetTask && (
+            <button
+              onClick={onResetTask}
+              className="btn-ghost"
+              style={{
+                padding: "4px 8px",
+                height: "auto",
+                fontSize: "0.8rem",
+                color: "var(--color-primary)",
+                border: "1px solid var(--color-primary)",
+                borderRadius: "4px",
+              }}
+            >
+              <RotateCcw size={14} style={{ marginRight: 6 }} /> Reset
+            </button>
+          )}
+          <label
+            className="tab"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              opacity: 1,
+              borderLeft: "1px solid var(--color-border)",
+              borderRight: "none",
+              padding: "10px 0",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={useVisualEditor}
+              onChange={(e) => setUseVisualEditor(e.target.checked)}
+              style={{ cursor: "pointer" }}
+            />
+            Visual Editor
+          </label>
+        </div>
       </div>
 
       <div className="editor-container">
-        <Editor
-          key={activeTab}
-          height="100%"
-          defaultLanguage={activeTab === "js" ? "javascript" : activeTab}
-          language={activeTab === "js" ? "javascript" : activeTab}
-          value={content}
-          onChange={handleEditorChange}
-          onMount={handleEditorMount}
-          theme={theme === "dark" ? "vs-dark" : "vs-light"}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            padding: { top: 16 },
-            scrollBeyondLastLine: false,
-          }}
-        />
+        {useVisualEditor && (activeTab === "html" || activeTab === "css") ? (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              overflowY: "auto",
+              overflowX: "hidden",
+            }}
+          >
+            {/*
+            <VisualEditor
+              content={task?.editableHtml || ""}
+              setContent={(val: any) => onTaskChange("editableHtml", typeof val === 'function' ? val(task?.editableHtml || "") : val)}
+              cssContent={task?.editableCss || ""}
+              setCssContent={(val: any) => onTaskChange("editableCss", typeof val === 'function' ? val(task?.editableCss || "") : val)}
+              isDark={theme === "dark"}
+            /> */}
+          </div>
+        ) : (
+          <Editor
+            key={activeTab}
+            height="100%"
+            defaultLanguage={activeTab === "js" ? "javascript" : activeTab}
+            language={activeTab === "js" ? "javascript" : activeTab}
+            value={content}
+            onChange={handleEditorChange}
+            onMount={handleEditorMount}
+            theme={theme === "dark" ? "vs-dark" : "vs-light"}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              padding: { top: 16 },
+              scrollBeyondLastLine: false,
+            }}
+          />
+        )}
       </div>
 
       <div className="footer-nav-row">
@@ -250,7 +340,10 @@ export default function EditorPane({
             <ArrowLeft size={20} style={{ marginRight: 8 }} /> Previous
           </button>
           <span className="task-counter">
-            Task {currentIndex + 1} of {totalTasks} {isCompleted && <Check size={20} style={{ marginLeft: 8 }} color="green" />}
+            Task {currentIndex + 1} of {totalTasks}{" "}
+            {isCompleted && (
+              <Check size={20} style={{ marginLeft: 8 }} color="green" />
+            )}
           </span>
           <button
             onClick={hasNext ? onNext : undefined}

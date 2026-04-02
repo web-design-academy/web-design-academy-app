@@ -34,10 +34,126 @@
   flex: 1;
   background-color: var(--color-card);
   overflow-y: auto;
-  padding: var(--space-4);
+  padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--color-border);
+  line-height: 1.7;
+  color: var(--color-text);
+  scroll-behavior: smooth;
+}
+
+.lesson-content h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-top: 0;
+  letter-spacing: -0.03em;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.lesson-content h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  padding-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.lesson-content h3 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.lesson-content p {
+  margin-bottom: 1.25rem;
+  font-size: 1.05rem;
+  opacity: 0.9;
+}
+
+.lesson-content ol {
+  padding-left: 1.5rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.lesson-content ul {
+  padding-left: 2.5rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.lesson-content li::marker {
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.lesson-content a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px dashed var(--color-primary);
+  transition: all 0.2s ease;
+}
+
+.lesson-content a:hover {
+  text-decoration: none;
+  border-bottom-style: solid;
+  opacity: 0.8;
+}
+
+.lesson-content strong {
+  font-weight: 700;
+  opacity: 1;
+}
+
+.lesson-content blockquote {
+  border-left: 4px solid var(--color-primary);
+  background-color: var(--color-bg);
+  margin: 1.5rem 0;
+  padding: 1rem 1.5rem;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.lesson-content blockquote p {
+  margin-bottom: 0;
+}
+
+.lesson-content code {
+  background-color: var(--color-bg);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9em;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+}
+
+.lesson-content pre {
+  background-color: #1e1e2e;
+  padding: 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.lesson-content pre code {
+  background-color: transparent;
+  padding: 0;
+  border: none;
+  color: #cdd6f4;
+  font-size: 0.95em;
+}
+
+.lesson-content hr {
+  border: 0;
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 2.5rem 0;
 }
 
 @media (max-width: 768px) {

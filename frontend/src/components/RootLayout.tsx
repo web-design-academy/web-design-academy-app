@@ -12,7 +12,7 @@ export default function Root() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
-  const apiEnabled = import.meta.env.VITE_API_BASE
+  const apiEnabled = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
