@@ -58,8 +58,12 @@ export default function Root() {
       <header>
         <div className="header-left">
           <Link to="/" className="logo-link">
-            <img src="/logo.svg" alt="Web Academy Icon" className="logo-image" />
-            <span className="logo-title">Web Academy</span>
+            <img
+              src="/logo.png"
+              alt="Web Design Academy logo: Academic cap and letters WDA"
+              className="logo-image"
+            />
+            <span className="logo-title">Web Design Academy</span>
           </Link>
         </div>
 
@@ -67,7 +71,9 @@ export default function Root() {
           {isAuthenticated ? (
             <>
               {user?.role === "admin" ? (
-                <Link to="/admin" className="nav-link">{user?.name}</Link>
+                <Link to="/admin" className="nav-link">
+                  {user?.name}
+                </Link>
               ) : (
                 <span className="user-text">{user?.name}</span>
               )}

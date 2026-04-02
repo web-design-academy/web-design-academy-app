@@ -3,9 +3,9 @@
   --color-card: oklch(0 0 0);
   --color-text: oklch(0.85 0 0);
   --color-border: oklch(0.3 0 0);
-  --color-primary: oklch(0.59 0.158 241.966);
+  --color-primary: oklch(0.71 0.13 215);
 
-  --font-family: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-family: "Geist", system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-size-base: 1rem;
   --font-size-sm: 0.875rem;
   --font-size-lg: 1.125rem;
