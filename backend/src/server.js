@@ -93,6 +93,14 @@ app.use(
         "style-src": [
           "'self'",
           "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://accounts.google.com/gsi/style",
+          "https://fonts.googleapis.com",
+        ],
+        "style-src-elem": [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
           "https://accounts.google.com/gsi/style",
           "https://fonts.googleapis.com",
         ],
@@ -100,6 +108,7 @@ app.use(
         "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
         "connect-src": [
           "'self'",
+          "https://cdn.jsdelivr.net",
           "https://accounts.google.com/gsi/",
           "https://accounts.google.com/gsi/client",
         ],
