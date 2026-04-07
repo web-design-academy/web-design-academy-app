@@ -77,7 +77,17 @@ app.use(
         "script-src": [
           "'self'",
           "'unsafe-inline'",
-          ...(IS_PRODUCTION ? [] : ["'unsafe-eval'"]),
+          "'unsafe-eval'",
+          "blob:",
+          "https://cdn.jsdelivr.net",
+          "https://accounts.google.com/gsi/client",
+        ],
+        "script-src-elem": [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "blob:",
+          "https://cdn.jsdelivr.net",
           "https://accounts.google.com/gsi/client",
         ],
         "style-src": [

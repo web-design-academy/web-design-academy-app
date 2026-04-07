@@ -15,6 +15,9 @@ export default function Root() {
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false,
+  );
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -23,11 +26,15 @@ export default function Root() {
 
   useEffect(() => {
     const closeOnWideScreen = () => {
-      if (window.innerWidth > 768) {
+      const mobile = window.innerWidth <= 768;
+      setIsMobileViewport(mobile);
+
+      if (!mobile) {
         setIsMobileMenuOpen(false);
       }
     };
 
+    closeOnWideScreen();
     window.addEventListener("resize", closeOnWideScreen);
     return () => window.removeEventListener("resize", closeOnWideScreen);
   }, []);
@@ -133,7 +140,7 @@ export default function Root() {
                 Sign Out
               </button>
             </>
-          ) : isGoogleAuthEnabled ? (
+          ) : isGoogleAuthEnabled && !isMobileViewport ? (
             <GoogleLogin
               onSuccess={handleSuccess}
               onError={() => setError("Google Auth Failed")}
@@ -179,7 +186,7 @@ export default function Root() {
                 <LogOut size={18} />
               </button>
             </div>
-          ) : isGoogleAuthEnabled ? (
+          ) : isGoogleAuthEnabled && isMobileViewport && isMobileMenuOpen ? (
             <div className="mobile-row">
               <span className="mobile-row-label">Sign in</span>
               <GoogleLogin
