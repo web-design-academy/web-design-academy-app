@@ -1,6 +1,6 @@
 import { Editor, type OnMount } from "@monaco-editor/react";
 import { type TaskCode } from "@/lib/helpers/getTasks";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { useNavigate } from "react-router";
 import SubmitButton from "./SubmitButton";
@@ -58,6 +58,8 @@ export default function EditorPane({
   const [activeTab, setActiveTab] = useState<Tab>("html");
   const [useVisualEditor, setUseVisualEditor] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<typeof monaco | null>(null);
+  const lastValidValueRef = useRef("");
   const navigate = useNavigate();
   const { theme } = useTheme();
 
@@ -125,8 +127,40 @@ export default function EditorPane({
     return r.split("\n").length;
   }, [activeTab, readonlyHtml, readonlyCss, readonlyJs]);
 
+  const editableSource =
+    activeTab === "html"
+      ? task?.editableHtml
+      : activeTab === "css"
+        ? task?.editableCss
+        : task?.editableJs;
+
+  const isFileFullyReadonly = editableSource === undefined;
+
+  useEffect(() => {
+    lastValidValueRef.current = content.replace(/\r\n/g, "\n");
+  }, [content]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monacoInstance = monacoRef.current;
+
+    if (!editor || !monacoInstance) {
+      return;
+    }
+
+    const normalizedCurrent = editor.getValue().replace(/\r\n/g, "\n");
+    const normalizedTarget = content.replace(/\r\n/g, "\n");
+
+    if (normalizedCurrent !== normalizedTarget) {
+      editor.setValue(content);
+    }
+
+    updateDecorations(editor, monacoInstance, readonlyLinesCount);
+  }, [content, readonlyLinesCount]);
+
   const handleEditorMount: OnMount = (editor, monacoInstance) => {
     editorRef.current = editor;
+    monacoRef.current = monacoInstance;
     updateDecorations(editor, monacoInstance, readonlyLinesCount);
   };
 
@@ -162,6 +196,7 @@ export default function EditorPane({
 
   const handleEditorChange = (value: string | undefined) => {
     const val = value || "";
+    const normalizedVal = val.replace(/\r\n/g, "\n");
 
     const r =
       activeTab === "html"
@@ -169,13 +204,31 @@ export default function EditorPane({
         : activeTab === "css"
           ? readonlyCss
           : readonlyJs;
-    const rText = r || "";
+    const normalizedReadonly = (r || "").replace(/\r\n/g, "\n");
 
-    if (!val.startsWith(rText)) {
+    if (isFileFullyReadonly) {
+      const editor = editorRef.current;
+      if (editor && editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current) {
+        editor.setValue(lastValidValueRef.current);
+        if (monacoRef.current) {
+          updateDecorations(editor, monacoRef.current, readonlyLinesCount);
+        }
+      }
       return;
     }
 
-    const editablePart = val.slice(rText.length);
+    if (!normalizedVal.startsWith(normalizedReadonly)) {
+      const editor = editorRef.current;
+      if (editor && editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current) {
+        editor.setValue(lastValidValueRef.current);
+        if (monacoRef.current) {
+          updateDecorations(editor, monacoRef.current, readonlyLinesCount);
+        }
+      }
+      return;
+    }
+
+    const editablePart = normalizedVal.slice(normalizedReadonly.length);
 
     const field =
       activeTab === "html"
@@ -185,6 +238,7 @@ export default function EditorPane({
           : "editableJs";
 
     onTaskChange(field, editablePart);
+    lastValidValueRef.current = normalizedVal;
   };
 
   const isCompleted = currentTaskId && completedTasks?.has(currentTaskId);
@@ -277,7 +331,7 @@ export default function EditorPane({
           </div>
         ) : (
           <Editor
-            key={activeTab}
+            key={`${activeTab}-${currentIndex}`}
             height="100%"
             defaultLanguage={activeTab === "js" ? "javascript" : activeTab}
             language={activeTab === "js" ? "javascript" : activeTab}
@@ -290,6 +344,8 @@ export default function EditorPane({
               fontSize: 14,
               padding: { top: 16 },
               scrollBeyondLastLine: false,
+              readOnly: isFileFullyReadonly,
+              domReadOnly: isFileFullyReadonly,
             }}
           />
         )}

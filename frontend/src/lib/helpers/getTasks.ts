@@ -56,7 +56,10 @@ export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
   const customTasks = getCustomTasks(lessonSlug);
 
   if (customTasks.length > 0) {
-    return customTasks;
+    return customTasks.map((customTask, index) => ({
+      ...fileTasks[index],
+      ...customTask,
+    }));
   }
 
   return fileTasks;

@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-right: 1px solid var(--color-border);
+  border-right: var(--border-width-thin) solid var(--color-border);
   background-color: var(--color-card);
   overflow: hidden;
   font-family: var(--font-family);
@@ -12,7 +12,7 @@
   display: flex;
   background-color: var(--color-bg);
   padding: 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-width-thin) solid var(--color-border);
   gap: 0;
 }
 
@@ -24,26 +24,27 @@
   display: flex;
   min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .editor-tab-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-right: 16px;
+  gap: var(--space-3);
+  padding-right: var(--space-4);
   flex-shrink: 0;
 }
 
 .editor-tabs .tab {
-  padding: 10px 20px;
+  padding: var(--space-3) var(--space-5);
   border: none;
   background: transparent;
   color: var(--color-text);
   opacity: 0.6;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  border-right: 1px solid var(--color-border);
+  border-right: var(--border-width-thin) solid var(--color-border);
   position: relative;
   transition: all var(--transition-fast);
   white-space: nowrap;
@@ -93,24 +94,24 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-width-thin) solid var(--color-border);
   background-color: var(--color-card);
 }
 
 .admin-actions-group {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .visual-editor-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 4px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1);
   border: none;
   background: transparent;
   color: var(--color-text);
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
@@ -124,7 +125,7 @@
   justify-content: flex-end;
   align-items: center;
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-width-thin) solid var(--color-border);
   background-color: var(--color-card);
 }
 
@@ -145,21 +146,21 @@
 .task-counter {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
-  min-width: 100px;
+  min-width: 6.25rem;
   text-align: center;
 }
 
 .task-reset-icon {
-  width: 28px;
-  height: 28px;
+  width: var(--size-icon-small);
+  height: var(--size-icon-small);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-primary);
   cursor: pointer;
@@ -178,16 +179,16 @@
 .monaco-editor .readonly-line::after {
   content: "🔒";
   position: absolute;
-  right: 24px;
+  right: var(--space-6);
   color: var(--color-text);
   opacity: 0.4;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 @media (max-width: 900px) {
   .footer-admin-row {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .footer-admin-row > .btn-ghost,
@@ -212,32 +213,32 @@
 
   .editor-tab-controls {
     justify-content: flex-end;
-    padding: 0 8px;
-    gap: 8px;
+    padding: 0 var(--space-2);
+    gap: var(--space-2);
   }
 
   .visual-editor-toggle {
-    padding: 5px 6px;
-    font-size: 0.75rem;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
   }
 
   .footer-nav-row {
-    padding: 8px 10px;
+    padding: var(--space-2) var(--space-3);
   }
 
   .nav-controls {
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .nav-controls .btn-ghost {
-    min-width: 96px;
-    padding: 0.45rem 0.6rem;
-    font-size: 0.8rem;
+    min-width: 6rem;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
   }
 
   .task-counter {
     min-width: 0;
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     justify-content: center;
   }
 }

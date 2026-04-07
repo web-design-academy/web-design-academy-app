@@ -168,8 +168,12 @@ export default function Lesson() {
         idx === currentTaskIndex ? { ...s, [field]: value } : s,
       );
       if (isAdmin && slug) {
+        const persisted = updated.map((state, idx) => ({
+          ...tasks[idx],
+          ...state,
+        }));
         import("@/lib/helpers/adminStorage").then((m) => {
-          m.saveCustomTasks(slug, updated);
+          m.saveCustomTasks(slug, persisted);
         });
       }
       return updated;
@@ -189,8 +193,12 @@ export default function Lesson() {
           : s,
       );
       if (isAdmin && slug) {
+        const persisted = updated.map((state, idx) => ({
+          ...tasks[idx],
+          ...state,
+        }));
         import("@/lib/helpers/adminStorage").then((m) => {
-          m.saveCustomTasks(slug, updated);
+          m.saveCustomTasks(slug, persisted);
         });
       }
       return updated;

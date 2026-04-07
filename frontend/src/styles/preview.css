@@ -26,7 +26,7 @@
   font-size: var(--font-size-base);
   color: var(--color-text);
   background-color: var(--color-card);
-  border: 1px solid var(--color-border);
+  border: var(--border-width-thin) solid var(--color-border);
   border-radius: var(--radius-sm);
   transition: var(--transition-fast);
 }
@@ -35,7 +35,7 @@
 .preview-selector input:hover {
   border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 1px var(--color-primary);
+  box-shadow: 0 0 0 var(--border-width-thin) var(--color-primary);
 }
 
 .preview-container {
@@ -50,7 +50,7 @@
 
 .preview-resizable {
   margin: auto;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: visible;
 }
@@ -59,19 +59,32 @@
   width: 100%;
   height: 100%;
   border: none;
-  background-color: #ffffff;
+  background-color: var(--surface-preview);
   transform-origin: top left;
 }
 
 .preview-size-overlay {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: var(--overlay-dark-70);
+  color: var(--surface-preview);
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   pointer-events: none;
   z-index: 10;
+}
+
+@media (max-width: 900px) {
+  .lesson-mobile-preview .preview-container {
+    align-items: flex-start;
+    padding: var(--space-2);
+  }
+
+  .lesson-mobile-preview .preview-resizable {
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
 }

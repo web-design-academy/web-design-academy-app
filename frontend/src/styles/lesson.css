@@ -27,24 +27,24 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-left: 1px solid var(--color-border);
+  border-left: var(--border-width-thin) solid var(--color-border);
 }
 
 .lesson-content {
   flex: 1;
   background-color: var(--color-card);
   overflow-y: auto;
-  padding: 2.5rem 3rem;
+  padding: var(--space-7) var(--space-8);
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--color-border);
+  border-top: var(--border-width-thin) solid var(--color-border);
   line-height: 1.7;
   color: var(--color-text);
   scroll-behavior: smooth;
 }
 
 .lesson-content h1 {
-  font-size: 2.5rem;
+  font-size: calc(var(--font-size-3xl) + var(--space-2));
   font-weight: 800;
   margin-top: 0;
   letter-spacing: -0.03em;
@@ -53,36 +53,36 @@
 }
 
 .lesson-content h2 {
-  font-size: 1.75rem;
+  font-size: calc(var(--font-size-xl) + var(--space-2));
   font-weight: 700;
-  margin-top: 1.5rem;
-  padding-bottom: 0.5rem;
+  margin-top: var(--space-5);
+  padding-bottom: var(--space-2);
   letter-spacing: -0.01em;
 }
 
 .lesson-content h3 {
-  font-size: 1.35rem;
+  font-size: var(--font-size-xl);
   font-weight: 600;
-  margin-top: 2rem;
-  margin-bottom: 0.75rem;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
 }
 
 .lesson-content p {
-  margin-bottom: 1.25rem;
-  font-size: 1.05rem;
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-base);
   opacity: 0.9;
 }
 
 .lesson-content ol {
-  padding-left: 1.5rem;
+  padding-left: var(--space-5);
   margin-top: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
 }
 
 .lesson-content ul {
-  padding-left: 2.5rem;
+  padding-left: var(--space-7);
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 .lesson-content li::marker {
@@ -110,11 +110,11 @@
 }
 
 .lesson-content blockquote {
-  border-left: 4px solid var(--color-primary);
+  border-left: var(--border-width-accent) solid var(--color-primary);
   background-color: var(--color-bg);
-  margin: 1.5rem 0;
-  padding: 1rem 1.5rem;
-  border-radius: 0 8px 8px 0;
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-style: italic;
   opacity: 0.85;
 }
@@ -125,49 +125,50 @@
 
 .lesson-content code {
   background-color: var(--color-bg);
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.9em;
   color: var(--color-primary);
-  border: 1px solid var(--color-border);
+  border: var(--border-width-thin) solid var(--color-border);
 }
 
 .lesson-content pre {
-  background-color: #1e1e2e;
-  padding: 1.25rem;
-  border-radius: 8px;
+  background-color: var(--surface-code);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
   overflow-x: auto;
-  margin: 1.5rem 0;
+  margin: var(--space-5) 0;
 }
 
 .lesson-content pre code {
   background-color: transparent;
   padding: 0;
   border: none;
-  color: #cdd6f4;
+  color: var(--surface-code-soft);
   font-size: 0.95em;
 }
 
 .lesson-content hr {
   border: 0;
-  height: 1px;
+  height: var(--border-width-thin);
   background-color: var(--color-border);
-  margin: 2.5rem 0;
+  margin: var(--space-7) 0;
 }
 
 @media (max-width: 900px) {
   .lesson-container-mobile {
     height: auto;
     min-height: calc(100vh - var(--header-height) - 1px);
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
-  .lesson-mobile-editor {
-    height: 62vh;
-    min-height: 420px;
-    border-bottom: 1px solid var(--color-border);
-  }
+.lesson-mobile-editor {
+  height: 62vh;
+  min-height: 26.25rem;
+  border-bottom: var(--border-width-thin) solid var(--color-border);
+}
 
   .lesson-mobile-editor .editor-pane {
     border-right: none;
@@ -175,33 +176,37 @@
 
   .lesson-mobile-preview {
     height: 44vh;
-    min-height: 280px;
-    border-bottom: 1px solid var(--color-border);
+    min-height: 17.5rem;
+    border-bottom: var(--border-width-thin) solid var(--color-border);
     display: flex;
     flex-direction: column;
     background-color: var(--color-bg);
+    overflow: hidden;
   }
 
   .lesson-content-mobile {
+    flex: none;
     height: auto;
     min-height: 45vh;
-    padding: 1.25rem 1rem 1.5rem;
+    padding: var(--space-5) var(--space-4) var(--space-5);
     border-top: none;
+    position: relative;
+    z-index: 1;
   }
 
-  .lesson-content-mobile h1 {
-    font-size: 1.85rem;
-  }
+.lesson-content-mobile h1 {
+  font-size: var(--font-size-3xl);
+}
 
-  .lesson-content-mobile h2 {
-    font-size: 1.4rem;
-  }
+.lesson-content-mobile h2 {
+  font-size: var(--font-size-2xl);
+}
 
-  .lesson-content-mobile h3 {
-    font-size: 1.15rem;
-  }
+.lesson-content-mobile h3 {
+  font-size: var(--font-size-lg);
+}
 
-  .lesson-content-mobile p {
-    font-size: 1rem;
+.lesson-content-mobile p {
+    font-size: var(--font-size-base);
   }
 }

@@ -1,7 +1,3 @@
-:root {
-  --header-height: 64px;
-}
-
 body {
   margin: 0;
   font-family: var(--font-family);
@@ -18,11 +14,11 @@ body {
 
 header {
   background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-width-thin) solid var(--color-border);
   height: var(--header-height);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-header);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -48,8 +44,8 @@ header {
 .icon-button {
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text);
@@ -85,7 +81,7 @@ header {
 .mobile-row-label {
   margin: 0;
   color: var(--color-text);
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   opacity: 0.9;
 }
@@ -100,8 +96,8 @@ header {
 }
 
 .logo-image {
-  height: 72px;
-  width: 72px;
+  height: var(--size-logo-desktop);
+  width: var(--size-logo-desktop);
 }
 
 .logo-title {
@@ -113,13 +109,13 @@ header {
 .nav-link {
   color: var(--color-text);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
   font-weight: 500;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   transition:
-    background-color 0.2s,
-    opacity 0.2s;
+    background-color var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .nav-link:hover {
@@ -128,7 +124,7 @@ header {
 }
 
 .user-text {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text);
   opacity: 0.8;
@@ -143,12 +139,12 @@ header {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0.5rem 1rem;
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s;
-  height: 2.25rem;
+  transition: all var(--transition-fast);
+  height: var(--size-button-height);
   border: 1px solid transparent;
 }
 
@@ -189,16 +185,16 @@ header {
 @media (max-width: 768px) {
   header {
     position: sticky;
-    z-index: 50;
+    z-index: var(--z-header-mobile);
   }
 
   .logo-image {
-    width: 56px;
-    height: 56px;
+    width: var(--size-logo-mobile);
+    height: var(--size-logo-mobile);
   }
 
   .logo-title {
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
   }
 
   .hamburger-toggle {
@@ -216,14 +212,14 @@ header {
     bottom: 0;
     width: min(74vw, 280px);
     background: var(--color-card);
-    border-left: 1px solid var(--color-border);
+    border-left: var(--border-width-thin) solid var(--color-border);
     display: flex;
     flex-direction: column;
     align-items: stretch;
     box-shadow: var(--shadow-lg);
     transform: translateX(100%);
     transition: transform 0.24s ease;
-    z-index: 60;
+    z-index: var(--z-drawer);
   }
 
   .mobile-drawer.open {
@@ -236,7 +232,7 @@ header {
     align-items: center;
     justify-content: flex-end;
     padding: 0 var(--space-3);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: var(--border-width-thin) solid var(--color-border);
   }
 
   .mobile-drawer-content {
@@ -250,11 +246,11 @@ header {
     position: fixed;
     inset: 0;
     border: none;
-    background: rgba(15, 18, 28, 0.56);
+    background: var(--overlay-backdrop);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
-    z-index: 55;
+    z-index: var(--z-overlay);
   }
 
   .mobile-menu-overlay.open {
@@ -266,7 +262,7 @@ header {
   .mobile-drawer-content .mobile-row .nav-link {
     padding: 0;
     font-weight: var(--font-weight-semibold);
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
     background: transparent;
   }
 
