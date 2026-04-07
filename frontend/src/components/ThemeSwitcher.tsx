@@ -1,5 +1,4 @@
-import sunIcon from "@/assets/sun.svg";
-import moonIcon from "@/assets/moon.svg";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/lib/ctx/useTheme";
 
 export default function ThemeSwitcher() {
@@ -10,25 +9,13 @@ export default function ThemeSwitcher() {
       onClick={toggleTheme}
       aria-label="Toggle light/dark theme"
       title="Toggle light/dark theme"
-      style={{
-        background: "transparent",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-md)",
-        cursor: "pointer",
-        padding: "6px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "36px",
-        height: "36px",
-      }}
+      className="icon-button"
     >
-      <img
-        src={theme === "light" ? moonIcon : sunIcon}
-        alt={theme === "light" ? "Change to dark mode" : "Change to light mode"}
-        className="theme-switcher"
-        style={{ width: "20px", height: "20px" }}
-      />
+      {theme === "light" ? (
+        <Moon className="theme-icon" size={20} aria-hidden="true" />
+      ) : (
+        <Sun className="theme-icon" size={20} aria-hidden="true" />
+      )}
     </button>
   );
 }

@@ -156,23 +156,52 @@
   margin: 2.5rem 0;
 }
 
-@media (max-width: 768px) {
-  .lesson-container {
-    flex-direction: column;
-  }
-
-  .lesson-top-inner {
-    flex-direction: column;
-  }
-
-  .lesson-editor,
-  .lesson-preview {
-    height: 200px;
-    border: none;
-  }
-
-  .lesson-content {
+@media (max-width: 900px) {
+  .lesson-container-mobile {
     height: auto;
-    max-height: none;
+    min-height: calc(100vh - var(--header-height) - 1px);
+    overflow: auto;
+  }
+
+  .lesson-mobile-editor {
+    height: 62vh;
+    min-height: 420px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .lesson-mobile-editor .editor-pane {
+    border-right: none;
+  }
+
+  .lesson-mobile-preview {
+    height: 44vh;
+    min-height: 280px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-bg);
+  }
+
+  .lesson-content-mobile {
+    height: auto;
+    min-height: 45vh;
+    padding: 1.25rem 1rem 1.5rem;
+    border-top: none;
+  }
+
+  .lesson-content-mobile h1 {
+    font-size: 1.85rem;
+  }
+
+  .lesson-content-mobile h2 {
+    font-size: 1.4rem;
+  }
+
+  .lesson-content-mobile h3 {
+    font-size: 1.15rem;
+  }
+
+  .lesson-content-mobile p {
+    font-size: 1rem;
   }
 }

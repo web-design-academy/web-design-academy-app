@@ -195,15 +195,14 @@ export default function EditorPane({
         {isAdmin && (
           <div className="footer-admin-row">
             <button onClick={onAddTask} className="btn-ghost">
-              <Plus size={20} style={{ marginRight: 8 }} /> Add new task
+              <Plus size={20} style={{ marginRight: 8 }} /> Add task
             </button>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="admin-actions-group">
               <button onClick={handleDiscard} className="btn-ghost">
-                Discard changes
+                Discard
               </button>
               <button onClick={handleDownloadZip} className="btn-primary">
                 <Download size={20} style={{ marginRight: 8 }} /> Download
-                archive
               </button>
             </div>
           </div>
@@ -215,8 +214,8 @@ export default function EditorPane({
         )}
       </div>
 
-      <div className="editor-tabs" style={{ justifyContent: "space-between" }}>
-        <div style={{ display: "flex" }}>
+      <div className="editor-tabs editor-tabs-row">
+        <div className="editor-tab-list">
           <button
             className={`tab ${activeTab === "html" ? "active" : ""}`}
             onClick={() => setActiveTab("html")}
@@ -244,49 +243,15 @@ export default function EditorPane({
             script.js
           </button>
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            paddingRight: "16px",
-          }}
-        >
-          {onResetTask && (
-            <button
-              onClick={onResetTask}
-              className="btn-ghost"
-              style={{
-                padding: "4px 8px",
-                height: "auto",
-                fontSize: "0.8rem",
-                color: "var(--color-primary)",
-                border: "1px solid var(--color-primary)",
-                borderRadius: "4px",
-              }}
-            >
-              <RotateCcw size={14} style={{ marginRight: 6 }} /> Reset
-            </button>
-          )}
-          <label
-            className="tab"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              opacity: 1,
-              borderLeft: "1px solid var(--color-border)",
-              borderRight: "none",
-              padding: "10px 0",
-            }}
-          >
+        <div className="editor-tab-controls">
+          <label className="visual-editor-toggle">
             <input
               type="checkbox"
               checked={useVisualEditor}
               onChange={(e) => setUseVisualEditor(e.target.checked)}
-              style={{ cursor: "pointer" }}
+              className="visual-editor-checkbox"
             />
-            Visual Editor
+            Visual mode
           </label>
         </div>
       </div>
@@ -340,7 +305,17 @@ export default function EditorPane({
             <ArrowLeft size={20} style={{ marginRight: 8 }} /> Previous
           </button>
           <span className="task-counter">
-            Task {currentIndex + 1} of {totalTasks}{" "}
+            Task {currentIndex + 1} of {totalTasks}
+            {onResetTask && (
+              <button
+                onClick={onResetTask}
+                className="task-reset-icon"
+                title="Reset task"
+                aria-label="Reset task"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
             {isCompleted && (
               <Check size={20} style={{ marginLeft: 8 }} color="green" />
             )}

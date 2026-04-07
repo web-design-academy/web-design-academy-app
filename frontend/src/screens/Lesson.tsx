@@ -34,9 +34,13 @@ export default function Lesson() {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [editorPercent, setEditorPercent] = useState(40);
   const [topRowPercent, setTopRowPercent] = useState(60);
+  const [isMobileLayout, setIsMobileLayout] = useState(
+    typeof window !== "undefined" ? window.innerWidth <= 900 : false,
+  );
 
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   const [LessonContent, setLessonContent] =
     useState<React.LazyExoticComponent<MDXContent> | null>(null);
@@ -62,6 +66,15 @@ export default function Lesson() {
       setLessonContent(lazy(() => import(`../lessons/${slug}/index.mdx`)));
     }
   }, [slug, isNew]);
+
+  useEffect(() => {
+    const onResize = () => {
+      setIsMobileLayout(window.innerWidth <= 900);
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     if (loadedSubmission && tasks.length > 0) {
@@ -163,31 +176,29 @@ export default function Lesson() {
     });
   };
 
+  const applyResetTask = () => {
+    setTaskStates((prev) => {
+      const updated = prev.map((s, idx) =>
+        idx === currentTaskIndex
+          ? {
+              ...s,
+              editableHtml: tasks[idx].editableHtml,
+              editableCss: tasks[idx].editableCss,
+              editableJs: tasks[idx].editableJs,
+            }
+          : s,
+      );
+      if (isAdmin && slug) {
+        import("@/lib/helpers/adminStorage").then((m) => {
+          m.saveCustomTasks(slug, updated);
+        });
+      }
+      return updated;
+    });
+  };
+
   const resetTask = () => {
-    if (
-      window.confirm(
-        "Are you sure you want to reset this task? All your changes will be lost.",
-      )
-    ) {
-      setTaskStates((prev) => {
-        const updated = prev.map((s, idx) =>
-          idx === currentTaskIndex
-            ? {
-                ...s,
-                editableHtml: tasks[idx].editableHtml,
-                editableCss: tasks[idx].editableCss,
-                editableJs: tasks[idx].editableJs,
-              }
-            : s,
-        );
-        if (isAdmin && slug) {
-          import("@/lib/helpers/adminStorage").then((m) => {
-            m.saveCustomTasks(slug, updated);
-          });
-        }
-        return updated;
-      });
-    }
+    setShowResetModal(true);
   };
 
   const addTask = () => {
@@ -251,27 +262,13 @@ export default function Lesson() {
   };
 
   return (
-    <main className="lesson-container">
+    <main
+      className={`lesson-container ${isMobileLayout ? "lesson-container-mobile" : ""}`}
+    >
       <Suspense fallback={<LoadingSpinner />}>
-        <Resizable
-          className="lesson-top-row"
-          size={{ width: "100%", height: `${topRowPercent}%` }}
-          enable={{ bottom: true }}
-          minHeight={100}
-          maxHeight="90%"
-          onResize={handleTopRowResize}
-          onResizeStop={handleTopRowResize}
-        >
-          <div className="lesson-top-inner">
-            <Resizable
-              className="lesson-editor"
-              size={{ width: `${editorPercent}%`, height: "100%" }}
-              enable={{ right: true }}
-              minWidth="15%"
-              maxWidth="85%"
-              onResize={handleEditorResize}
-              onResizeStop={handleEditorResize}
-            >
+        {isMobileLayout ? (
+          <>
+            <section className="lesson-mobile-editor">
               <EditorPane
                 task={currentTaskState}
                 currentIndex={currentTaskIndex}
@@ -288,20 +285,63 @@ export default function Lesson() {
                 onResetTask={resetTask}
                 lessonSlug={slug}
               />
-            </Resizable>
+            </section>
 
-            <div
-              className="lesson-preview"
-              style={{ width: `${100 - editorPercent}%` }}
-            >
+            <section className="lesson-mobile-preview">
               <PreviewPane html={srcDoc} />
+            </section>
+          </>
+        ) : (
+          <Resizable
+            className="lesson-top-row"
+            size={{ width: "100%", height: `${topRowPercent}%` }}
+            enable={{ bottom: true }}
+            minHeight={100}
+            maxHeight="90%"
+            onResize={handleTopRowResize}
+            onResizeStop={handleTopRowResize}
+          >
+            <div className="lesson-top-inner">
+              <Resizable
+                className="lesson-editor"
+                size={{ width: `${editorPercent}%`, height: "100%" }}
+                enable={{ right: true }}
+                minWidth="15%"
+                maxWidth="85%"
+                onResize={handleEditorResize}
+                onResizeStop={handleEditorResize}
+              >
+                <EditorPane
+                  task={currentTaskState}
+                  currentIndex={currentTaskIndex}
+                  totalTasks={tasks.length}
+                  onTaskChange={updateTask}
+                  onChangeTask={(idx) => setCurrentTaskIndex(idx)}
+                  readonlyHtml={currentTask?.readonlyHtml}
+                  readonlyCss={currentTask?.readonlyCss}
+                  readonlyJs={currentTask?.readonlyJs}
+                  onSubmit={handleSubmit}
+                  completedTasks={completedTasks}
+                  currentTaskId={currentTaskId}
+                  onAddTask={addTask}
+                  onResetTask={resetTask}
+                  lessonSlug={slug}
+                />
+              </Resizable>
+
+              <div
+                className="lesson-preview"
+                style={{ width: `${100 - editorPercent}%` }}
+              >
+                <PreviewPane html={srcDoc} />
+              </div>
             </div>
-          </div>
-        </Resizable>
+          </Resizable>
+        )}
 
         <div
-          className="lesson-content"
-          style={{ height: `${100 - topRowPercent}%` }}
+          className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""}`}
+          style={isMobileLayout ? undefined : { height: `${100 - topRowPercent}%` }}
         >
           {isNew ? (
             <div
@@ -326,6 +366,30 @@ export default function Lesson() {
               ? "You need to be signed in to submit your solution"
               : "Submissions are disabled in offline mode"}
           </p>
+        </Modal>
+
+        <Modal
+          title="Reset Task"
+          isOpen={showResetModal}
+          onClose={() => setShowResetModal(false)}
+          actions={(
+            <>
+              <button className="btn-ghost" onClick={() => setShowResetModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  applyResetTask();
+                  setShowResetModal(false);
+                }}
+              >
+                Reset
+              </button>
+            </>
+          )}
+        >
+          <p>Are you sure you want to reset this task? All your changes will be lost.</p>
         </Modal>
       </Suspense>
     </main>

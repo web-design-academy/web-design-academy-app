@@ -1,6 +1,7 @@
-import { Link, Outlet, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { LogOut, Menu, X } from "lucide-react";
 import "@/styles/root.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { useAuth } from "@/lib/ctx/useAuth";
@@ -11,8 +12,47 @@ import { isGoogleAuthEnabled } from "@/lib/config/appMode";
 export default function Root() {
   const { user, logout, isAuthenticated, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme } = useTheme();
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const closeOnWideScreen = () => {
+      if (window.innerWidth > 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", closeOnWideScreen);
+    return () => window.removeEventListener("resize", closeOnWideScreen);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const onEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
 
   const handleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
@@ -37,6 +77,7 @@ export default function Root() {
 
   const handleLogout = () => {
     logout();
+    setIsMobileMenuOpen(false);
     navigate("/");
   };
 
@@ -67,6 +108,17 @@ export default function Root() {
           </Link>
         </div>
 
+        <button
+          className="icon-button hamburger-toggle"
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+          aria-label={
+            isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
+          }
+          aria-expanded={isMobileMenuOpen}
+        >
+          <Menu size={20} />
+        </button>
+
         <div className="header-right">
           {isAuthenticated ? (
             <>
@@ -96,6 +148,65 @@ export default function Root() {
           <ThemeSwitcher />
         </div>
       </header>
+
+      <aside className={`mobile-drawer ${isMobileMenuOpen ? "open" : ""}`}>
+        <div className="mobile-drawer-header">
+          <button
+            className="icon-button"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-label="Close navigation menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-drawer-content">
+          {isAuthenticated ? (
+            <div className="mobile-row">
+              {user?.role === "admin" ? (
+                <Link to="/admin" className="mobile-row-label nav-link">
+                  {user?.name}
+                </Link>
+              ) : (
+                <span className="mobile-row-label">{user?.name}</span>
+              )}
+              <button
+                onClick={handleLogout}
+                className="icon-button mobile-row-icon"
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          ) : isGoogleAuthEnabled ? (
+            <div className="mobile-row">
+              <span className="mobile-row-label">Sign in</span>
+              <GoogleLogin
+                onSuccess={handleSuccess}
+                onError={() => setError("Google Auth Failed")}
+                useOneTap={false}
+                theme={theme === "light" ? "outline" : "filled_black"}
+                type="icon"
+                shape="circle"
+                size="large"
+              />
+            </div>
+          ) : null}
+
+          <div className="mobile-row">
+            <span className="mobile-row-label">Dark mode</span>
+            <ThemeSwitcher />
+          </div>
+        </div>
+      </aside>
+
+      <button
+        type="button"
+        className={`mobile-menu-overlay ${isMobileMenuOpen ? "open" : ""}`}
+        aria-label="Close menu overlay"
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
 
       <Outlet />
     </div>
