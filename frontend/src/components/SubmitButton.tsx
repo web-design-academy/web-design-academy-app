@@ -19,7 +19,8 @@ export default function SubmitButton({ onClick }: SubmitButtonProps) {
       await onClick();
       setStatus("success");
       setTimeout(() => setStatus("idle"), 2000);
-    } catch (_err) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 2000);
     }

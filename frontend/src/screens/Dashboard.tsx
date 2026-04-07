@@ -6,10 +6,13 @@ import { getLessons, type LessonMeta } from "@/lib/helpers/getLessons";
 import { getLessonTasksSync } from "@/lib/helpers/getTasks";
 import LessonIcon from "@/components/LessonIcon";
 import { useAuth } from "@/lib/ctx/useAuth";
+import { isOnlineMode } from "@/lib/config/appMode";
 import { ArrowRight } from "lucide-react";
 
 export default function Dashboard() {
-  const [lessons, setLessons] = useState<(LessonMeta & { progress: number })[]>([]);
+  const [lessons, setLessons] = useState<(LessonMeta & { progress: number })[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const { user, token, isAuthenticated } = useAuth();
 
@@ -19,8 +22,8 @@ export default function Dashboard() {
     const fetchAllProgress = async () => {
       const allLessons = getLessons();
 
-      if (!showProgress || !token) {
-        setLessons(allLessons.map(l => ({ ...l, progress: 0 })));
+      if (!isOnlineMode || !showProgress || !token) {
+        setLessons(allLessons.map((l) => ({ ...l, progress: 0 })));
         setLoading(false);
         return;
       }
@@ -35,15 +38,17 @@ export default function Dashboard() {
             const completedCount = data.completedTaskIds?.length || 0;
             const totalTasks = getLessonTasksSync(lesson.slug).length;
 
-            const progress = totalTasks > 0
-              ? Math.round((completedCount / totalTasks) * 100)
-              : 0;
+            const progress =
+              totalTasks > 0
+                ? Math.round((completedCount / totalTasks) * 100)
+                : 0;
 
             return { ...lesson, progress };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             return { ...lesson, progress: 0 };
           }
-        })
+        }),
       );
 
       setLessons(lessonsWithProgress);
@@ -51,7 +56,7 @@ export default function Dashboard() {
     };
 
     fetchAllProgress();
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, showProgress, token]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -86,7 +91,7 @@ export default function Dashboard() {
                       className="progress-bar-fill"
                       style={{
                         width: `${progress}%`,
-                        backgroundColor: 'var(--color-primary)'
+                        backgroundColor: "var(--color-primary)",
                       }}
                     />
                   </div>
@@ -99,8 +104,12 @@ export default function Dashboard() {
                 aria-label={`Start lesson "${title}"`}
               >
                 {showProgress && progress > 0
-                  ? (progress === 100 ? "Review" : "Continue")
-                  : (user?.role === "admin" ? "View" : "Start")}
+                  ? progress === 100
+                    ? "Review"
+                    : "Continue"
+                  : user?.role === "admin"
+                    ? "View"
+                    : "Start"}
                 <ArrowRight size={18} style={{ marginLeft: 8 }} />
               </Link>
             </div>

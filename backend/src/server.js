@@ -27,11 +27,11 @@ app.use((_, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com/gsi/client https://cdn.jsdelivr.net; " +
-    "worker-src 'self' blob:; " +
-    "frame-src 'self' https://accounts.google.com/gsi/; " +
-    "connect-src 'self' https://accounts.google.com/gsi/; " +
-    "font-src 'self' data: https://fonts.gstatic.com; " +
-    "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://fonts.googleapis.com;"
+      "worker-src 'self' blob:; " +
+      "frame-src 'self' https://accounts.google.com/gsi/; " +
+      "connect-src 'self' https://accounts.google.com/gsi/; " +
+      "font-src 'self' data: https://fonts.gstatic.com; " +
+      "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://fonts.googleapis.com;",
   );
   next();
 });
@@ -68,7 +68,7 @@ app.post("/api/auth/google", async (req, res) => {
 
     if (!isVutbr && !isAdmin) {
       return res.status(403).json({
-        error: "Access denied. Please use your @vutbr.cz account."
+        error: "Access denied. Please use your @vutbr.cz account.",
       });
     }
 
@@ -77,8 +77,9 @@ app.post("/api/auth/google", async (req, res) => {
     let user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
     if (!user) {
       user = { id: uuidv4(), email, name, role };
-      db.prepare("INSERT INTO users (id, email, name, role) VALUES (?, ?, ?, ?)")
-        .run(user.id, user.email, user.name, user.role);
+      db.prepare(
+        "INSERT INTO users (id, email, name, role) VALUES (?, ?, ?, ?)",
+      ).run(user.id, user.email, user.name, user.role);
     } else if (user.role !== role) {
       db.prepare("UPDATE users SET role = ? WHERE id = ?").run(role, user.id);
       user.role = role;
@@ -87,45 +88,65 @@ app.post("/api/auth/google", async (req, res) => {
     const token = jwt.sign(
       { sub: user.id, email: user.email, role: user.role, name: user.name },
       JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "7d" },
     );
 
     res.json({ token, userId: user.id, role: user.role, name: user.name });
-  } catch (error) {
+  } catch (err) {
     res.status(401).json({ error: "Invalid Google Token" });
   }
 });
 
 app.post("/api/submissions", authenticateToken, (req, res) => {
   const { lessonSlug, taskId, html, css, js } = req.body;
-  if (!lessonSlug || !taskId) return res.status(400).json({ error: "Missing fields" });
+  if (!lessonSlug || !taskId)
+    return res.status(400).json({ error: "Missing fields" });
 
   try {
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO submissions (user_id, lesson_slug, task_id, html, css, js, status)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(req.user.sub, lessonSlug, taskId, html || "", css || "", js || "", "pending");
+    `,
+      )
+      .run(
+        req.user.sub,
+        lessonSlug,
+        taskId,
+        html || "",
+        css || "",
+        js || "",
+        "pending",
+      );
 
     res.json({ success: true, id: result.lastInsertRowid });
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: "Database error" });
   }
 });
 
 app.get("/api/submissions", authenticateToken, (req, res) => {
-  if (req.user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  if (req.user.role !== "admin")
+    return res.status(403).json({ error: "Forbidden" });
 
-  const submissions = db.prepare(`
-    SELECT s.*, u.name as user_name, u.email as user_email 
+  const submissions = db
+    .prepare(
+      `
+    SELECT s.*, u.name as user_name, u.email as user_email
     FROM submissions s
     LEFT JOIN users u ON s.user_id = u.id
     ORDER BY s.timestamp DESC
-  `).all();
+  `,
+    )
+    .all();
   res.json(submissions);
 });
 
 app.get("/api/submissions/:id", authenticateToken, (req, res) => {
-  const submission = db.prepare("SELECT * FROM submissions WHERE id = ?").get(req.params.id);
+  const submission = db
+    .prepare("SELECT * FROM submissions WHERE id = ?")
+    .get(req.params.id);
 
   if (!submission) return res.status(404).json({ error: "Not found" });
   if (req.user.role !== "admin" && submission.user_id !== req.user.sub) {
@@ -136,9 +157,11 @@ app.get("/api/submissions/:id", authenticateToken, (req, res) => {
 });
 
 app.get("/api/progress/:lessonSlug", authenticateToken, (req, res) => {
-  const rows = db.prepare(
-    "SELECT DISTINCT task_id FROM submissions WHERE user_id = ? AND lesson_slug = ?"
-  ).all(req.user.sub, req.params.lessonSlug);
+  const rows = db
+    .prepare(
+      "SELECT DISTINCT task_id FROM submissions WHERE user_id = ? AND lesson_slug = ?",
+    )
+    .all(req.user.sub, req.params.lessonSlug);
 
   res.json({ completedTaskIds: rows.map((r) => r.task_id) });
 });
@@ -149,6 +172,6 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

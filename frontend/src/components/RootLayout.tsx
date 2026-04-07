@@ -6,13 +6,13 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { useAuth } from "@/lib/ctx/useAuth";
 import Modal from "@/components/Modal";
 import { useTheme } from "@/lib/ctx/useTheme";
+import { isGoogleAuthEnabled } from "@/lib/config/appMode";
 
 export default function Root() {
   const { user, logout, isAuthenticated, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
-  const apiEnabled = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
@@ -81,7 +81,7 @@ export default function Root() {
                 Sign Out
               </button>
             </>
-          ) : apiEnabled ? (
+          ) : isGoogleAuthEnabled ? (
             <GoogleLogin
               onSuccess={handleSuccess}
               onError={() => setError("Google Auth Failed")}

@@ -4,7 +4,7 @@
 
 ### Frontend
 
-1. Set `VITE_GOOGLE_CLIENT_ID` in `./frontend/.env`
+1. Set `VITE_APP_MODE`, and `VITE_GOOGLE_CLIENT_ID=` in `./frontend/.env`
 
 2. Run
 

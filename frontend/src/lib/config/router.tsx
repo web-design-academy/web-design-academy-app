@@ -4,6 +4,7 @@ import Root from "@/components/RootLayout";
 import Dashboard from "@/screens/Dashboard";
 import Lesson from "@/screens/Lesson";
 import AdminPage from "@/screens/AdminPage";
+import { isOnlineMode } from "@/lib/config/appMode";
 
 export const router = createBrowserRouter([
   {
@@ -11,7 +12,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: Dashboard },
       { path: "/lessons/:slug", Component: Lesson },
-      { path: "/admin", Component: AdminPage },
+      ...(isOnlineMode ? [{ path: "/admin", Component: AdminPage }] : []),
     ],
   },
 ]);

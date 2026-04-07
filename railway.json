@@ -3,6 +3,9 @@
   "build": {
     "dockerfilePath": "Dockerfile",
     "buildArgs": {
+      "VITE_APP_MODE": {
+        "fromEnv": "VITE_APP_MODE"
+      },
       "VITE_GOOGLE_CLIENT_ID": {
         "fromEnv": "VITE_GOOGLE_CLIENT_ID"
       }

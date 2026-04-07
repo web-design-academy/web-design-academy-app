@@ -1,4 +1,5 @@
 import { getToken } from "./auth";
+import { requireOnlineMode } from "@/lib/config/appMode";
 
 export interface SubmissionPayload {
   lessonSlug: string;
@@ -37,6 +38,8 @@ const getHeaders = () => {
 export async function submitSolution(
   payload: SubmissionPayload,
 ): Promise<SubmissionResponse> {
+  requireOnlineMode("Submissions");
+
   const response = await fetch("/api/submissions", {
     method: "POST",
     headers: getHeaders(),
@@ -52,6 +55,8 @@ export async function submitSolution(
 }
 
 export async function fetchSubmissions(): Promise<SubmissionRecord[]> {
+  requireOnlineMode("Submissions");
+
   const response = await fetch("/api/submissions", {
     headers: getHeaders(),
   });
@@ -63,6 +68,8 @@ export async function fetchSubmissions(): Promise<SubmissionRecord[]> {
 export async function fetchSubmissionById(
   id: string,
 ): Promise<SubmissionRecord> {
+  requireOnlineMode("Submissions");
+
   const response = await fetch(`/api/submissions/${id}`, {
     headers: getHeaders(),
   });

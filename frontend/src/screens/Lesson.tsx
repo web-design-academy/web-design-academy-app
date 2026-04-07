@@ -1,9 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import {
-  Navigate,
-  useParams,
-  useSearchParams,
-} from "react-router";
+import { Navigate, useParams, useSearchParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import { MDXProvider } from "@mdx-js/react";
 import type { MDXContent } from "mdx/types";
@@ -15,6 +11,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
 import { getLessonTasksSync, type TaskCode } from "@/lib/helpers/getTasks";
 import { useAuth } from "@/lib/ctx/useAuth";
+import { isOnlineMode } from "@/lib/config/appMode";
 
 import { useSubmitSolution, useSubmission } from "@/lib/hooks/useSubmissions";
 
@@ -95,7 +92,7 @@ export default function Lesson() {
   }, [loadedSubmission, tasks.length]);
 
   useEffect(() => {
-    if (slug && isAuthenticated && token) {
+    if (slug && isOnlineMode && isAuthenticated && token) {
       fetch(`/api/progress/${slug}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -104,7 +101,7 @@ export default function Lesson() {
           if (data.completedTaskIds) {
             setCompletedTasks(new Set(data.completedTaskIds));
           }
-        })
+        });
     }
   }, [slug, isAuthenticated, token]);
 
@@ -169,7 +166,11 @@ export default function Lesson() {
   };
 
   const resetTask = () => {
-    if (window.confirm("Are you sure you want to reset this task? All your changes will be lost.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to reset this task? All your changes will be lost.",
+      )
+    ) {
       setTaskStates((prev) => {
         const updated = prev.map((s, idx) =>
           idx === currentTaskIndex
@@ -179,7 +180,7 @@ export default function Lesson() {
                 editableCss: tasks[idx].editableCss,
                 editableJs: tasks[idx].editableJs,
               }
-            : s
+            : s,
         );
         if (isAdmin && slug) {
           import("@/lib/helpers/adminStorage").then((m) => {
@@ -222,6 +223,11 @@ export default function Lesson() {
 
   const handleSubmit = async () => {
     if (!currentTaskState) return;
+
+    if (!isOnlineMode) {
+      setShowLoginModal(true);
+      return;
+    }
 
     if (!token) {
       setShowLoginModal(true);
@@ -318,7 +324,9 @@ export default function Lesson() {
           onClose={() => setShowLoginModal(false)}
         >
           <p>
-            You need to be signed in to submit your solution
+            {isOnlineMode
+              ? "You need to be signed in to submit your solution"
+              : "Submissions are disabled in offline mode"}
           </p>
         </Modal>
       </Suspense>

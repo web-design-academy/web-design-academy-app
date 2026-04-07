@@ -5,6 +5,7 @@ import {
   fetchSubmissionById,
   type SubmissionPayload,
 } from "../api/submissions";
+import { isOnlineMode } from "@/lib/config/appMode";
 
 export function useSubmitSolution() {
   return useMutation({
@@ -20,6 +21,7 @@ export function useAdminSubmissions() {
     queryKey: ["submissions"],
     queryFn: fetchSubmissions,
     staleTime: 1000 * 60,
+    enabled: isOnlineMode,
   });
 }
 
@@ -27,6 +29,6 @@ export function useSubmission(id: string) {
   return useQuery({
     queryKey: ["submission", id],
     queryFn: () => fetchSubmissionById(id),
-    enabled: !!id,
+    enabled: !!id && isOnlineMode,
   });
 }

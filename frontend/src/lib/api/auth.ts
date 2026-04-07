@@ -1,3 +1,5 @@
+import { requireOnlineMode } from "@/lib/config/appMode";
+
 export const STORAGE_KEYS = {
   TOKEN: "wa_auth_token",
   USER_ID: "wa_user_id",
@@ -13,6 +15,8 @@ export interface AuthData {
 }
 
 export async function loginWithGoogle(idToken: string): Promise<AuthData> {
+  requireOnlineMode("Authentication");
+
   const response = await fetch("/api/auth/google", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
