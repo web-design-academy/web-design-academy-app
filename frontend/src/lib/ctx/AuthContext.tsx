@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   loginWithGoogle as apiLoginWithGoogle,
-  getSession,
-  saveSession,
-  clearSession,
+  fetchSession,
+  logoutSession,
   type AuthData,
 } from "@/lib/api/auth";
 import { isOnlineMode } from "@/lib/config/appMode";
@@ -11,26 +10,29 @@ import { AuthContext, type User } from "./useAuth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!isOnlineMode) {
-      clearSession();
       setIsLoading(false);
       return;
     }
 
-    const session = getSession();
-    if (session) {
-      setUser({
-        userId: session.userId,
-        role: session.role,
-        name: session.name,
+    fetchSession()
+      .then((session) => {
+        if (!session) {
+          return;
+        }
+
+        setUser({
+          userId: session.userId,
+          role: session.role,
+          name: session.name,
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-      setToken(session.token);
-    }
-    setIsLoading(false);
   }, []);
 
   const loginWithGoogle = async (idToken: string): Promise<AuthData> => {
@@ -40,29 +42,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await apiLoginWithGoogle(idToken);
 
-    saveSession(data);
-
     setUser({
       userId: data.userId,
       role: data.role,
       name: data.name,
     });
-    setToken(data.token);
 
     return data;
   };
 
   const logout = () => {
-    clearSession();
+    logoutSession().catch(() => {});
     setUser(null);
-    setToken(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
         isAuthenticated: !!user,
         isLoading,
         loginWithGoogle,

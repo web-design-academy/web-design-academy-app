@@ -16,7 +16,7 @@ npm run dev
 
 ### Backend
 
-1. Set `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL` and `JWT_SECRET` in `./backend/.env`
+1. Set `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `JWT_SECRET` and `CORS_ORIGINS` in `./backend/.env`
 
 2. Run
 

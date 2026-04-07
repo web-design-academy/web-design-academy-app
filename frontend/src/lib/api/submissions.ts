@@ -1,4 +1,3 @@
-import { getToken } from "./auth";
 import { requireOnlineMode } from "@/lib/config/appMode";
 
 export interface SubmissionPayload {
@@ -27,14 +26,6 @@ export interface SubmissionRecord {
   timestamp: string;
 }
 
-const getHeaders = () => {
-  const token = getToken();
-  return {
-    "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : "",
-  };
-};
-
 export async function submitSolution(
   payload: SubmissionPayload,
 ): Promise<SubmissionResponse> {
@@ -42,7 +33,7 @@ export async function submitSolution(
 
   const response = await fetch("/api/submissions", {
     method: "POST",
-    headers: getHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
@@ -57,9 +48,7 @@ export async function submitSolution(
 export async function fetchSubmissions(): Promise<SubmissionRecord[]> {
   requireOnlineMode("Submissions");
 
-  const response = await fetch("/api/submissions", {
-    headers: getHeaders(),
-  });
+  const response = await fetch("/api/submissions");
 
   if (!response.ok) throw new Error("Failed to fetch submissions");
   return response.json();
@@ -70,9 +59,7 @@ export async function fetchSubmissionById(
 ): Promise<SubmissionRecord> {
   requireOnlineMode("Submissions");
 
-  const response = await fetch(`/api/submissions/${id}`, {
-    headers: getHeaders(),
-  });
+  const response = await fetch(`/api/submissions/${id}`);
 
   if (!response.ok) throw new Error("Failed to fetch submission");
   return response.json();

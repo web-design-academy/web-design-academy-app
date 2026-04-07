@@ -14,7 +14,7 @@ export default function Dashboard() {
     [],
   );
   const [loading, setLoading] = useState(true);
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const showProgress = isAuthenticated && user?.role === "student";
 
@@ -22,7 +22,7 @@ export default function Dashboard() {
     const fetchAllProgress = async () => {
       const allLessons = getLessons();
 
-      if (!isOnlineMode || !showProgress || !token) {
+      if (!isOnlineMode || !showProgress) {
         setLessons(allLessons.map((l) => ({ ...l, progress: 0 })));
         setLoading(false);
         return;
@@ -31,9 +31,7 @@ export default function Dashboard() {
       const lessonsWithProgress = await Promise.all(
         allLessons.map(async (lesson) => {
           try {
-            const res = await fetch(`/api/progress/${lesson.slug}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await fetch(`/api/progress/${lesson.slug}`);
             const data = await res.json();
             const completedCount = data.completedTaskIds?.length || 0;
             const totalTasks = getLessonTasksSync(lesson.slug).length;
@@ -56,7 +54,7 @@ export default function Dashboard() {
     };
 
     fetchAllProgress();
-  }, [isAuthenticated, showProgress, token]);
+  }, [isAuthenticated, showProgress]);
 
   if (loading) return <LoadingSpinner />;
 

@@ -15,7 +15,8 @@ const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
 
 const initDb = () => {
-  db.prepare(`
+  db.prepare(
+    `
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
@@ -23,9 +24,11 @@ const initDb = () => {
       role TEXT DEFAULT 'student',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-  `).run();
+  `,
+  ).run();
 
-  db.prepare(`
+  db.prepare(
+    `
     CREATE TABLE IF NOT EXISTS submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL,
@@ -38,7 +41,8 @@ const initDb = () => {
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
-  `).run();
+  `,
+  ).run();
 
   console.log(`Database initialized successfully at ${dbPath}`);
 };

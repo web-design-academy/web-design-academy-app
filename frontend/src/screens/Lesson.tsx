@@ -20,7 +20,7 @@ export default function Lesson() {
   const [searchParams] = useSearchParams();
   const submissionId = searchParams.get("submissionId");
 
-  const { token, isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const isAdmin = user?.role === "admin";
   const [isNew, setIsNew] = useState(false);
@@ -92,10 +92,8 @@ export default function Lesson() {
   }, [loadedSubmission, tasks.length]);
 
   useEffect(() => {
-    if (slug && isOnlineMode && isAuthenticated && token) {
-      fetch(`/api/progress/${slug}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    if (slug && isOnlineMode && isAuthenticated) {
+      fetch(`/api/progress/${slug}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.completedTaskIds) {
@@ -103,7 +101,7 @@ export default function Lesson() {
           }
         });
     }
-  }, [slug, isAuthenticated, token]);
+  }, [slug, isAuthenticated]);
 
   if (!tasks.length || isLoadingSubmission) return <LoadingSpinner />;
 
@@ -229,7 +227,7 @@ export default function Lesson() {
       return;
     }
 
-    if (!token) {
+    if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
     }

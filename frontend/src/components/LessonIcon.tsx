@@ -16,5 +16,5 @@ export default function LessonIcon({ name }: LessonIconProps) {
     ? (maybeIcon as React.ComponentType<LucideProps>)
     : HelpCircle;
 
-  return <IconComponent size={30} strokeWidth={3} />;
+  return <IconComponent size={30} strokeWidth={2} />;
 }

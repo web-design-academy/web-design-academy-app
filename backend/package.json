@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "style": "prettier -w ."
   },
   "keywords": [],
   "author": "Dmitrii Ivanushkin <dmitrii.unwritten183@passmail.net>",
@@ -12,12 +13,17 @@
   "type": "commonjs",
   "dependencies": {
     "better-sqlite3": "^12.5.0",
-    "body-parser": "^2.2.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.1",
     "google-auth-library": "^10.6.2",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
   }
 }
