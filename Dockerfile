@@ -15,6 +15,9 @@ ENV VITE_APP_MODE=$VITE_APP_MODE
 
 COPY --from=submodule /submodule/VisualEditor ./Web-Visual-Editor/VisualEditor
 
+WORKDIR /app/Web-Visual-Editor/VisualEditor
+RUN npm ci
+
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
