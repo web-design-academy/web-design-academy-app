@@ -10,6 +10,7 @@ import {
   isGoogleAuthEnabled,
   isOnlineMode,
 } from "@/lib/config/appMode";
+import "@/styles/tailwind.css";
 import "@/styles/system/tokens.css";
 import "@/styles/system/base.css";
 import { ThemeProvider } from "./lib/ctx/ThemeContext";

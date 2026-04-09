@@ -14,8 +14,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: frontend/Dockerfile.dev
     env_file:
       - frontend/.env
     environment:
@@ -23,9 +23,9 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend:/app
-      - ./BP-Viragova:/BP-Viragova
-      - /app/node_modules
+      - ./frontend:/app/frontend
+      - ./Web-Visual-Editor:/app/Web-Visual-Editor
+      - /app/frontend/node_modules
 
 volumes:
   backend_storage:

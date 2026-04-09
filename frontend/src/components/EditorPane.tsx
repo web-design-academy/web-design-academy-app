@@ -18,7 +18,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useTheme } from "@/lib/ctx/useTheme";
-// import VisualEditor from "visualeditor-html-css";
+import VisualEditor from "visualeditor-html-css";
 
 export interface EditorPaneProps {
   task: Partial<TaskCode>;
@@ -320,14 +320,13 @@ export default function EditorPane({
               overflowX: "hidden",
             }}
           >
-            {/*
             <VisualEditor
               content={task?.editableHtml || ""}
               setContent={(val: any) => onTaskChange("editableHtml", typeof val === 'function' ? val(task?.editableHtml || "") : val)}
               cssContent={task?.editableCss || ""}
               setCssContent={(val: any) => onTaskChange("editableCss", typeof val === 'function' ? val(task?.editableCss || "") : val)}
               isDark={theme === "dark"}
-            /> */}
+            />
           </div>
         ) : (
           <Editor

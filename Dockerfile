@@ -1,12 +1,16 @@
 FROM node:22-alpine AS builder
 
-WORKDIR /app/frontend
+WORKDIR /app
 
 ARG VITE_GOOGLE_CLIENT_ID
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 ARG VITE_APP_MODE=offline
 ENV VITE_APP_MODE=$VITE_APP_MODE
+
+COPY Web-Visual-Editor/VisualEditor ./Web-Visual-Editor/VisualEditor
+
+WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
 RUN npm ci
