@@ -4,6 +4,9 @@ WORKDIR /app
 
 COPY Web-Visual-Editor/VisualEditor ./Web-Visual-Editor/VisualEditor
 
+WORKDIR /app/Web-Visual-Editor/VisualEditor
+RUN npm ci
+
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
