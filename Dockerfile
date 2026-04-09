@@ -1,7 +1,7 @@
 FROM alpine/git:latest AS submodule
+ARG GITHUB_TOKEN
 WORKDIR /submodule
-RUN --mount=type=secret,id=GITHUB_TOKEN \
-    git clone --depth=1 https://x-access-token:$(cat /run/secrets/GITHUB_TOKEN)@github.com/web-design-academy/Web-Visual-Editor.git .
+RUN git clone --depth=1 https://x-access-token:${GITHUB_TOKEN}@github.com/web-design-academy/Web-Visual-Editor.git .
 
 FROM node:22-alpine AS builder
 

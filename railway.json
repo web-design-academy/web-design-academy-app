@@ -8,9 +8,7 @@
       },
       "VITE_GOOGLE_CLIENT_ID": {
         "fromEnv": "VITE_GOOGLE_CLIENT_ID"
-      }
-    },
-    "secrets": {
+      },
       "GITHUB_TOKEN": {
         "fromEnv": "GITHUB_TOKEN"
       }
