@@ -22,7 +22,6 @@ export interface SubmissionRecord {
   html: string;
   css: string;
   js: string;
-  status: string;
   timestamp: string;
 }
 

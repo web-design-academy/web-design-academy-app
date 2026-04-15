@@ -7,24 +7,39 @@ order: 1
 icon: Code
 ---
 
+import C from "../../components/C";
+
 # HTML Basics
 
 ## Task Instructions
 
-1. **Semantics**
+1. **Semantic Structure**
 
-- Replace the generic `div` tags with appropriate semantic HTML5 tags (`<header>`, `<aside>`, `<main>`, `<section>`, `<footer>`).
+   You have a page built entirely from <C l="html">{"<div>"}</C> tags. The CSS already has rules for <C l="html">{"<header>"}</C>, <C l="html">{"<aside>"}</C>, <C l="html">{"<main>"}</C>, <C l="html">{"<section>"}</C>, and <C l="html">{"<footer>"}</C>, but those styles do not apply because the structure is all <C l="html">{"<div>"}</C>s.
+
+   Replace each <C l="html">{"<div>"}</C> with the correct semantic tag so the layout (blue header, brown sidebar, white content area, black footer) renders properly.
 
 2. **Images**
 
-- Insert an `img` element inside the image container.
-- Give it a valid `src` URL, an `alt` description, and set the `width` and `height` attributes directly on the tag.
+   There is an <C l="html">{"<img>"}</C> tag with an empty <C l="html">{'src=""'}</C>. Fill it in:
+
+   - Set <C l="html">src</C> to any image URL (e.g. from `https://api.slingacademy.com/public/sample-photos/1.jpeg`)
+   - Add a meaningful <C l="html">alt</C> description
+   - Set <C l="html">{'width="400"'}</C> and <C l="html">{'height="325"'}</C> to match the container
 
 3. **Typography**
 
-- Wrap the raw text using proper typographic elements like headings (`h1`, `h2`), paragraphs (`p`), emphasis (`strong`, `em`), small text, blockquotes, and citations.
+   All the text is dumped inside one <C l="html">{"<div>"}</C> as a single unformatted block. Split it up using proper HTML elements:
+
+   - `THIS IS THE MAIN HEADING` → <C l="html">{"<h1>"}</C>
+   - `Subheading: Important Details` → <C l="html">{"<h2>"}</C>
+   - The paragraph sentence → <C l="html">{"<p>"}</C>, with <C l="html">{"<strong>"}</C> around `IMPORTANT` and <C l="html">{"<em>"}</C> around `emphasized`
+   - `Also note this part` → <C l="html">{"<small>"}</C>
+   - The Shakespeare quote → <C l="html">{"<blockquote>"}</C> with <C l="html">{"<cite>"}</C> for the attribution
 
 4. **Links**
 
-- Turn the bracketed text into actual `<a>` tags.
-- Use internal links for the cards (e.g. `href="#card2"`), and add an external link with `target="_blank"` and a `title` attribute for the external site.
+   Three cards contain <C l="html">{"<span>[Card 2]</span>"}</C>, <C l="html">{"<span>[Example.com]</span>"}</C>, and <C l="html">{"<span>[Card 1]</span>"}</C> as placeholder text. Replace each <C l="html">{"<span>"}</C> with a real <C l="html">{"<a>"}</C> tag:
+
+   - Card 2 and Card 1 links should use internal anchor <C l="html">href</C> values (<C l="css">#card2</C>, <C l="css">#card1</C>)
+   - The Example.com link should use <C l="html">{'href="https://example.com"'}</C>, add <C l="html">{'target="_blank"'}</C>, and a <C l="html">title</C> attribute describing the destination

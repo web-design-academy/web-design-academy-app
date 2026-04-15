@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import { MDXProvider } from "@mdx-js/react";
@@ -44,6 +44,8 @@ export default function Lesson() {
 
   const [LessonContent, setLessonContent] =
     useState<React.LazyExoticComponent<MDXContent> | null>(null);
+  const lessonContentRef = useRef<HTMLDivElement | null>(null);
+  const lastAutoFocusKeyRef = useRef("");
 
   useEffect(() => {
     if (!slug) return;
@@ -116,6 +118,89 @@ export default function Lesson() {
     }
   }, [slug, isAuthenticated]);
 
+  useEffect(() => {
+    if (isNew) return;
+
+    let cancelled = false;
+    let retryFrame: number | undefined;
+    let clearHighlightTimeout: number | undefined;
+
+    const focusKey = `${slug || "lesson"}:${currentTaskIndex}`;
+
+    const focusCurrentTaskInstruction = () => {
+      const container = lessonContentRef.current;
+      if (!container) return false;
+
+      const heading = Array.from(container.querySelectorAll("h1, h2, h3")).find(
+        (node) => node.textContent?.trim().toLowerCase() === "task instructions",
+      );
+
+      let list: HTMLOListElement | null = null;
+      if (heading) {
+        let candidate = heading.nextElementSibling;
+        while (candidate && candidate.tagName !== "OL") {
+          candidate = candidate.nextElementSibling;
+        }
+        if (candidate instanceof HTMLOListElement) {
+          list = candidate;
+        }
+      }
+
+      if (!list) {
+        list = container.querySelector("ol");
+      }
+
+      if (!list) return false;
+
+      const taskItems = Array.from(list.children).filter(
+        (child): child is HTMLLIElement => child.tagName === "LI",
+      );
+      const target = taskItems[currentTaskIndex];
+      if (!target) return false;
+
+      if (lastAutoFocusKeyRef.current === focusKey) {
+        return true;
+      }
+
+      taskItems.forEach((item) => item.classList.remove("task-instruction-focus"));
+      target.classList.add("task-instruction-focus");
+      target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      lastAutoFocusKeyRef.current = focusKey;
+
+      if (clearHighlightTimeout) {
+        window.clearTimeout(clearHighlightTimeout);
+      }
+      clearHighlightTimeout = window.setTimeout(() => {
+        target.classList.remove("task-instruction-focus");
+      }, 1500);
+
+      return true;
+    };
+
+    let attempts = 0;
+    const tryFocus = () => {
+      if (cancelled) return;
+
+      const applied = focusCurrentTaskInstruction();
+      if (applied || attempts >= 30) return;
+
+      attempts += 1;
+      retryFrame = window.requestAnimationFrame(tryFocus);
+    };
+
+    tryFocus();
+
+    return () => {
+      cancelled = true;
+      if (retryFrame) {
+        window.cancelAnimationFrame(retryFrame);
+      }
+      if (clearHighlightTimeout) {
+        window.clearTimeout(clearHighlightTimeout);
+      }
+    };
+  }, [currentTaskIndex, isNew, slug]);
+
   if (!tasks.length || isLoadingSubmission) return <LoadingSpinner />;
 
   const currentTask = tasks[currentTaskIndex];
@@ -130,7 +215,7 @@ export default function Lesson() {
     <head>
       <base target="_blank" />
       <meta
-        http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:;"
+        http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https: http: data: blob:;"
       >
       <style>
         * {margin: 0; padding: 0;}
@@ -308,6 +393,10 @@ export default function Lesson() {
             maxHeight="90%"
             onResize={handleTopRowResize}
             onResizeStop={handleTopRowResize}
+            handleComponent={{
+              bottom: <div className="resize-handle-bottom" />,
+            }}
+            handleStyles={{ bottom: { height: 16 } }}
           >
             <div className="lesson-top-inner">
               <Resizable
@@ -318,6 +407,10 @@ export default function Lesson() {
                 maxWidth="85%"
                 onResize={handleEditorResize}
                 onResizeStop={handleEditorResize}
+                handleComponent={{
+                  right: <div className="resize-handle-right" />,
+                }}
+                handleStyles={{ right: { width: 16 } }}
               >
                 <EditorPane
                   task={currentTaskState}
@@ -348,8 +441,11 @@ export default function Lesson() {
         )}
 
         <div
+          ref={lessonContentRef}
           className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""}`}
-          style={isMobileLayout ? undefined : { height: `${100 - topRowPercent}%` }}
+          style={
+            isMobileLayout ? undefined : { height: `${100 - topRowPercent}%` }
+          }
         >
           {isNew ? (
             <div
@@ -380,9 +476,12 @@ export default function Lesson() {
           title="Reset Task"
           isOpen={showResetModal}
           onClose={() => setShowResetModal(false)}
-          actions={(
+          actions={
             <>
-              <button className="btn-ghost" onClick={() => setShowResetModal(false)}>
+              <button
+                className="btn-ghost"
+                onClick={() => setShowResetModal(false)}
+              >
                 Cancel
               </button>
               <button
@@ -395,9 +494,12 @@ export default function Lesson() {
                 Reset
               </button>
             </>
-          )}
+          }
         >
-          <p>Are you sure you want to reset this task? All your changes will be lost.</p>
+          <p>
+            Are you sure you want to reset this task? All your changes will be
+            lost.
+          </p>
         </Modal>
       </Suspense>
     </main>

@@ -111,31 +111,6 @@
   font-size: 0.9em;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  text-transform: capitalize;
-}
-
-.status-pending {
-  background-color: var(--status-warning-bg);
-  color: var(--status-warning-text);
-}
-
-.status-passed {
-  background-color: var(--status-success-bg);
-  color: var(--status-success-text);
-}
-
-.status-failed {
-  background-color: var(--status-error-bg);
-  color: var(--status-error-text);
-}
-
 .pill {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);

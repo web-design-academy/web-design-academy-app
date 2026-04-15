@@ -313,8 +313,8 @@ app.post("/api/submissions", authenticateToken, (req, res) => {
     const result = db
       .prepare(
         `
-      INSERT INTO submissions (user_id, lesson_slug, task_id, html, css, js, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO submissions (user_id, lesson_slug, task_id, html, css, js)
+      VALUES (?, ?, ?, ?, ?, ?)
     `,
       )
       .run(
@@ -324,7 +324,6 @@ app.post("/api/submissions", authenticateToken, (req, res) => {
         html || "",
         css || "",
         js || "",
-        "pending",
       );
 
     res.json({ success: true, id: result.lastInsertRowid });

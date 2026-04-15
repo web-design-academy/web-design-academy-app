@@ -169,6 +169,18 @@ header {
   border-color: var(--color-text);
 }
 
+.btn-ghost:disabled,
+.btn-primary:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-ghost:disabled:hover,
+.btn-primary:disabled:hover {
+  background-color: inherit;
+  border-color: inherit;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);

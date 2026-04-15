@@ -7,20 +7,27 @@ order: 2
 icon: Layout
 ---
 
+import C from "../../components/C";
+
 # CSS Layout
 
 ## Task Instructions
 
-1. **Mondrian painting**
+1. **Mondrian Painting**
 
-- Add `background-color` properties to the Mondrian painting's color classes (`.red`, `.yellow`, `.blue`, `.white`, `.grey`) using standard hex codes.
+   You have a grid of 7 rectangles (<C l="css">r1</C> to <C l="css">r7</C>) that form a Mondrian-style painting. The grid structure and positions are already done. Your job is to add the color classes in HTML and define their <C l="css">background-color</C> in CSS.
+
+   In the HTML, add one color class (<C l="css">.red</C>, <C l="css">.yellow</C>, <C l="css">.blue</C>, <C l="css">.white</C>, or <C l="css">.grey</C>) to each <C l="css">.rect</C> div. Then in the CSS, add a <C l="css">background-color</C> rule for each using hex codes: red <C l="css">#dd0100</C>, yellow <C l="css">#fac901</C>, blue <C l="css">#225095</C>, white <C l="css">#ffffff</C>, grey <C l="css">#efefef</C>.
 
 2. **Layout & Spacing**
 
-- Style the `main` container using Flexbox (column direction, gap, and margin).
-- Add padding, border-color, border-radius, and a subtle drop shadow to the `.card` class.
+   You have three <C l="css">.card</C> elements inside a <C l="html">{"<main>"}</C> container, but they are too close together. The <C l="html">main</C> and <C l="css">.card</C> rules already exist in the CSS, and you need to complete them:
 
-3. **Hide the fish**
+   - On <C l="html">main</C>: add <C l="css">gap</C> and <C l="css">margin</C> to center it and space the cards out
+   - On <C l="css">.card</C>: add <C l="css">padding</C>, adjust <C l="css">border</C> color, add <C l="css">border-radius</C>, and a <C l="css">box-shadow</C>
 
-- Use Flexbox properties on the `#ocean` container (`display: flex`, `justify-content`, `align-items`) to center its child elements.
-- The coral already has absolute positioning, so centering will cause the fish to hide directly behind the coral.
+3. **Hide the Fish**
+
+   There is a 🐠 fish and a 🪸 coral inside <C l="css">#ocean</C>. The coral is absolutely positioned in the center of the page. The fish sits at the top-left corner by default.
+
+   Add Flexbox properties to <C l="css">#ocean</C> (<C l="css">display: flex</C>, <C l="css">justify-content: center</C>, <C l="css">align-items: center</C>) so the fish moves to the center and sits directly behind the coral.

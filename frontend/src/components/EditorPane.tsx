@@ -39,15 +39,27 @@ export interface EditorPaneProps {
 
 type Tab = "html" | "css" | "js";
 
+const getFirstPreferredTab = (task: Partial<TaskCode>): Tab => {
+  if (task.editableHtml !== undefined) return "html";
+  if (task.editableCss !== undefined) return "css";
+  if (task.editableJs !== undefined) return "js";
+
+  if (task.readonlyHtml !== undefined) return "html";
+  if (task.readonlyCss !== undefined) return "css";
+  if (task.readonlyJs !== undefined) return "js";
+
+  return "html";
+};
+
 export default function EditorPane({
   task,
   currentIndex,
   totalTasks,
   onTaskChange,
   onChangeTask,
-  readonlyHtml = "",
-  readonlyCss = "",
-  readonlyJs = "",
+  readonlyHtml,
+  readonlyCss,
+  readonlyJs,
   onSubmit,
   completedTasks,
   currentTaskId,
@@ -55,7 +67,7 @@ export default function EditorPane({
   onResetTask,
   lessonSlug,
 }: EditorPaneProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("html");
+  const [activeTab, setActiveTab] = useState<Tab>(() => getFirstPreferredTab(task));
   const [useVisualEditor, setUseVisualEditor] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof monaco | null>(null);
@@ -69,6 +81,29 @@ export default function EditorPane({
 
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < totalTasks - 1;
+  const hasEditableHtmlFile = task.editableHtml !== undefined;
+  const hasEditableCssFile = task.editableCss !== undefined;
+  const hasEditableJsFile = task.editableJs !== undefined;
+  const hasHtmlSource = readonlyHtml !== undefined || task?.editableHtml !== undefined;
+  const hasCssSource = readonlyCss !== undefined || task?.editableCss !== undefined;
+  const hasJsSource = readonlyJs !== undefined || task?.editableJs !== undefined;
+
+  const isHtmlTabDisabled = !hasHtmlSource;
+  const isCssTabDisabled = useVisualEditor || !hasCssSource;
+  const isJsTabDisabled = useVisualEditor || !hasJsSource;
+  const preferredTab: Tab = hasEditableHtmlFile
+    ? "html"
+    : hasEditableCssFile
+      ? "css"
+      : hasEditableJsFile
+        ? "js"
+        : hasHtmlSource
+          ? "html"
+          : hasCssSource
+            ? "css"
+            : hasJsSource
+              ? "js"
+              : "html";
 
   const onPrev = () => {
     if (hasPrev) onChangeTask(currentIndex - 1);
@@ -77,6 +112,17 @@ export default function EditorPane({
   const onNext = () => {
     if (hasNext) onChangeTask(currentIndex + 1);
   };
+
+  useEffect(() => {
+    setActiveTab(preferredTab);
+  }, [currentIndex, preferredTab]);
+
+  useEffect(() => {
+    if (activeTab === "html" && hasHtmlSource) return;
+    if (activeTab === "css" && hasCssSource) return;
+    if (activeTab === "js" && hasJsSource) return;
+    setActiveTab(preferredTab);
+  }, [activeTab, hasHtmlSource, hasCssSource, hasJsSource, preferredTab]);
 
   const handleDownloadZip = async () => {
     if (!lessonSlug) return;
@@ -270,31 +316,35 @@ export default function EditorPane({
 
       <div className="editor-tabs editor-tabs-row">
         <div className="editor-tab-list">
-          <button
-            className={`tab ${activeTab === "html" ? "active" : ""}`}
-            onClick={() => setActiveTab("html")}
-          >
-            index.html
-          </button>
-          <button
-            className={`tab ${activeTab === "css" ? "active" : ""}`}
-            onClick={() => setActiveTab("css")}
-            disabled={useVisualEditor}
-            style={
-              useVisualEditor ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
-          >
-            styles.css
-          </button>
-          <button
-            className={`tab ${activeTab === "js" ? "active" : ""}`}
-            onClick={() => setActiveTab("js")}
-            disabled={useVisualEditor}
-            style={
-              useVisualEditor ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
-          >
-            script.js
+            <button
+              className={`tab ${activeTab === "html" ? "active" : ""}`}
+              onClick={() => setActiveTab("html")}
+              disabled={isHtmlTabDisabled}
+              style={
+                isHtmlTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+              }
+            >
+              index.html
+            </button>
+            <button
+              className={`tab ${activeTab === "css" ? "active" : ""}`}
+              onClick={() => setActiveTab("css")}
+              disabled={isCssTabDisabled}
+              style={
+                isCssTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+              }
+            >
+              styles.css
+            </button>
+            <button
+              className={`tab ${activeTab === "js" ? "active" : ""}`}
+              onClick={() => setActiveTab("js")}
+              disabled={isJsTabDisabled}
+              style={
+                isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+              }
+            >
+              script.js
           </button>
         </div>
         <div className="editor-tab-controls">

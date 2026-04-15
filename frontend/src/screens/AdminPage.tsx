@@ -100,7 +100,6 @@ export default function AdminPage() {
                   <th>User</th>
                   <th>Lesson</th>
                   <th>Task</th>
-                  <th>Status</th>
                   <th>Submitted</th>
                   <th>Actions</th>
                 </tr>
@@ -108,7 +107,7 @@ export default function AdminPage() {
               <tbody>
                 {!submissions || submissions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="empty-state">
+                    <td colSpan={6} className="empty-state">
                       No submissions yet
                     </td>
                   </tr>
@@ -128,11 +127,6 @@ export default function AdminPage() {
                         </span>
                       </td>
                       <td>Task {sub.task_id}</td>
-                      <td>
-                        <span className={`status-badge status-${sub.status}`}>
-                          {sub.status}
-                        </span>
-                      </td>
                       <td>
                         {new Date(sub.timestamp).toLocaleString(undefined, {
                           month: "short",

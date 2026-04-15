@@ -7,16 +7,20 @@ order: 5
 icon: Zap
 ---
 
+import C from "../../components/C";
+
 # JavaScript Interactivity
 
 ## Task Instructions
 
 1. **Keyboard Movement**
 
-- Add a `keydown` event listener to move the ball 10 pixels at a time (Up, Down, Left, Right).
-- Calculate bounds using the game container size to ensure the ball never moves outside the boundaries.
+   There is a blue ball (<C l="css">#ball</C>) inside a 300x300 box (<C l="css">#game</C>). The JS file is empty, so the ball does not move yet.
+
+   Add a <C l="js">keydown</C> event listener on <C l="js">document</C>. On each arrow key press, move the ball 10px in that direction by updating its <C l="js">style.left</C> and <C l="js">style.top</C>. Use <C l="js">Math.min</C> and <C l="js">Math.max</C> to clamp the position so the ball never leaves the boundaries of <C l="css">#game</C>. Call <C l="js">e.preventDefault()</C> to stop the page from scrolling.
 
 2. **Quiz Verification**
 
-- Add a click event listener to each `.option` button.
-- Check the button's data attribute (`dataset.correct`) to verify the answer, and display "Correct!" in green or "Incorrect!" in red on the result display.
+   There is a question "What is 2 + 2?" with three answer buttons (<C l="css">.option</C>). One button has <C l="html">{'data-correct="true"'}</C>. The JS file is empty, so clicking buttons does nothing yet.
+
+   Select all <C l="css">.option</C> buttons with <C l="js">querySelectorAll</C> and add a <C l="js">click</C> listener to each. Inside the listener, check <C l="js">{"btn.dataset.correct === \"true\""}</C>. If correct, set the <C l="css">#result</C> paragraph's text to `"Correct!"` and its color to green. Otherwise set the text to `"Incorrect!"` and the color to red.

@@ -37,7 +37,6 @@ const initDb = () => {
       html TEXT DEFAULT '',
       css TEXT DEFAULT '',
       js TEXT DEFAULT '',
-      status TEXT DEFAULT 'pending',
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
