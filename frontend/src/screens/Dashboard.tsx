@@ -60,7 +60,6 @@ export default function Dashboard() {
 
   return (
     <main className="dashboard-page">
-      <h1 className="dashboard-title">Lessons</h1>
       <ul className="dashboard-grid">
         {lessons.map(({ slug, title, description, color, icon, progress }) => (
           <li key={slug} className="lesson-card">

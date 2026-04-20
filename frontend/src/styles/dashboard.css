@@ -20,13 +20,6 @@
   list-style: none;
 }
 
-.dashboard-title {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--space-6);
-  text-align: center;
-}
-
 @media (max-width: 1024px) {
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
