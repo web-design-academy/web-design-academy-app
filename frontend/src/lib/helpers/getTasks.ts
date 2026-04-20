@@ -10,10 +10,14 @@ export interface TaskCode {
   hiddenHtml: string;
   hiddenCss: string;
   hiddenJs: string;
+  solutionHtml?: string;
+  solutionCss?: string;
+  solutionJs?: string;
+  challengeConfig?: string;
 }
 
-const allModules = import.meta.glob<TaskCode>(
-  "../../lessons/*/tasks/*/*.{html,css,js}",
+const allModules = import.meta.glob<string>(
+  "../../lessons/*/tasks/*/*.{html,css,js,json}",
   { query: "raw", import: "default", eager: true },
 );
 
@@ -27,32 +31,47 @@ export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
     )
       continue;
 
-    const content = allModules[path] as unknown as string;
+    const content = allModules[path] as string;
     const match = path.match(
-      /tasks[\\/](\d+)[\\/](editable|hidden|readonly)\.(html|css|js)$/,
+      /tasks[\\/](\d+)[\\/](editable|hidden|readonly|solution|challenge)\.(html|css|js|json)$/,
     );
     if (!match) continue;
 
     const [, taskId, fileName, ext] = match;
     if (!tasksMap[taskId]) tasksMap[taskId] = {};
 
-    const key = (() => {
-      if (fileName === "editable" && ext === "html") return "editableHtml";
-      if (fileName === "editable" && ext === "css") return "editableCss";
-      if (fileName === "editable" && ext === "js") return "editableJs";
-      if (fileName === "readonly" && ext === "html") return "readonlyHtml";
-      if (fileName === "readonly" && ext === "css") return "readonlyCss";
-      if (fileName === "readonly" && ext === "js") return "readonlyJs";
-      if (fileName === "hidden" && ext === "html") return "hiddenHtml";
-      if (fileName === "hidden" && ext === "css") return "hiddenCss";
-      if (fileName === "hidden" && ext === "js") return "hiddenJs";
-      return null;
-    })();
-
-    if (key) tasksMap[taskId][key] = content;
+    if (fileName === "challenge" && ext === "json") {
+      tasksMap[taskId].challengeConfig = content;
+    } else if (fileName === "editable" && ext === "html")
+      tasksMap[taskId].editableHtml = content;
+    else if (fileName === "editable" && ext === "css")
+      tasksMap[taskId].editableCss = content;
+    else if (fileName === "editable" && ext === "js")
+      tasksMap[taskId].editableJs = content;
+    else if (fileName === "readonly" && ext === "html")
+      tasksMap[taskId].readonlyHtml = content;
+    else if (fileName === "readonly" && ext === "css")
+      tasksMap[taskId].readonlyCss = content;
+    else if (fileName === "readonly" && ext === "js")
+      tasksMap[taskId].readonlyJs = content;
+    else if (fileName === "hidden" && ext === "html")
+      tasksMap[taskId].hiddenHtml = content;
+    else if (fileName === "hidden" && ext === "css")
+      tasksMap[taskId].hiddenCss = content;
+    else if (fileName === "hidden" && ext === "js")
+      tasksMap[taskId].hiddenJs = content;
+    else if (fileName === "solution" && ext === "html")
+      tasksMap[taskId].solutionHtml = content;
+    else if (fileName === "solution" && ext === "css")
+      tasksMap[taskId].solutionCss = content;
+    else if (fileName === "solution" && ext === "js")
+      tasksMap[taskId].solutionJs = content;
   }
 
-  const fileTasks = Object.values(tasksMap);
+  const fileTasks = Object.keys(tasksMap)
+    .sort((a, b) => parseInt(a) - parseInt(b))
+    .map((id) => tasksMap[id]);
+
   const customTasks = getCustomTasks(lessonSlug);
 
   if (customTasks.length > 0) {

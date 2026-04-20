@@ -4,6 +4,7 @@ import mdx from "@mdx-js/rollup";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import tsconfigPaths from "vite-tsconfig-paths";
+import path from "node:path";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -26,6 +27,14 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_PROXY_TARGET || "http://localhost:3000",
           changeOrigin: true,
         },
+      },
+    },
+    resolve: {
+      alias: {
+        "@monaco-editor/react": path.resolve(
+          __dirname,
+          "node_modules/@monaco-editor/react",
+        ),
       },
     },
     build: {

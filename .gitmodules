@@ -1,3 +1,6 @@
 [submodule "Web-Visual-Editor"]
 	path = Web-Visual-Editor
 	url = https://github.com/web-design-academy/Web-Visual-Editor.git
+[submodule "css-analyzer"]
+	path = css-analyzer
+	url = https://github.com/web-design-academy/css-analyzer.git

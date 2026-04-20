@@ -1,0 +1,33 @@
+{
+  "id": "task-layout-03-appgrid",
+  "title": "Kostra Aplikácie (CSS Grid)",
+  "instructions": "<h3>Zadanie:</h3><p>Tvoríme rozhranie pre webovú aplikáciu (napr. Dashboard). Potrebujeme rozdeliť obrazovku na ľavý tmavý panel a pravý biely obsah.</p><ul><li>Aplikuj na <code>.app-layout</code> technológiu vhodnú na tvorenie mriežok.</li><li>Vytvor presne <strong>dva stĺpce</strong>.</li><li>Ľavý stĺpec (sidebar) musí mať fixnú šírku <strong>280px</strong>.</li><li>Pravý stĺpec musí byť dynamický a zabrať <strong>celý zvyšok obrazovky</strong> (využi na to špeciálnu Grid jednotku, nie percentá!).</li></ul>",
+  "targetSelectors": [".app-layout"],
+  "lockedLines": [1, 2, 3, 4],
+  "hintTimeout": 180,
+  "initialHtml": "<div class=\"app-layout\">\n  <aside class=\"sidebar\">\n    <div class=\"logo\">DashUI</div>\n    <ul><li>Prehľad</li><li>Nastavenia</li><li>Odhlásiť</li></ul>\n  </aside>\n  <main class=\"content\">\n    <h2>Vitajte späť!</h2>\n    <div class=\"fake-chart\"></div>\n  </main>\n</div>",
+  "initialCss": "body {\n margin: 0;\n background: #0f172a;\n}\n.sidebar {\n background: #1e293b;\n color: white;\n padding: 25px;\n border-right: 1px solid #334155;\n}\n.sidebar ul {\n list-style: none;\n padding: 0;\n line-height: 2.5;\n color: #94a3b8;\n}\n.logo { font-size: 20px;\n font-weight: bold;\n color: #38bdf8;\n margin-bottom: 40px;\n}\n.content { background: #f8fafc;\n padding: 40px;\n}\n.fake-chart {\n height: 200px;\n background: white;\n border-radius: 12px;\n box-shadow: 0 4px 6px rgba(0,0,0,0.05);\n margin-top: 20px;\n border: 1px solid #e2e8f0;\n}\n\n.app-layout {\n  height: 100vh;\n  \n}\n",
+  "solutionCss": ".app-layout { height: 100vh; display: grid; grid-template-columns: 280px 1fr; }",
+  "checks": [
+    {
+      "id": "chk-app-grid",
+      "type": "exact-match",
+      "selector": ".app-layout",
+      "property": "display",
+      "value": "grid",
+      "level": "error",
+      "message": "Na tvorbu kostry stránky sa hodí CSS mriežka.",
+      "studentHint": "Obal aplikácie využíva mriežku"
+    },
+    {
+      "id": "chk-app-columns",
+      "type": "regex-match",
+      "selector": ".app-layout",
+      "property": "grid-template-columns",
+      "value": "^280px\\s+1fr$",
+      "level": "error",
+      "message": "Rozdelenie stĺpcov je chybné. Jeden má mať pixely, druhý zlomkovú jednotku voľného priestoru.",
+      "studentHint": "Rozdelenie priestoru: 280px pre menu, zvyšok pre obsah"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "id": "task-hero-section",
+  "title": "Hero Sekcia (Otočenie Flexboxu)",
+  "instructions": "<h3>Cieľ: Rozloženie s vertikálnou osou</h3><p>Máme pripravený veľký hlavičkový banner, v ktorom je nadpis, text a tlačidlo. Chceme tento obsah <strong>natlačiť do pravého dolného rohu</strong>.</p><ul><li>Obal (<code>.hero-banner</code>) zmeň na Flexbox.</li><li>Pretože chceme, aby išli prvky pod seba, otoč hlavnú os na stĺpec.</li><li>Zatlač celý tento stĺpec úplne na spodok.</li><li>Zarovnaj obsah na pravú stranu.</li><li>Pridaj medzi texty a tlačidlo medzeru (<code>gap</code>).</li></ul>",
+  "targetSelectors": [".hero-banner"],
+  "lockedLines": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "hintTimeout": 180,
+  "initialHtml": "<div class=\"wrapper\">\n  <div class=\"hero-banner\">\n    <h1 class=\"title\">Nová Kolekcia Leta</h1>\n    <p class=\"subtitle\">Objavte tie najpohodlnejšie tenisky pre túto sezónu.</p>\n    <button class=\"action-btn\">Kúpiť teraz</button>\n  </div>\n</div>",
+  "initialCss": "body {\n margin: 0;\n background: #e2e8f0;\n}\n.wrapper {\n display: flex;\n justify-content: center;\n padding-top: 40px;\n width: 100%;\n}\n.title {\n margin: 0;\n font-size: 28px;\n color: #1e293b;\n}\n.subtitle {\nmargin: 0;\n color: #475569;\n font-size: 16px;\n}\n.action-btn {\n background: #10b981;\n color: white;\n border: none;\n padding: 12px 24px;\n border-radius: 8px;\n font-weight: bold;\n cursor: pointer;\n width: fit-content;\n }\n\n.hero-banner {\n  background-color: white;\n  border-radius: 16px;\n  padding: 40px;\n  height: 300px;\n  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);\n\n\n\n}\n",
+  "solutionCss": ".hero-banner {\n  background-color: white;\n  border-radius: 16px;\n  padding: 40px;\n  height: 300px;\n  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);\n  display: flex;\n  flex-direction: column;\n  justify-content: flex-end;\n  align-items: flex-end;\n  gap: 15px;\n}",
+  "checks": [
+    {
+      "id": "check-display",
+      "type": "exact-match",
+      "selector": ".hero-banner",
+      "property": "display",
+      "value": "flex",
+      "level": "error",
+      "message": "Banner musí byť nastavený ako Flexbox.",
+      "studentHint": "Obal (.hero-banner) využíva technológiu Flexbox"
+    },
+    {
+      "id": "check-direction",
+      "type": "exact-match",
+      "selector": ".hero-banner",
+      "property": "flex-direction",
+      "value": "column",
+      "level": "error",
+      "message": "Flexbox bežne ukladá veci vedľa seba. Otoč os na stĺpec.",
+      "studentHint": "Prvky idú pod sebou v stĺpci"
+    },
+    {
+      "id": "check-justify",
+      "type": "exact-match",
+      "selector": ".hero-banner",
+      "property": "justify-content",
+      "value": "flex-end",
+      "level": "error",
+      "message": "Pretože si otočil os na stĺpec, justify-content teraz rieši vertikálny posun. Zatlač to úplne dole pomocou čisto flex hodnoty.",
+      "studentHint": "Obsah je natlačený úplne dole"
+    },
+    {
+      "id": "check-align",
+      "type": "exact-match",
+      "selector": ".hero-banner",
+      "property": "align-items",
+      "value": "flex-end",
+      "level": "error",
+      "message": "Teraz musíme obsah zarovnať na pravú stranu. Vo vertikálnom Flexboxe na to slúži špeciálna vlastnosť",
+      "studentHint": "Obsah je zarovnaný k ľavému okraju"
+    },
+    {
+      "id": "check-gap",
+      "type": "exact-match",
+      "selector": ".hero-banner",
+      "property": "gap",
+      "value": "15px",
+      "level": "warning",
+      "message": "Nezabudni na medzeru! Pridaj medzeru s veľkosťou 15px.",
+      "studentHint": "Prvky majú medzi sebou 15px medzeru"
+    }
+  ]
+}

@@ -38,6 +38,15 @@ export interface EditorPaneProps {
 }
 
 type Tab = "html" | "css" | "js";
+type EditorValueUpdater = string | ((prevValue: string) => string);
+
+const resolveEditorValue = (value: EditorValueUpdater, previous: string) => {
+  if (typeof value === "function") {
+    return value(previous);
+  }
+
+  return value;
+};
 
 const getFirstPreferredTab = (task: Partial<TaskCode>): Tab => {
   if (task.editableHtml !== undefined) return "html";
@@ -67,7 +76,9 @@ export default function EditorPane({
   onResetTask,
   lessonSlug,
 }: EditorPaneProps) {
-  const [activeTab, setActiveTab] = useState<Tab>(() => getFirstPreferredTab(task));
+  const [activeTab, setActiveTab] = useState<Tab>(() =>
+    getFirstPreferredTab(task),
+  );
   const [useVisualEditor, setUseVisualEditor] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof monaco | null>(null);
@@ -84,9 +95,12 @@ export default function EditorPane({
   const hasEditableHtmlFile = task.editableHtml !== undefined;
   const hasEditableCssFile = task.editableCss !== undefined;
   const hasEditableJsFile = task.editableJs !== undefined;
-  const hasHtmlSource = readonlyHtml !== undefined || task?.editableHtml !== undefined;
-  const hasCssSource = readonlyCss !== undefined || task?.editableCss !== undefined;
-  const hasJsSource = readonlyJs !== undefined || task?.editableJs !== undefined;
+  const hasHtmlSource =
+    readonlyHtml !== undefined || task?.editableHtml !== undefined;
+  const hasCssSource =
+    readonlyCss !== undefined || task?.editableCss !== undefined;
+  const hasJsSource =
+    readonlyJs !== undefined || task?.editableJs !== undefined;
 
   const isHtmlTabDisabled = !hasHtmlSource;
   const isCssTabDisabled = useVisualEditor || !hasCssSource;
@@ -254,7 +268,10 @@ export default function EditorPane({
 
     if (isFileFullyReadonly) {
       const editor = editorRef.current;
-      if (editor && editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current) {
+      if (
+        editor &&
+        editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current
+      ) {
         editor.setValue(lastValidValueRef.current);
         if (monacoRef.current) {
           updateDecorations(editor, monacoRef.current, readonlyLinesCount);
@@ -265,7 +282,10 @@ export default function EditorPane({
 
     if (!normalizedVal.startsWith(normalizedReadonly)) {
       const editor = editorRef.current;
-      if (editor && editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current) {
+      if (
+        editor &&
+        editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current
+      ) {
         editor.setValue(lastValidValueRef.current);
         if (monacoRef.current) {
           updateDecorations(editor, monacoRef.current, readonlyLinesCount);
@@ -316,35 +336,35 @@ export default function EditorPane({
 
       <div className="editor-tabs editor-tabs-row">
         <div className="editor-tab-list">
-            <button
-              className={`tab ${activeTab === "html" ? "active" : ""}`}
-              onClick={() => setActiveTab("html")}
-              disabled={isHtmlTabDisabled}
-              style={
-                isHtmlTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-              }
-            >
-              index.html
-            </button>
-            <button
-              className={`tab ${activeTab === "css" ? "active" : ""}`}
-              onClick={() => setActiveTab("css")}
-              disabled={isCssTabDisabled}
-              style={
-                isCssTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-              }
-            >
-              styles.css
-            </button>
-            <button
-              className={`tab ${activeTab === "js" ? "active" : ""}`}
-              onClick={() => setActiveTab("js")}
-              disabled={isJsTabDisabled}
-              style={
-                isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-              }
-            >
-              script.js
+          <button
+            className={`tab ${activeTab === "html" ? "active" : ""}`}
+            onClick={() => setActiveTab("html")}
+            disabled={isHtmlTabDisabled}
+            style={
+              isHtmlTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            index.html
+          </button>
+          <button
+            className={`tab ${activeTab === "css" ? "active" : ""}`}
+            onClick={() => setActiveTab("css")}
+            disabled={isCssTabDisabled}
+            style={
+              isCssTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            styles.css
+          </button>
+          <button
+            className={`tab ${activeTab === "js" ? "active" : ""}`}
+            onClick={() => setActiveTab("js")}
+            disabled={isJsTabDisabled}
+            style={
+              isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            script.js
           </button>
         </div>
         <div className="editor-tab-controls">
@@ -372,9 +392,19 @@ export default function EditorPane({
           >
             <VisualEditor
               content={task?.editableHtml || ""}
-              setContent={(val: any) => onTaskChange("editableHtml", typeof val === 'function' ? val(task?.editableHtml || "") : val)}
+              setContent={(val: EditorValueUpdater) =>
+                onTaskChange(
+                  "editableHtml",
+                  resolveEditorValue(val, task?.editableHtml || ""),
+                )
+              }
               cssContent={task?.editableCss || ""}
-              setCssContent={(val: any) => onTaskChange("editableCss", typeof val === 'function' ? val(task?.editableCss || "") : val)}
+              setCssContent={(val: EditorValueUpdater) =>
+                onTaskChange(
+                  "editableCss",
+                  resolveEditorValue(val, task?.editableCss || ""),
+                )
+              }
               isDark={theme === "dark"}
             />
           </div>

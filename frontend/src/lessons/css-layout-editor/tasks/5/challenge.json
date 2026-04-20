@@ -1,0 +1,33 @@
+{
+  "id": "task-layout-05-span",
+  "title": "Hlavný Článok (Grid Span)",
+  "instructions": "<h3>Zadanie:</h3><p>Máme vytvorenú mriežku s 3 stĺpcami. Zatiaľ je každý článok uväznený vo svojej jednej bunke. Chceme ale, aby <strong>hlavný článok s fotkou</strong> vyzeral ako 'Featured' a zabral viac miesta.</p><ul><li>Nájdite triedu pre hlavný článok (<code>.featured</code>).</li><li>Použite CSS Grid vlastnosť pre stĺpce a prikážte mu, aby sa roztiahol <strong>naprieč dvoma stĺpcami</strong> (kľúčové slovo <code>span</code>).</li><li>Aby bol článok naozaj obrovský, prikážte mu, aby sa roztiahol aj <strong>naprieč dvoma riadkami</strong>.</li></ul>",
+  "targetSelectors": [".featured"],
+  "lockedLines": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "hintTimeout": 180,
+  "initialHtml": "<div class=\"wrapper\">\n  <div class=\"news-grid\">\n    <div class=\"card featured\">Hlavný box</div>\n    <div class=\"card\">Bežná správa 1</div>\n    <div class=\"card\">Bežná správa 2</div>\n    <div class=\"card\">Bežná správa 3</div>\n    <div class=\"card\">Bežná správa 4</div>\n  </div>\n</div>",
+  "initialCss": "body {\n margin: 0;\n background: #e2e8f0;\n}\n.wrapper {\n display: flex;\n justify-content: center;\n padding-top: 40px;\n width: 100%;\n}\n.news-grid {\n display: grid;\n grid-template-columns: repeat(3, 1fr);\n grid-auto-rows: 150px;\n gap: 15px;\n}\n.card {\n background:  #7cb5ff;\n border-radius: 12px;\n padding: 20px;\n box-shadow: 0 2px 4px rgba(0,0,0,0.05);\n}\n.featured {\n background: linear-gradient(135deg, #f43f5e, #fb923c);\n color: white;\n font-size: 24px;\n font-weight: bold;\n}\n\n.featured {\n  \n}\n",
+  "solutionCss": ".featured { grid-column: span 2; grid-row: span 2; }",
+  "checks": [
+    {
+      "id": "chk-feat-col",
+      "type": "exact-match",
+      "selector": ".featured",
+      "property": "grid-column",
+      "value": "span 2",
+      "level": "error",
+      "message": "Prikáž elementu, aby sa natiahol cez viacero stĺpcov.",
+      "studentHint": "Hlavný článok sa tiahne cez 2 stĺpce"
+    },
+    {
+      "id": "chk-feat-row",
+      "type": "exact-match",
+      "selector": ".featured",
+      "property": "grid-row",
+      "value": "span 2",
+      "level": "error",
+      "message": "Prikáž elementu, aby zabral miesto aj smerom nadol do ďalšieho riadka.",
+      "studentHint": "Hlavný článok sa tiahne nadol cez 2 riadky"
+    }
+  ]
+}

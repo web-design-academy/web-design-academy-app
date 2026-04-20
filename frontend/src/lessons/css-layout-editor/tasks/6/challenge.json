@@ -1,0 +1,100 @@
+{
+  "id": "task-final-dashboard",
+  "title": "Záverečný Projekt: Dashboard Layout",
+  "instructions": "<h3>Záverečná výzva: Poskladaj celú aplikáciu</h3><p>Tvojou úlohou je premeniť rozbitý HTML kód na moderný Dashboard. Budeš musieť použiť všetko, čo vieš o <strong>CSS Grid, Flexbox a Position</strong>.</p><ul><li><strong>.app-container:</strong> Celá aplikácia beží v obale. Použi naň <strong>Flexbox</strong>, aby Sidebar a Main-content boli pekne vedľa seba. Zabezpeč, aby aplikácia mala výšku celej obrazovky.</li><li><strong>.sidebar:</strong> Nastav šírku na 250px a použi Flexbox, aby boli položky menu v stĺpci a roztlačené tak, aby odhlásenie išlo úplne dole.</li><li><strong>.main-content:</strong> Zaberá zvyšný priestor. Má vlastný padding 30px.</li><li><strong>.stats-grid:</strong> V hlavnom obsahu je mriežka štatistík. Nastav ju ako <strong>CSS Grid</strong> s 3 rovnakými stĺpcami a medzerou 20px.</li><li><strong>.user-profile:</strong> V hlavičke je meno a notifikácia. Použi na ne Flexbox, aby boli vertikálne zarovnané.</li><li><strong>.badge:</strong> Toto je najťažšie! Obal (<code>.notification</code>) nastav ako <code>relative</code>. Samotnú červenú bublinu (<code>.badge</code>) nastav ako <code>absolute</code> do pravého horného rohu (-5px zhora a sprava). Nezabudni zaobliť rohy, prida5 farbu, zvoliť výšku a šírku 18px a veľkosť fontu 12px a správne to vycentrovať!</li></ul>",
+  "targetSelectors": [
+    ".app-container",
+    ".sidebar",
+    ".main-content",
+    ".stats-grid",
+    ".user-profile",
+    ".badge"
+  ],
+  "lockedLines": [],
+  "hintTimeout": 180,
+  "checks": [
+    {
+      "id": "check-app-flex",
+      "type": "exact-match",
+      "selector": ".app-container",
+      "property": "display",
+      "value": "flex",
+      "level": "error",
+      "message": "Hlavný obal aplikácie musí byť Flexbox (aby boli bočný panel a obsah vedľa seba).",
+      "studentHint": "Hlavný obal (.app-container) je Flexbox s výškou celej obrazovky"
+    },
+    {
+      "id": "check-app-height",
+      "type": "exact-match",
+      "selector": ".app-container",
+      "property": "height",
+      "value": "100vh",
+      "level": "error",
+      "message": "Aplikácia musí zaberať celú výšku obrazovky.",
+      "studentHint": ""
+    },
+    {
+      "id": "check-sidebar-width",
+      "type": "exact-match",
+      "selector": ".sidebar",
+      "property": "width",
+      "value": "250px",
+      "level": "error",
+      "message": "Bočný panel má mať presnú šírku 250px.",
+      "studentHint": "Bočný panel má fixnú šírku a Flexbox (stĺpec s roztlačením)"
+    },
+    {
+      "id": "check-sidebar-flex",
+      "type": "exact-match",
+      "selector": ".sidebar",
+      "property": "justify-content",
+      "value": "space-between",
+      "level": "error",
+      "message": "Položky v sidebare musia byť roztlačené, aby šlo Odhlásenie dole.",
+      "studentHint": ""
+    },
+    {
+      "id": "check-main-grow",
+      "type": "exact-match",
+      "selector": ".main-content",
+      "property": "flex-grow",
+      "value": "1",
+      "level": "error",
+      "message": "Hlavný obsah (.main-content) musí zabrať celý zvyšok obrazovky.",
+      "studentHint": "Hlavný obsah zaberie zvyšný voľný priestor a má padding 30px"
+    },
+    {
+      "id": "check-grid",
+      "type": "regex-match",
+      "selector": ".stats-grid",
+      "property": "grid-template-columns",
+      "value": "^(repeat\\(3,\\s*1fr\\)|1fr\\s+1fr\\s+1fr)$",
+      "level": "error",
+      "message": "Mriežka štatistík musí mať 3 rovnaké stĺpce.",
+      "studentHint": "Štatistiky (.stats-grid) sú v CSS mriežke (3 stĺpce, medzera 20px)"
+    },
+    {
+      "id": "check-profile-flex",
+      "type": "exact-match",
+      "selector": ".user-profile",
+      "property": "display",
+      "value": "flex",
+      "level": "error",
+      "message": "Používateľský profil musí byť vo Flexboxe.",
+      "studentHint": "Hlavička s menom (.user-profile) je Flexbox, vertikálne zarovnaný"
+    },
+    {
+      "id": "check-badge-pos",
+      "type": "exact-match",
+      "selector": ".badge",
+      "property": "position",
+      "value": "absolute",
+      "level": "error",
+      "message": "Červená notifikácia (badge) musí byť absolútne pozíciovaná voči zvončeku.",
+      "studentHint": "Červená notifikácia (.badge) má absolútnu pozíciu v pravom hornom rohu"
+    }
+  ],
+  "initialHtml": "<div class=\"app-container\">\n  <aside class=\"sidebar\">\n    <div class=\"logo\">MyDashboard</div>\n    <nav class=\"menu\">\n      <a href=\"#\">Prehľad</a>\n      <a href=\"#\">Analytika</a>\n      <a href=\"#\">Nastavenia</a>\n    </nav>\n    <a href=\"#\" class=\"logout\">Odhlásiť sa</a>\n  </aside>\n\n  <main class=\"main-content\">\n    <header class=\"header\">\n      <h2>Dnešný prehľad</h2>\n      <div class=\"user-profile\">\n        <div class=\"notification\">\n          🔔\n          <div class=\"badge\">3</div>\n        </div>\n        <span>Jozef Admin</span>\n      </div>\n    </header>\n\n    <div class=\"stats-grid\">\n      <div class=\"stat-card\">\n        <h4>Návštevy</h4>\n        <p class=\"number\">1,250</p>\n      </div>\n      <div class=\"stat-card\">\n        <h4>Predaje</h4>\n        <p class=\"number\">320</p>\n      </div>\n      <div class=\"stat-card\">\n        <h4>Zárobok</h4>\n        <p class=\"number\">€4,500</p>\n      </div>\n    </div>\n  </main>\n</div>",
+  "initialCss": "body {\nmargin: 0;\n background: #f8fafc;\n}\n.sidebar {\n background: #1e293b;\n color: white;\n padding: 20px;\n}\n.logo {\n font-size: 24px;\n font-weight: bold;\n margin-bottom: 40px;\n color: #38bdf8;\n }\n.menu a, .logout {\n display: block;\n color: #cbd5e1;\n text-decoration: none;\n padding: 10px 0;\n}\n.menu a:hover, .logout:hover {\n color: white;\n}\n.header {\n display: flex;\n justify-content: space-between;\n margin-bottom: 30px;\n border-bottom: 1px solid #e2e8f0;\n padding-bottom: 20px;\n }\nh2 {\n margin: 0;\n color: #0f172a;\n }\n.stat-card {\n background: white;\n padding: 20px;\n border-radius: 12px;\n box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);\n}\n.stat-card h4 {\n margin: 0;\n color: #64748b;\n font-size: 14px;\n}\n.stat-card .number {\n margin: 10px 0 0 0;\n font-size: 28px;\n font-weight: bold;\n color: #10b981;\n}\n.notification {\n font-size: 24px;\n cursor: pointer;\n position: relative;\n}\n.user-profile {\n gap: 15px;\n}\n\n.app-container {\n \n}\n\n.sidebar {\n\n}\n\n.main-content {\n\n}\n\n.stats-grid {\n\n}\n\n.user-profile {\n \n}\n\n.badge {\n\n}\n",
+  "solutionCss": ".app-container {\n  display: flex;\n  height: 100vh;\n}\n\n.sidebar {\n  width: 250px;\n  display: flex;\n  flex-direction: column;\n  justify-content: space-between;\n}\n\n.main-content {\n  flex-grow: 1;\n  padding: 30px;\n}\n\n.stats-grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr 1fr;\n  gap: 20px;\n}\n\n.user-profile {\n  display: flex;\n  align-items: center;\n}\n\n.badge {\n  position: absolute;\n  top: -5px;\n  right: -5px;\n  background-color: #ef4444;\n  color: white;\n  border-radius: 50%;\n  width: 18px;\n  height: 18px;\n  font-size: 12px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}"
+}

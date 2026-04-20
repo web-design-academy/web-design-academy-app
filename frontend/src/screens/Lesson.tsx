@@ -12,6 +12,7 @@ import Modal from "@/components/Modal";
 import { getLessonTasksSync, type TaskCode } from "@/lib/helpers/getTasks";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { isOnlineMode } from "@/lib/config/appMode";
+import CssChallengeWrapper from "@/components/CssChallengeWrapper";
 
 import { useSubmitSolution, useSubmission } from "@/lib/hooks/useSubmissions";
 
@@ -61,6 +62,7 @@ export default function Lesson() {
         editableHtml: t.editableHtml,
         editableCss: t.editableCss,
         editableJs: t.editableJs,
+        challengeConfig: t.challengeConfig,
       })),
     );
 
@@ -132,7 +134,8 @@ export default function Lesson() {
       if (!container) return false;
 
       const heading = Array.from(container.querySelectorAll("h1, h2, h3")).find(
-        (node) => node.textContent?.trim().toLowerCase() === "task instructions",
+        (node) =>
+          node.textContent?.trim().toLowerCase() === "task instructions",
       );
 
       let list: HTMLOListElement | null = null;
@@ -162,7 +165,9 @@ export default function Lesson() {
         return true;
       }
 
-      taskItems.forEach((item) => item.classList.remove("task-instruction-focus"));
+      taskItems.forEach((item) =>
+        item.classList.remove("task-instruction-focus"),
+      );
       target.classList.add("task-instruction-focus");
       target.scrollIntoView({ behavior: "smooth", block: "nearest" });
       lastAutoFocusKeyRef.current = focusKey;
@@ -206,6 +211,9 @@ export default function Lesson() {
   const currentTask = tasks[currentTaskIndex];
   const currentTaskState = taskStates[currentTaskIndex];
   const currentTaskId = (currentTaskIndex + 1).toString();
+
+  // TVOJ OPT-IN PRE ANALYZÁTOR
+  const isCssChallenge = currentTaskState?.challengeConfig !== undefined;
 
   if (!currentTask && !isNew) return <Navigate to="/" />;
 
@@ -325,17 +333,14 @@ export default function Lesson() {
 
   const handleSubmit = async () => {
     if (!currentTaskState) return;
-
     if (!isOnlineMode) {
       setShowLoginModal(true);
       return;
     }
-
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
     }
-
     if (isAdmin) return;
 
     submitMutation.mutate(
@@ -359,106 +364,180 @@ export default function Lesson() {
       className={`lesson-container ${isMobileLayout ? "lesson-container-mobile" : ""}`}
     >
       <Suspense fallback={<LoadingSpinner />}>
-        {isMobileLayout ? (
-          <>
-            <section className="lesson-mobile-editor">
-              <EditorPane
-                task={currentTaskState}
-                currentIndex={currentTaskIndex}
-                totalTasks={tasks.length}
-                onTaskChange={updateTask}
-                onChangeTask={(idx) => setCurrentTaskIndex(idx)}
-                readonlyHtml={currentTask?.readonlyHtml}
-                readonlyCss={currentTask?.readonlyCss}
-                readonlyJs={currentTask?.readonlyJs}
-                onSubmit={handleSubmit}
-                completedTasks={completedTasks}
-                currentTaskId={currentTaskId}
-                onAddTask={addTask}
-                onResetTask={resetTask}
-                lessonSlug={slug}
-              />
-            </section>
-
-            <section className="lesson-mobile-preview">
-              <PreviewPane html={srcDoc} />
-            </section>
-          </>
-        ) : (
-          <Resizable
-            className="lesson-top-row"
-            size={{ width: "100%", height: `${topRowPercent}%` }}
-            enable={{ bottom: true }}
-            minHeight={100}
-            maxHeight="90%"
-            onResize={handleTopRowResize}
-            onResizeStop={handleTopRowResize}
-            handleComponent={{
-              bottom: <div className="resize-handle-bottom" />,
+        {isCssChallenge ? (
+          <div
+            style={{
+              height: "calc(100vh - var(--header-height))",
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
             }}
-            handleStyles={{ bottom: { height: 16 } }}
           >
-            <div className="lesson-top-inner">
-              <Resizable
-                className="lesson-editor"
-                size={{ width: `${editorPercent}%`, height: "100%" }}
-                enable={{ right: true }}
-                minWidth="15%"
-                maxWidth="85%"
-                onResize={handleEditorResize}
-                onResizeStop={handleEditorResize}
-                handleComponent={{
-                  right: <div className="resize-handle-right" />,
-                }}
-                handleStyles={{ right: { width: 16 } }}
-              >
-                <EditorPane
-                  task={currentTaskState}
-                  currentIndex={currentTaskIndex}
-                  totalTasks={tasks.length}
-                  onTaskChange={updateTask}
-                  onChangeTask={(idx) => setCurrentTaskIndex(idx)}
-                  readonlyHtml={currentTask?.readonlyHtml}
-                  readonlyCss={currentTask?.readonlyCss}
-                  readonlyJs={currentTask?.readonlyJs}
-                  onSubmit={handleSubmit}
-                  completedTasks={completedTasks}
-                  currentTaskId={currentTaskId}
-                  onAddTask={addTask}
-                  onResetTask={resetTask}
-                  lessonSlug={slug}
-                />
-              </Resizable>
-
+            <div
+              className="footer-nav-row"
+              style={{
+                background: "var(--color-card)",
+                borderBottom: "1px solid var(--color-border)",
+                padding: "10px 15px",
+              }}
+            >
               <div
-                className="lesson-preview"
-                style={{ width: `${100 - editorPercent}%` }}
+                className="nav-controls"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  alignItems: "center",
+                }}
               >
-                <PreviewPane html={srcDoc} />
+                <button
+                  onClick={() => setCurrentTaskIndex((i) => i - 1)}
+                  disabled={currentTaskIndex === 0}
+                  className="btn-ghost"
+                  style={{ padding: "4px 10px" }}
+                >
+                  Predošlá
+                </button>
+                <span
+                  className="task-counter"
+                  style={{ fontSize: "14px", fontWeight: "bold" }}
+                >
+                  CSS Výzva {currentTaskIndex + 1} z {tasks.length}
+                </span>
+                <button
+                  onClick={() => setCurrentTaskIndex((i) => i + 1)}
+                  disabled={currentTaskIndex === tasks.length - 1}
+                  className="btn-ghost"
+                  style={{ padding: "4px 10px" }}
+                >
+                  Ďalšia
+                </button>
               </div>
             </div>
-          </Resizable>
-        )}
 
-        <div
-          ref={lessonContentRef}
-          className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""}`}
-          style={
-            isMobileLayout ? undefined : { height: `${100 - topRowPercent}%` }
-          }
-        >
-          {isNew ? (
-            <div
-              className="admin-new-lesson-placeholder"
-              style={{ padding: 40, textAlign: "center" }}
-            >
-              <h1>New Course: {slug}</h1>
-              <p>You are in creation mode. Add tasks and edit code above.</p>
+            <div style={{ flexGrow: 1, overflow: "hidden" }}>
+              <CssChallengeWrapper
+                key={currentTaskId}
+                taskData={currentTaskState}
+                isAdmin={isAdmin}
+                onScoreSubmit={(score, code) => {
+                  updateTask("editableCss", code);
+                  if (score >= 100) handleSubmit();
+                }}
+                onConfigSave={(configString) => {
+                  updateTask("challengeConfig", configString);
+                }}
+              />
             </div>
-          ) : (
-            <MDXProvider>{LessonContent && <LessonContent />}</MDXProvider>
-          )}
-        </div>
+          </div>
+        ) : (
+          <>
+            {isMobileLayout ? (
+              <>
+                <section className="lesson-mobile-editor">
+                  <EditorPane
+                    task={currentTaskState}
+                    currentIndex={currentTaskIndex}
+                    totalTasks={tasks.length}
+                    onTaskChange={updateTask}
+                    onChangeTask={(idx) => setCurrentTaskIndex(idx)}
+                    readonlyHtml={currentTask?.readonlyHtml}
+                    readonlyCss={currentTask?.readonlyCss}
+                    readonlyJs={currentTask?.readonlyJs}
+                    onSubmit={handleSubmit}
+                    completedTasks={completedTasks}
+                    currentTaskId={currentTaskId}
+                    onAddTask={addTask}
+                    onResetTask={resetTask}
+                    lessonSlug={slug}
+                  />
+                </section>
+
+                <section className="lesson-mobile-preview">
+                  <PreviewPane html={srcDoc} />
+                </section>
+              </>
+            ) : (
+              <Resizable
+                className="lesson-top-row"
+                size={{ width: "100%", height: `${topRowPercent}%` }}
+                enable={{ bottom: true }}
+                minHeight={100}
+                maxHeight="90%"
+                onResize={handleTopRowResize}
+                onResizeStop={handleTopRowResize}
+                handleComponent={{
+                  bottom: <div className="resize-handle-bottom" />,
+                }}
+                handleStyles={{ bottom: { height: 16 } }}
+              >
+                <div className="lesson-top-inner">
+                  <Resizable
+                    className="lesson-editor"
+                    size={{ width: `${editorPercent}%`, height: "100%" }}
+                    enable={{ right: true }}
+                    minWidth="15%"
+                    maxWidth="85%"
+                    onResize={handleEditorResize}
+                    onResizeStop={handleEditorResize}
+                    handleComponent={{
+                      right: <div className="resize-handle-right" />,
+                    }}
+                    handleStyles={{ right: { width: 16 } }}
+                  >
+                    <EditorPane
+                      task={currentTaskState}
+                      currentIndex={currentTaskIndex}
+                      totalTasks={tasks.length}
+                      onTaskChange={updateTask}
+                      onChangeTask={(idx) => setCurrentTaskIndex(idx)}
+                      readonlyHtml={currentTask?.readonlyHtml}
+                      readonlyCss={currentTask?.readonlyCss}
+                      readonlyJs={currentTask?.readonlyJs}
+                      onSubmit={handleSubmit}
+                      completedTasks={completedTasks}
+                      currentTaskId={currentTaskId}
+                      onAddTask={addTask}
+                      onResetTask={resetTask}
+                      lessonSlug={slug}
+                    />
+                  </Resizable>
+
+                  <div
+                    className="lesson-preview"
+                    style={{ width: `${100 - editorPercent}%` }}
+                  >
+                    <PreviewPane html={srcDoc} />
+                  </div>
+                </div>
+              </Resizable>
+            )}
+
+            <div
+              ref={lessonContentRef}
+              className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""}`}
+              style={
+                isMobileLayout
+                  ? undefined
+                  : { height: `${100 - topRowPercent}%` }
+              }
+            >
+              {isNew ? (
+                <div
+                  className="admin-new-lesson-placeholder"
+                  style={{ padding: 40, textAlign: "center" }}
+                >
+                  <h1>New Course: {slug}</h1>
+                  <p>
+                    You are in creation mode. Add tasks and edit code above.
+                  </p>
+                </div>
+              ) : (
+                <MDXProvider>{LessonContent && <LessonContent />}</MDXProvider>
+              )}
+            </div>
+          </>
+        )}
 
         <Modal
           title="Authentication Required"
