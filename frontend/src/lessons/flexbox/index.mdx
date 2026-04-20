@@ -1,0 +1,66 @@
+---
+title: "CSS Flexbox"
+description: "Learn how to build responsive 1D layouts using Flexbox, including alignment, spacing, wrapping, and real UI patterns like navbars, cards, and modals."
+slug: "flexbox"
+color: "oklch(54.6% 0.245 262.881)"
+order: 4
+icon: UserCircle
+---
+
+import C from "../../components/C";
+
+# CSS Flexbox Layout
+
+## Task Instructions
+
+1. **Flexbox Cards Layout**
+
+   You have a collection of cards containing an image and text inside a <C l="html">{"<main>"}</C> container. The HTML structure is already prepared, but the layout is not styled yet.
+
+   - On the <C l="html">{"<main>"}</C> container (<C l="css">.cards</C>):
+     - Set <C l="css">display: flex</C> to create a Flexbox layout
+     - Enable wrapping using <C l="css">flex-wrap</C> so cards move to the next row on smaller screens
+     - Add spacing between cards using <C l="css">gap</C>
+     - Center the layout using <C l="css">margin</C> and limit its width
+   - On each card (<C l="css">.card</C>):
+     - Set flexible width using <C l="css">flex</C> (e.g. <C l="css">1 1 250px</C>)
+     - Add a white background, rounded corners, and a soft shadow
+     - Use <C l="css">overflow: hidden</C> to keep the image inside rounded corners
+   - On the image inside the card:
+     - Set <C l="css">width: 100%</C>
+     - Set a fixed <C l="css">height</C> (e.g. <C l="css">160px</C>)
+     - Use <C l="css">object-fit: cover</C> to prevent distortion
+   - On the text container (<C l="css">.content</C>):
+     - Add <C l="css">padding</C> for spacing
+
+2. **Navbar Layout (Horizontal Alignment)**
+
+   You have a navigation bar with a logo on the left and menu items on the right.
+
+   - On the <C l="css">.navbar</C> container:
+     - Use <C l="css">display: flex</C>
+     - Align items vertically using <C l="css">align-items</C>
+     - Push menu items to the right using <C l="css">justify-content</C>
+   - On the menu container (<C l="css">.menu</C>):
+     - Use <C l="css">display: flex</C>
+     - Add spacing between items using <C l="css">gap</C>
+
+3. **Centering a Modal**
+
+   You have a modal box inside a full-page overlay.
+
+   - On the <C l="css">.overlay</C> container:
+     - Use <C l="css">display: flex</C>
+     - Center horizontally using <C l="css">justify-content</C>
+     - Center vertically using <C l="css">align-items</C>
+     - Set full height using <C l="css">height: 100vh</C>
+
+4. **Card Button Alignment**
+
+   You have a card with text and a button.
+
+   - On the card:
+     - Use <C l="css">display: flex</C>
+     - Set <C l="css">flex-direction: column</C>
+   - On the button:
+     - Push it to the bottom using <C l="css">margin-top: auto</C>
