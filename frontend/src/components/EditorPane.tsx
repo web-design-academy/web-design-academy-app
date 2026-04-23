@@ -426,6 +426,7 @@ export default function EditorPane({
               Visual mode
             </label>
           )}
+          {showSubmitButton && <SubmitButton onClick={onSubmit} />}
         </div>
       </div>
 
@@ -575,11 +576,6 @@ export default function EditorPane({
                 </button>
               )}
             </div>
-          </div>
-        )}
-        {showSubmitButton && (
-          <div className="footer-student-row">
-            <SubmitButton onClick={onSubmit} />
           </div>
         )}
       </div>
