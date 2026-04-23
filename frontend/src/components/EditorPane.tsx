@@ -570,7 +570,6 @@ export default function EditorPane({
                 <button
                   onClick={onConfigureChallenge}
                   className="btn-primary"
-                  style={{ background: "#00c3ff" }}
                 >
                   <Settings size={20} style={{ marginRight: 8 }} /> Set CSS challenge
                 </button>

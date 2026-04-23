@@ -104,7 +104,7 @@ app.use(
           "https://accounts.google.com/gsi/style",
           "https://fonts.googleapis.com",
         ],
-        "img-src": ["'self'", "data:", "blob:"],
+        "img-src": ["'self'", "https:", "data:", "blob:"],
         "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
         "connect-src": [
           "'self'",
