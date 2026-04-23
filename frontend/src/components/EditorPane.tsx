@@ -16,9 +16,11 @@ import {
   Download,
   Plus,
   RotateCcw,
+  Settings,
 } from "lucide-react";
 import { useTheme } from "@/lib/ctx/useTheme";
 import VisualEditor from "visualeditor-html-css";
+import { EditorPanel } from "css-analyzer";
 
 export interface EditorPaneProps {
   task: Partial<TaskCode>;
@@ -35,6 +37,12 @@ export interface EditorPaneProps {
   onAddTask?: () => void;
   onResetTask?: () => void;
   lessonSlug?: string;
+  isCssChallenge?: boolean;
+  allowVisualMode?: boolean;
+  allowAnalyzerEditor?: boolean;
+  onConfigureChallenge?: () => void;
+  useAdvancedEditor?: boolean;
+  onToggleAdvancedEditor?: (value: boolean) => void;
 }
 
 type Tab = "html" | "css" | "js";
@@ -48,7 +56,12 @@ const resolveEditorValue = (value: EditorValueUpdater, previous: string) => {
   return value;
 };
 
-const getFirstPreferredTab = (task: Partial<TaskCode>): Tab => {
+const getFirstPreferredTab = (
+  task: Partial<TaskCode>,
+  isCssChallenge: boolean,
+): Tab => {
+  if (isCssChallenge) return "css";
+
   if (task.editableHtml !== undefined) return "html";
   if (task.editableCss !== undefined) return "css";
   if (task.editableJs !== undefined) return "js";
@@ -75,11 +88,17 @@ export default function EditorPane({
   onAddTask,
   onResetTask,
   lessonSlug,
+  isCssChallenge = false,
+  allowVisualMode = true,
+  allowAnalyzerEditor = false,
+  onConfigureChallenge,
+  useAdvancedEditor = true,
+  onToggleAdvancedEditor,
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<Tab>(() =>
-    getFirstPreferredTab(task),
+    getFirstPreferredTab(task, isCssChallenge),
   );
-  const [useVisualEditor, setUseVisualEditor] = useState(false);
+  const [useVisualEditor, setUseVisualEditor] = useState(() => allowVisualMode);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof monaco | null>(null);
   const lastValidValueRef = useRef("");
@@ -103,21 +122,23 @@ export default function EditorPane({
     readonlyJs !== undefined || task?.editableJs !== undefined;
 
   const isHtmlTabDisabled = !hasHtmlSource;
-  const isCssTabDisabled = useVisualEditor || !hasCssSource;
+  const isCssTabDisabled = useVisualEditor ? false : !hasCssSource;
   const isJsTabDisabled = useVisualEditor || !hasJsSource;
-  const preferredTab: Tab = hasEditableHtmlFile
-    ? "html"
-    : hasEditableCssFile
-      ? "css"
-      : hasEditableJsFile
-        ? "js"
-        : hasHtmlSource
-          ? "html"
-          : hasCssSource
-            ? "css"
-            : hasJsSource
-              ? "js"
-              : "html";
+  const preferredTab: Tab = isCssChallenge
+    ? "css"
+    : hasEditableHtmlFile
+      ? "html"
+      : hasEditableCssFile
+        ? "css"
+        : hasEditableJsFile
+          ? "js"
+          : hasHtmlSource
+            ? "html"
+            : hasCssSource
+              ? "css"
+              : hasJsSource
+                ? "js"
+                : "html";
 
   const onPrev = () => {
     if (hasPrev) onChangeTask(currentIndex - 1);
@@ -137,6 +158,16 @@ export default function EditorPane({
     if (activeTab === "js" && hasJsSource) return;
     setActiveTab(preferredTab);
   }, [activeTab, hasHtmlSource, hasCssSource, hasJsSource, preferredTab]);
+
+  useEffect(() => {
+    if (!allowVisualMode && useVisualEditor) {
+      setUseVisualEditor(false);
+    }
+  }, [allowVisualMode, useVisualEditor]);
+
+  useEffect(() => {
+    setUseVisualEditor(allowVisualMode);
+  }, [lessonSlug, allowVisualMode]);
 
   const handleDownloadZip = async () => {
     if (!lessonSlug) return;
@@ -308,33 +339,21 @@ export default function EditorPane({
   };
 
   const isCompleted = currentTaskId && completedTasks?.has(currentTaskId);
+  const isAdvancedActive =
+    isCssChallenge &&
+    allowAnalyzerEditor &&
+    activeTab === "css" &&
+    useAdvancedEditor;
 
   return (
-    <div className="editor-pane">
-      <div className="editor-footer">
-        {isAdmin && (
-          <div className="footer-admin-row">
-            <button onClick={onAddTask} className="btn-ghost">
-              <Plus size={20} style={{ marginRight: 8 }} /> Add task
-            </button>
-            <div className="admin-actions-group">
-              <button onClick={handleDiscard} className="btn-ghost">
-                Discard
-              </button>
-              <button onClick={handleDownloadZip} className="btn-primary">
-                <Download size={20} style={{ marginRight: 8 }} /> Download
-              </button>
-            </div>
-          </div>
-        )}
-        {showSubmitButton && (
-          <div className="footer-student-row">
-            <SubmitButton onClick={onSubmit} />
-          </div>
-        )}
-      </div>
-
-      <div className="editor-tabs editor-tabs-row">
+    <div
+      className="editor-pane"
+      style={isCssChallenge ? { borderRight: "none" } : undefined}
+    >
+      <div
+        className="editor-tabs editor-tabs-row"
+        style={isCssChallenge ? { flexWrap: "wrap", gap: "10px" } : undefined}
+      >
         <div className="editor-tab-list">
           <button
             className={`tab ${activeTab === "html" ? "active" : ""}`}
@@ -367,20 +386,53 @@ export default function EditorPane({
             script.js
           </button>
         </div>
-        <div className="editor-tab-controls">
-          <label className="visual-editor-toggle">
-            <input
-              type="checkbox"
-              checked={useVisualEditor}
-              onChange={(e) => setUseVisualEditor(e.target.checked)}
-              className="visual-editor-checkbox"
-            />
-            Visual mode
-          </label>
+        <div
+          className="editor-tab-controls"
+          style={
+            isCssChallenge
+              ? {
+                  display: "flex",
+                  gap: "15px",
+                  alignItems: "center",
+                  paddingRight: "15px",
+                  flexWrap: "wrap",
+                }
+              : undefined
+          }
+        >
+          {isCssChallenge && allowAnalyzerEditor && activeTab === "css" && (
+            <label
+              className={`editor-mode-toggle ${useAdvancedEditor ? "is-active" : ""}`}
+            >
+              <input
+                type="checkbox"
+                className="editor-mode-checkbox"
+                checked={useAdvancedEditor}
+                onChange={(e) => onToggleAdvancedEditor?.(e.target.checked)}
+              />
+              Analyzer editor
+            </label>
+          )}
+          {allowVisualMode && (
+            <label
+              className={`editor-mode-toggle ${useVisualEditor ? "is-active" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={useVisualEditor}
+                onChange={(e) => setUseVisualEditor(e.target.checked)}
+                className="editor-mode-checkbox"
+              />
+              Visual mode
+            </label>
+          )}
         </div>
       </div>
 
-      <div className="editor-container">
+      <div
+        className="editor-container"
+        style={isCssChallenge ? { flexDirection: "column", display: "flex", flexGrow: 1, position: "relative" } : undefined}
+      >
         {useVisualEditor && (activeTab === "html" || activeTab === "css") ? (
           <div
             style={{
@@ -409,24 +461,59 @@ export default function EditorPane({
             />
           </div>
         ) : (
-          <Editor
-            key={`${activeTab}-${currentIndex}`}
-            height="100%"
-            defaultLanguage={activeTab === "js" ? "javascript" : activeTab}
-            language={activeTab === "js" ? "javascript" : activeTab}
-            value={content}
-            onChange={handleEditorChange}
-            onMount={handleEditorMount}
-            theme={theme === "dark" ? "vs-dark" : "vs-light"}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              padding: { top: 16 },
-              scrollBeyondLastLine: false,
-              readOnly: isFileFullyReadonly,
-              domReadOnly: isFileFullyReadonly,
-            }}
-          />
+          <>
+            {isCssChallenge && (
+              <div
+                style={{
+                  position: isAdvancedActive ? "relative" : "absolute",
+                  top: isAdvancedActive ? 0 : "-9999px",
+                  left: isAdvancedActive ? 0 : "-9999px",
+                  width: "100%",
+                  height: "100%",
+                  visibility: isAdvancedActive ? "visible" : "hidden",
+                  flexGrow: isAdvancedActive ? 1 : 0,
+                }}
+                className="css-analyzer-wrapper"
+              >
+                <EditorPanel
+                  theme={theme === "dark" ? "vs-dark" : "vs-light"}
+                  showMinimap={false}
+                  readOnly={false}
+                />
+              </div>
+            )}
+
+            <div
+              style={{
+                position: !isAdvancedActive ? "relative" : "absolute",
+                top: !isAdvancedActive ? 0 : "-9999px",
+                left: !isAdvancedActive ? 0 : "-9999px",
+                width: "100%",
+                height: "100%",
+                visibility: !isAdvancedActive ? "visible" : "hidden",
+                flexGrow: !isAdvancedActive ? 1 : 0,
+              }}
+            >
+              <Editor
+                key={`${activeTab}-${currentIndex}`}
+                height="100%"
+                defaultLanguage={activeTab === "js" ? "javascript" : activeTab}
+                language={activeTab === "js" ? "javascript" : activeTab}
+                value={content}
+                onChange={handleEditorChange}
+                onMount={handleEditorMount}
+                theme={theme === "dark" ? "vs-dark" : "vs-light"}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  padding: { top: 16 },
+                  scrollBeyondLastLine: false,
+                  readOnly: isFileFullyReadonly,
+                  domReadOnly: isFileFullyReadonly,
+                }}
+              />
+            </div>
+          </>
         )}
       </div>
 
@@ -463,6 +550,38 @@ export default function EditorPane({
             Next <ArrowRight size={20} style={{ marginLeft: 8 }} />
           </button>
         </div>
+      </div>
+
+      <div className="editor-footer">
+        {isAdmin && (
+          <div className="footer-admin-row">
+            <button onClick={onAddTask} className="btn-ghost">
+              <Plus size={20} style={{ marginRight: 8 }} /> Add task
+            </button>
+            <div className="admin-actions-group">
+              <button onClick={handleDiscard} className="btn-ghost">
+                Discard
+              </button>
+              <button onClick={handleDownloadZip} className="btn-primary">
+                <Download size={20} style={{ marginRight: 8 }} /> Download
+              </button>
+              {onConfigureChallenge && (
+                <button
+                  onClick={onConfigureChallenge}
+                  className="btn-primary"
+                  style={{ background: "#00c3ff" }}
+                >
+                  <Settings size={20} style={{ marginRight: 8 }} /> Set CSS challenge
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {showSubmitButton && (
+          <div className="footer-student-row">
+            <SubmitButton onClick={onSubmit} />
+          </div>
+        )}
       </div>
     </div>
   );

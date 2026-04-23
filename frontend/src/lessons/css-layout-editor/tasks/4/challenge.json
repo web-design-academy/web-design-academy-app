@@ -1,11 +1,10 @@
 {
   "id": "task-layout-04-bento",
-  "title": "Bento Grid (Vlastnosti)",
-  "instructions": "<h3>Zadanie:</h3><p>Design štýlu 'Bento box' je veľmi populárny prvok webového dizajnu. Ide o úhľadnú mriežku boxov.</p><ul><li>Obal (<code>.bento-grid</code>) premeň na mriežku.</li><li>Chceme z toho spraviť mriežku 2x2. Prikáž mriežke, aby mala presne <strong>2 rovnako široké stĺpce</strong> (ideálne využi funkciu na opakovanie, aby si si ušetril kódovanie).</li><li>Pridaj medzi všetky boxy mriežky peknú medzeru o veľkosti <strong>20px</strong>.</li></ul>",
+  "title": "Bento grid (Properties)",
+  "instructions": "<h3>Goal:</h3><p>The 'Bento box' style design is a very popular web design element. It is a neat grid of boxes.</p><ul><li>Wrap the (<code>.bento-grid</code>) to a grid.</li><li>We want to turn this into a 2x2 grid. Command the grid to have exactly <strong>2 equally wide columns</strong> (ideally, use a repeat function to save yourself some coding).</li><li>Add a nice gap of <strong>20px</strong> between all the grid boxes.</li></ul>",
   "targetSelectors": [".bento-grid"],
-  "lockedLines": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+  "lockedLines": [1,2,3,4,5,6,7,8,9,10,11,12,13],
   "hintTimeout": 180,
-  "initialHtml": "<div class=\"wrapper\">\n  <div class=\"bento-grid\">\n    <div class=\"bento-card\">Rýchlosť</div>\n    <div class=\"bento-card\">Bezpečnosť</div>\n    <div class=\"bento-card\">Responzivita</div>\n    <div class=\"bento-card\">Krásny Dizajn</div>\n  </div>\n</div>",
   "initialCss": "body {\n  margin: 0;\n  background: #e2e8f0;\n}\n.wrapper {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  min-height: 100vh;\n  width: 100%;\n  padding: 20px;\n  box-sizing: border-box;\n}\n.bento-grid {\n  width: 100%;\n  max-width: 500px;\n}\n.bento-card {\n  background: #7cb5ff;\n  padding: 40px 20px;\n  border-radius: 20px;\n  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);\n  text-align: center;\n  font-weight: 700;\n  font-size: 18px;\n  color: #334155;\n  transition: transform 0.2s;\n}\n.bento-card:hover {\n  transform: translateY(-5px);\n}\n\n.bento-grid {\n  \n}\n",
   "solutionCss": ".bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }",
   "checks": [
@@ -16,8 +15,8 @@
       "property": "display",
       "value": "grid",
       "level": "error",
-      "message": "Kontajner zatiaľ nie je mriežkou.",
-      "studentHint": "Bento kontajner je zmenený na mriežku"
+      "message": "The container is not a grid yet.",
+      "studentHint": "The Bento container has been transformed into a grid."
     },
     {
       "id": "chk-bento-repeat",
@@ -26,8 +25,8 @@
       "property": "grid-template-columns",
       "value": "^(repeat\\(2,\\s*1fr\\)|1fr\\s+1fr)$",
       "level": "error",
-      "message": "Musíš definovať presne 2 stĺpce, ktoré sa spravodlivo podelia o priestor (použi 1fr).",
-      "studentHint": "Mriežka má 2 rovnako široké stĺpce"
+      "message": "You must define exactly 2 columns that share the space equally (use 1fr).",
+      "studentHint": "The grid has 2 equally wide columns."
     },
     {
       "id": "chk-bento-gap",
@@ -36,8 +35,8 @@
       "property": "gap",
       "value": "20px",
       "level": "warning",
-      "message": "Boxy na seba naliehajú, chýba im vnútorná mriežková medzera.",
-      "studentHint": "Medzi kartami je medzera 20px"
+      "message": "The boxes are touching each other; they are missing an internal grid gap.",
+      "studentHint": "There is a 20px gap between the cards."
     }
   ]
 }

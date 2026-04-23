@@ -7,6 +7,9 @@ export type LessonMeta = {
   color: string;
   order: number;
   icon: string;
+  hidden?: boolean;
+  enableVisualMode?: boolean;
+  enableAnalyzerEditor?: boolean;
 };
 
 const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
@@ -16,16 +19,35 @@ const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
   },
 );
 
-export function getLessons(): LessonMeta[] {
-  const fileLessons = Object.values(modules).map((mod) => mod.frontmatter);
+function normalizeLessonMeta(meta: LessonMeta): LessonMeta {
+  return {
+    hidden: false,
+    enableVisualMode: true,
+    enableAnalyzerEditor: false,
+    ...meta,
+  };
+}
+
+function getAllLessons(): LessonMeta[] {
+  const fileLessons = Object.values(modules).map((mod) =>
+    normalizeLessonMeta(mod.frontmatter),
+  );
   const customLessons = getCustomCourses();
   const allLessons = [...fileLessons];
 
   customLessons.forEach((custom) => {
     if (!allLessons.find((l) => l.slug === custom.slug)) {
-      allLessons.push(custom);
+      allLessons.push(normalizeLessonMeta(custom));
     }
   });
 
   return allLessons.sort((a, b) => a.order - b.order);
+}
+
+export function getLessons(): LessonMeta[] {
+  return getAllLessons().filter((lesson) => !lesson.hidden);
+}
+
+export function getLessonMeta(slug: string): LessonMeta | undefined {
+  return getAllLessons().find((lesson) => lesson.slug === slug);
 }

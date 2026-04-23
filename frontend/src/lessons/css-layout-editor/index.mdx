@@ -1,26 +1,73 @@
 ---
-title: "CSS Flexbox and Grid"
-description: "Precvičíme si Flexbox a grid na praktických úlohách v CSS"
+title: "CSS LAYOUT"
+description: "We will practice Flexbox and grid on practical tasks in CSS"
 slug: "css-layout-editor"
 color: "oklch(60% 0.15 250)"
 order: 3
 icon: UserCircle
+hidden: false
+enableVisualMode: false
+enableAnalyzerEditor: true
 ---
 
-# Architektúra moderného webu
+# Modern Web Architecture
 
-V tejto lekcii si prejdeš reálnymi scenármi z praxe. Tvojím cieľom bude premeniť neštýlované HTML bloky na moderné, responzívne komponenty.
+In this lesson, you will work through real-world professional scenarios. Your goal is to transform unstyled HTML blocks into modern, responsive components.
 
-### Čo ťa v tejto lekcii čaká?
+### What awaits you in this lesson?
+Step by step, we will assemble all the essential parts of a web application:
+1. **Navigation bar:** Aligning the logo, menu, and button into a single row (Flexbox).
+2. **Hero banner:** Vertical arrangement and pushing content into the corner (Flex Direction).
+3. **App skeleton:** Dividing the screen into a fixed menu and dynamic content (CSS Grid).
+4. **Bento box:** Creating a modern card grid using the `repeat()` function.
+5. **Featured article:** Stretching a single element across multiple columns and rows (`span`).
+6. **Final boss - Dashboard:** Combining Grid, Flexbox, and absolute positioning for notifications into one large cohesive layout.
 
-Krok za krokom si poskladáme všetky dôležité časti webovej aplikácie:
+The linter in the editor will immediately throw an error if you write invalid code. **Follow the interactive Goals (Checklist) in the top left!** Every step you take is tracked in real-time. If you get stuck, check which goal is highlighted in red.
 
-1. **Navigačná lišta:** Zarovnanie loga, menu a tlačidla do jedného riadka (Flexbox).
-2. **Hero Banner:** Vertikálne usporiadanie a natlačenie obsahu do rohu (Flex Direction).
-3. **App Kostra:** Rozdelenie obrazovky na fixné menu a dynamický obsah (CSS Grid).
-4. **Bento Box:** Vytvorenie modernej mriežky kariet s využitím funkcie `repeat()`.
-5. **Featured Článok:** Roztiahnutie jedného prvku naprieč viacerými stĺpcami a riadkami (`span`).
-6. **Záverečný Boss - Dashboard:** Prepojenie Gridu, Flexboxu a absolútneho pozíciovania notifikácií do jedného veľkého celku.
-   ite vyhodí chybu.
+---
 
-**Sleduj interaktívne Ciele (Checklist) vľavo hore!** Každý tvoj krok je sledovaný v reálnom čase. Ak sa niekde zaseknes, pozri sa, ktorý cieľ ti svieti načerveno.
+## Task Instructions
+
+1. **Modern navigation (Flexbox)**  
+   The navigation bar currently looks broken. Your task is to turn it into a proper header panel.
+   * Change the wrapper (`.navbar`) so its children (Logo, Menu, Button) align in a single row.
+   * Push these three main elements apart so there are even gaps between them (one on the left, one in the middle, one on the right).
+   * Ensure all elements are vertically centered.
+   * Arrange the menu itself (`.nav-links`) into a row as well and add an appropriate gap (30px) between links.
+
+2. **Hero section (Flipping the flexbox)**  
+   We have a large header banner prepared, containing a heading, text, and a button. We want to **push this content into the bottom right corner**.
+   * Change the wrapper (`.hero-banner`) to a flexbox.
+   * Since we want the elements to stack vertically, change the main axis to a column.
+   * Push this entire column all the way to the bottom.
+   * Align the content to the right side.
+   * Add a `gap` between the text and the button.
+
+3. **App skeleton (CSS Grid)**  
+   We are building an interface for a web application (e.g., a Dashboard). We need to split the screen into a left dark panel and right white content area.
+   * Apply a technology suitable for creating grids to the `.app-layout`.
+   * Create exactly **two columns**.
+   * The left column (sidebar) must have a fixed width of **280px**.
+   * The right column must be dynamic and take up **all remaining space** (use a special Grid unit for this, not percentages!).
+
+4. **Bento grid (Properties)**  
+   The "Bento box" design style is a very popular web design element. It consists of a neat grid of boxes.
+   * Turn the wrapper (`.bento-grid`) into a grid.
+   * We want to make a 2x2 grid. Command the grid to have exactly **2 equally wide columns**.
+   * Add a nice **20px** gap between all the boxes in the grid.
+
+5. **Main article (Grid span)**  
+   We have created a grid with 3 columns. Currently, each article is trapped in its own single cell. We want the **main article with the photo** to look "Featured" and take up more space.
+   * Find the class for the main article (`.featured`).
+   * Use the CSS Grid column property and command it to stretch **across two columns** (using the `span` keyword).
+   * To make the article truly huge, command it to also stretch **across two rows**.
+
+6. **Final project: Dashboard layout**  
+   Final challenge: Assemble the entire application. Your task is to transform broken HTML code into a modern dashboard. You will need to use everything you know about **CSS Grid, flexbox, and positioning**.
+   * **.app-container:** The entire app runs in a wrapper. Use **Flexbox** on it so the Sidebar and Main-content are nicely side-by-side. Ensure the app takes up the full height of the screen.
+   * **.sidebar:** Set the width to 250px and use Flexbox so the menu items are in a column and pushed apart so the logout button goes all the way to the bottom.
+   * **.main-content:** Occupies the remaining space. It has its own padding of 30px.
+   * **.stats-grid:** Inside the main content is a stats grid. Set it up as a **CSS Grid** with 3 equal columns and a 20px gap.
+   * **.user-profile:** The header contains a name and a notification. Use Flexbox on them so they are vertically aligned.
+   * **.badge:** This is the hardest part! Set the wrapper (`.notification`) to `relative`. Set the red bubble itself (`.badge`) to `absolute` in the top right corner (-5px from top and right). Don't forget to round the corners, add a background color, set the height and width to 18px, font size to 12px, and center it correctly!

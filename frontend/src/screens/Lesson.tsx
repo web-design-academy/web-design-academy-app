@@ -9,6 +9,7 @@ import EditorPane from "@/components/EditorPane";
 import PreviewPane from "@/components/PreviewPane";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
+import { getLessonMeta } from "@/lib/helpers/getLessons";
 import { getLessonTasksSync, type TaskCode } from "@/lib/helpers/getTasks";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { isOnlineMode } from "@/lib/config/appMode";
@@ -33,7 +34,7 @@ export default function Lesson() {
   const [tasks, setTasks] = useState<Partial<TaskCode>[]>([]);
   const [taskStates, setTaskStates] = useState<Partial<TaskCode>[]>([]);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-  const [editorPercent, setEditorPercent] = useState(40);
+  const [editorPercent, setEditorPercent] = useState(45);
   const [topRowPercent, setTopRowPercent] = useState(60);
   const [isMobileLayout, setIsMobileLayout] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 900 : false,
@@ -42,11 +43,15 @@ export default function Lesson() {
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [resetCounter, setResetCounter] = useState(0);
 
   const [LessonContent, setLessonContent] =
     useState<React.LazyExoticComponent<MDXContent> | null>(null);
   const lessonContentRef = useRef<HTMLDivElement | null>(null);
   const lastAutoFocusKeyRef = useRef("");
+  const lessonMeta = slug ? getLessonMeta(slug) : undefined;
+  const allowVisualMode = lessonMeta?.enableVisualMode ?? true;
+  const allowAnalyzerEditor = lessonMeta?.enableAnalyzerEditor ?? false;
 
   useEffect(() => {
     if (!slug) return;
@@ -211,11 +216,12 @@ export default function Lesson() {
   const currentTask = tasks[currentTaskIndex];
   const currentTaskState = taskStates[currentTaskIndex];
   const currentTaskId = (currentTaskIndex + 1).toString();
+  const challengeTaskData = { ...currentTask, ...(currentTaskState || {}) };
 
-  // TVOJ OPT-IN PRE ANALYZÁTOR
-  const isCssChallenge = currentTaskState?.challengeConfig !== undefined;
+  const isCssChallenge = challengeTaskData.challengeConfig !== undefined;
 
   if (!currentTask && !isNew) return <Navigate to="/" />;
+  if (lessonMeta?.hidden && !isNew) return <Navigate to="/" />;
 
   const srcDoc = `
   <!DOCTYPE html>
@@ -260,7 +266,7 @@ export default function Lesson() {
       const updated = prev.map((s, idx) =>
         idx === currentTaskIndex ? { ...s, [field]: value } : s,
       );
-      if (isAdmin && slug) {
+      if (isAdmin && slug && !loadedSubmission) {
         const persisted = updated.map((state, idx) => ({
           ...tasks[idx],
           ...state,
@@ -275,17 +281,40 @@ export default function Lesson() {
 
   const applyResetTask = () => {
     setTaskStates((prev) => {
-      const updated = prev.map((s, idx) =>
-        idx === currentTaskIndex
-          ? {
-              ...s,
-              editableHtml: tasks[idx].editableHtml,
-              editableCss: tasks[idx].editableCss,
-              editableJs: tasks[idx].editableJs,
+      const updated = prev.map((s, idx) => {
+        if (idx !== currentTaskIndex) {
+          return s;
+        }
+
+        if (s.challengeConfig) {
+          let configInitialCss = tasks[idx].editableCss;
+
+          try {
+            const parsed = JSON.parse(s.challengeConfig) as { initialCss?: string };
+            if (parsed.initialCss !== undefined) {
+              configInitialCss = parsed.initialCss;
             }
-          : s,
-      );
-      if (isAdmin && slug) {
+          } catch {
+            // Keep the lesson-defined editable CSS fallback when config is invalid.
+          }
+
+          return {
+            ...s,
+            editableHtml: tasks[idx].editableHtml || "",
+            editableCss: configInitialCss || "",
+            editableJs: tasks[idx].editableJs || "",
+          };
+        }
+
+        return {
+          ...s,
+          editableHtml: tasks[idx].editableHtml,
+          editableCss: tasks[idx].editableCss,
+          editableJs: tasks[idx].editableJs,
+        };
+      });
+
+      if (isAdmin && slug && !loadedSubmission) {
         const persisted = updated.map((state, idx) => ({
           ...tasks[idx],
           ...state,
@@ -296,6 +325,8 @@ export default function Lesson() {
       }
       return updated;
     });
+
+    setResetCounter((prev) => prev + 1);
   };
 
   const resetTask = () => {
@@ -331,7 +362,7 @@ export default function Lesson() {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (cssOverride?: string) => {
     if (!currentTaskState) return;
     if (!isOnlineMode) {
       setShowLoginModal(true);
@@ -348,7 +379,7 @@ export default function Lesson() {
         lessonSlug: slug!,
         taskId: currentTaskId,
         html: currentTaskState.editableHtml || "",
-        css: currentTaskState.editableCss || "",
+        css: (cssOverride ?? currentTaskState.editableCss) || "",
         js: currentTaskState.editableJs || "",
       },
       {
@@ -359,77 +390,72 @@ export default function Lesson() {
     );
   };
 
+  const onConfigureChallengeClicked = () => {
+    if (!currentTaskState) return;
+
+    if (
+      !currentTaskState.challengeConfig ||
+      currentTaskState.challengeConfig.trim() === "{}"
+    ) {
+      updateTask(
+        "challengeConfig",
+        JSON.stringify({
+          title: "New CSS Challenge",
+          instructions: "<p>New task...</p>",
+          initialHtml: currentTaskState.editableHtml || "",
+          initialCss: currentTaskState.editableCss || "",
+        }),
+      );
+      return;
+    }
+
+    updateTask("challengeConfig", currentTaskState.challengeConfig);
+  };
+
   return (
     <main
       className={`lesson-container ${isMobileLayout ? "lesson-container-mobile" : ""}`}
     >
       <Suspense fallback={<LoadingSpinner />}>
-        {isCssChallenge ? (
-          <div
-            style={{
-              height: "calc(100vh - var(--header-height))",
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <div
-              className="footer-nav-row"
-              style={{
-                background: "var(--color-card)",
-                borderBottom: "1px solid var(--color-border)",
-                padding: "10px 15px",
-              }}
-            >
-              <div
-                className="nav-controls"
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <button
-                  onClick={() => setCurrentTaskIndex((i) => i - 1)}
-                  disabled={currentTaskIndex === 0}
-                  className="btn-ghost"
-                  style={{ padding: "4px 10px" }}
+        {isCssChallenge && !isMobileLayout ? (
+          <CssChallengeWrapper
+            key={`${currentTaskId}-${resetCounter}`}
+            taskData={challengeTaskData}
+            isAdmin={isAdmin}
+            currentIndex={currentTaskIndex}
+            totalTasks={tasks.length}
+            onTaskChange={updateTask}
+            onChangeTask={setCurrentTaskIndex}
+            readonlyHtml={currentTask?.readonlyHtml}
+            readonlyCss={currentTask?.readonlyCss}
+            readonlyJs={currentTask?.readonlyJs}
+            onSubmitCss={handleSubmit}
+            completedTasks={completedTasks}
+            currentTaskId={currentTaskId}
+            onAddTask={addTask}
+            onResetTask={resetTask}
+            lessonSlug={slug}
+            allowVisualMode={allowVisualMode}
+            allowAnalyzerEditor={allowAnalyzerEditor}
+            previewHtml={srcDoc}
+            lessonContent={
+              isNew ? (
+                <div
+                  className="admin-new-lesson-placeholder"
+                  style={{ padding: 40, textAlign: "center" }}
                 >
-                  Predošlá
-                </button>
-                <span
-                  className="task-counter"
-                  style={{ fontSize: "14px", fontWeight: "bold" }}
-                >
-                  CSS Výzva {currentTaskIndex + 1} z {tasks.length}
-                </span>
-                <button
-                  onClick={() => setCurrentTaskIndex((i) => i + 1)}
-                  disabled={currentTaskIndex === tasks.length - 1}
-                  className="btn-ghost"
-                  style={{ padding: "4px 10px" }}
-                >
-                  Ďalšia
-                </button>
-              </div>
-            </div>
-
-            <div style={{ flexGrow: 1, overflow: "hidden" }}>
-              <CssChallengeWrapper
-                key={currentTaskId}
-                taskData={currentTaskState}
-                isAdmin={isAdmin}
-                onScoreSubmit={(score, code) => {
-                  updateTask("editableCss", code);
-                  if (score >= 100) handleSubmit();
-                }}
-                onConfigSave={(configString) => {
-                  updateTask("challengeConfig", configString);
-                }}
-              />
-            </div>
-          </div>
+                  <h1>New Course: {slug}</h1>
+                  <p>You are in creation mode. Add tasks and edit code above.</p>
+                </div>
+              ) : (
+                <MDXProvider>{LessonContent && <LessonContent />}</MDXProvider>
+              )
+            }
+            editorPercent={editorPercent}
+            topRowPercent={topRowPercent}
+            onEditorResize={handleEditorResize}
+            onTopRowResize={handleTopRowResize}
+          />
         ) : (
           <>
             {isMobileLayout ? (
@@ -450,6 +476,9 @@ export default function Lesson() {
                     onAddTask={addTask}
                     onResetTask={resetTask}
                     lessonSlug={slug}
+                    allowVisualMode={allowVisualMode}
+                    allowAnalyzerEditor={allowAnalyzerEditor}
+                    onConfigureChallenge={onConfigureChallengeClicked}
                   />
                 </section>
 
@@ -500,6 +529,9 @@ export default function Lesson() {
                       onAddTask={addTask}
                       onResetTask={resetTask}
                       lessonSlug={slug}
+                      allowVisualMode={allowVisualMode}
+                      allowAnalyzerEditor={allowAnalyzerEditor}
+                      onConfigureChallenge={onConfigureChallengeClicked}
                     />
                   </Resizable>
 

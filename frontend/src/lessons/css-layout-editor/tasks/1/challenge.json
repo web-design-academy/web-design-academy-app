@@ -1,11 +1,10 @@
 {
   "id": "task-layout-01-navbar",
-  "title": "Moderná Navigácia (Flexbox)",
-  "instructions": "<h3>Zadanie:</h3><p>Navigačná lišta aktuálne vyzerá rozbito. Tvojou úlohou je premeniť ju na správny hlavičkový panel.</p><ul><li>Obal (<code>.navbar</code>) zmeň tak, aby jeho deti (Logo, Menu, Tlačidlo) išli do jedného riadka.</li><li>Roztlač tieto tri hlavné prvky tak, aby medzi nimi boli rovnomerné medzery (jeden vľavo, jeden v strede, jeden vpravo).</li><li>Zabezpeč, aby boli všetky prvky vertikálne zarovnané na stred.</li><li>Samotné menu (<code>.nav-links</code>) tiež ulož do riadka a pridaj medzi odkazy primeranú medzeru (30px).</li></ul>",
+  "title": "Modern navigation (Flexbox)",
+  "instructions": "<h3>Goal:</h3><p>The navigation bar currently looks broken. Your task is to transform it into a proper header panel.</p><ul><li>Wrap the (<code>.navbar</code>) so that its children (Logo, Menu, Button) are aligned in a single row.</li><li>Push these three main elements apart so that there is even spacing between them (one on the left, one in the center, and one on the right)</li><li>Ensure all elements are vertically centered.</li><li>The menu (<code>.nav-links</code>) also arrange them in a row and add an appropriate gap (30px) between the links.</li></ul>",
   "targetSelectors": [".navbar", ".nav-links"],
-  "lockedLines": [1, 2, 3, 4, 5, 6, 7],
+  "lockedLines": [1,2,3,4,5,6,7],
   "hintTimeout": 180,
-  "initialHtml": "<div class=\"wrapper\">\n  <header class=\"navbar\">\n    <div class=\"logo\">Web</div>\n    <nav class=\"nav-links\">\n      <a href=\"#\">Domov</a>\n      <a href=\"#\">Služby</a>\n      <a href=\"#\">Kontakt</a>\n    </nav>\n    <button class=\"btn-login\">Prihlásiť</button>\n  </header>\n</div>",
   "initialCss": "body {\n margin: 0;\n background-color: #f1f5f9;\n}\n.wrapper {\n padding: 40px;\n}\n.logo {\n font-size: 24px;\n font-weight: 800;\n color: #0f172a;\n}\n.nav-links a {\n text-decoration: none;\n color: #475569;\n font-weight: 600;\n}\n.btn-login { background: #3b82f6;\n color: white;\n border: none;\n padding: 10px 20px;\n border-radius: 8px;\n cursor: pointer;\n font-weight: bold;\n}\n\n.navbar {\n  background-color: white;\n  padding: 15px 30px;\n  border-radius: 12px;\n  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);\n\n}\n\n.nav-links {\n  \n}\n",
   "solutionCss": ".navbar { background-color: white; padding: 15px 30px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; } .nav-links { display: flex; gap: 30px; }",
   "checks": [
@@ -16,8 +15,8 @@
       "property": "display",
       "value": "flex",
       "level": "error",
-      "message": "Hlavný panel musí na usporiadanie prvkov využívať jednorozmerný model (Flexbox).",
-      "studentHint": "Hlavný panel (.navbar) radí položky vedľa seba"
+      "message": "The main panel must use a one-dimensional model (Flexbox) to arrange the elements.",
+      "studentHint": "The main panel (.navbar) aligns items side-by-side."
     },
     {
       "id": "chk-nav-justify",
@@ -26,8 +25,8 @@
       "property": "justify-content",
       "value": "space-between",
       "level": "error",
-      "message": "Položky nie sú správne rozmiestnené. Využi vlastnosť, ktorá roztlačí prvky na maximálne okraje kontajnera.",
-      "studentHint": "Položky v navbar sú roztlačené na okraje"
+      "message": "The items are not properly spaced. Use the property that pushes the elements to the maximum edges of the container.",
+      "studentHint": "The items in the navbar are pushed to the edges."
     },
     {
       "id": "chk-nav-align",
@@ -36,8 +35,8 @@
       "property": "align-items",
       "value": "center",
       "level": "error",
-      "message": "Logo, menu a tlačidlo nie sú zarovnané. Zarovnaj ich vertikálne na stredovú os.",
-      "studentHint": "Obsah hlavičky je vertikálne vycentrovaný"
+      "message": "The logo, menu, and button are not aligned. Align them vertically along the center axis.",
+      "studentHint": "The header content is vertically centered."
     },
     {
       "id": "chk-links-gap",
@@ -46,8 +45,8 @@
       "property": "gap",
       "value": "30px",
       "level": "warning",
-      "message": "Odkazy sú na seba nalepené. Na vytvorenie čistej medzery použi vlastnosť určenú pre flex/grid kontajnery.",
-      "studentHint": "Odkazy majú medzi sebou presnú medzeru 30px"
+      "message": "The links are cramped together. To create a clean space between them, use the property designed for flex/grid containers.",
+      "studentHint": "The links have an exact gap of 30px between them."
     }
   ]
 }
