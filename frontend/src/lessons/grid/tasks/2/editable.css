@@ -13,7 +13,6 @@ body {
 */
 
 .grid {
-  
 }
 
 /* TODO:
@@ -24,16 +23,29 @@ přiřaď jednotlivým třídám jejich grid-area
 .footer → footer
 */
 
-.header {}
-.sidebar {}
-.content {}
-.footer {}
+.header {
+}
+.sidebar {
+}
+.content {
+}
+.footer {
+}
 
 /* styling (už hotový) */
-.header { background: #ff6b6b; }
-.sidebar { background: #4ecdc4; }
-.content { background: #1a535c; color: white; }
-.footer { background: #ffe66d; }
+.header {
+  background: #ff6b6b;
+}
+.sidebar {
+  background: #4ecdc4;
+}
+.content {
+  background: #1a535c;
+  color: white;
+}
+.footer {
+  background: #ffe66d;
+}
 
 .grid > * {
   padding: 20px;

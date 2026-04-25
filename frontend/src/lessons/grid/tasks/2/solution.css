@@ -29,10 +29,19 @@ body {
 }
 
 /* styling */
-.header { background: #ff6b6b; }
-.sidebar { background: #4ecdc4; }
-.content { background: #1a535c; color: white; }
-.footer { background: #ffe66d; }
+.header {
+  background: #ff6b6b;
+}
+.sidebar {
+  background: #4ecdc4;
+}
+.content {
+  background: #1a535c;
+  color: white;
+}
+.footer {
+  background: #ffe66d;
+}
 
 .grid > * {
   padding: 20px;

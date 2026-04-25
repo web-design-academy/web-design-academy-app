@@ -3,7 +3,7 @@
   "title": "Modern navigation (Flexbox)",
   "instructions": "<h3>Goal:</h3><p>The navigation bar currently looks broken. Your task is to transform it into a proper header panel.</p><ul><li>Wrap the (<code>.navbar</code>) so that its children (Logo, Menu, Button) are aligned in a single row.</li><li>Push these three main elements apart so that there is even spacing between them (one on the left, one in the center, and one on the right)</li><li>Ensure all elements are vertically centered.</li><li>The menu (<code>.nav-links</code>) also arrange them in a row and add an appropriate gap (30px) between the links.</li></ul>",
   "targetSelectors": [".navbar", ".nav-links"],
-  "lockedLines": [1,2,3,4,5,6,7],
+  "lockedLines": [1, 2, 3, 4, 5, 6, 7],
   "hintTimeout": 180,
   "initialCss": "body {\n margin: 0;\n background-color: #f1f5f9;\n}\n.wrapper {\n padding: 40px;\n}\n.logo {\n font-size: 24px;\n font-weight: 800;\n color: #0f172a;\n}\n.nav-links a {\n text-decoration: none;\n color: #475569;\n font-weight: 600;\n}\n.btn-login { background: #3b82f6;\n color: white;\n border: none;\n padding: 10px 20px;\n border-radius: 8px;\n cursor: pointer;\n font-weight: bold;\n}\n\n.navbar {\n  background-color: white;\n  padding: 15px 30px;\n  border-radius: 12px;\n  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);\n\n}\n\n.nav-links {\n/*Type code here*\n}\n",
   "solutionCss": ".navbar { background-color: white; padding: 15px 30px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; } .nav-links { display: flex; gap: 30px; }",

@@ -1,7 +1,12 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import * as CssAnalyzer from "css-analyzer";
-import { ChallengeProvider, OutputPanel, TaskPanel, TeacherTaskCreator } from "css-analyzer";
+import {
+  ChallengeProvider,
+  OutputPanel,
+  TaskPanel,
+  TeacherTaskCreator,
+} from "css-analyzer";
 import "css-analyzer/style.css";
 
 import EditorPane from "@/components/EditorPane";
@@ -9,7 +14,17 @@ import Modal from "@/components/Modal";
 import PreviewPane from "@/components/PreviewPane";
 import type { TaskCode } from "@/lib/helpers/getTasks";
 
-const useChallenge = (CssAnalyzer as { useChallenge?: () => any }).useChallenge;
+interface AnalyzerChallengeContext {
+  userCss?: string;
+  getCurrentCode?: () => string;
+  score?: number;
+  task?: ReturnType<typeof buildAnalyzerTask>;
+}
+
+const useFallbackChallenge = (): null => null;
+const useChallenge =
+  (CssAnalyzer as { useChallenge?: () => AnalyzerChallengeContext | null })
+    .useChallenge ?? useFallbackChallenge;
 
 interface AnalyzerTaskConfig {
   id?: string;
@@ -22,11 +37,6 @@ interface AnalyzerTaskConfig {
   checks?: unknown[];
   lockedLines?: number[];
   hintTimeout?: number;
-}
-
-interface ChallengeCompleteResult {
-  finalScore: number;
-  code: string;
 }
 
 interface Props {
@@ -134,11 +144,12 @@ function ChallengeWorkspace({
   analyzerTask,
 }: WorkspaceProps) {
   const [showTeacherPanel, setShowTeacherPanel] = useState(false);
-  const [useAdvancedEditor, setUseAdvancedEditor] = useState(allowAnalyzerEditor);
+  const [useAdvancedEditor, setUseAdvancedEditor] =
+    useState(allowAnalyzerEditor);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
   const latestScoreRef = useRef(0);
-  const challenge = useChallenge ? useChallenge() : null;
+  const challenge = useChallenge();
   const lastSyncTaskId = useRef(analyzerTask.id);
   const previousUserCssRef = useRef(taskData.editableCss);
 
@@ -198,7 +209,14 @@ function ChallengeWorkspace({
           flexDirection: "column",
         }}
       >
-        <div style={{ flexGrow: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            flexGrow: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <Resizable
             className="lesson-top-row"
             size={{ width: "100%", height: `${topRowPercent}%` }}
@@ -207,7 +225,9 @@ function ChallengeWorkspace({
             maxHeight="90%"
             onResize={onTopRowResize}
             onResizeStop={onTopRowResize}
-            handleComponent={{ bottom: <div className="resize-handle-bottom" /> }}
+            handleComponent={{
+              bottom: <div className="resize-handle-bottom" />,
+            }}
             handleStyles={{ bottom: { height: 16 } }}
           >
             <div className="lesson-top-inner">
@@ -219,7 +239,9 @@ function ChallengeWorkspace({
                 maxWidth="85%"
                 onResize={onEditorResize}
                 onResizeStop={onEditorResize}
-                handleComponent={{ right: <div className="resize-handle-right" /> }}
+                handleComponent={{
+                  right: <div className="resize-handle-right" />,
+                }}
                 handleStyles={{ right: { width: 16 } }}
               >
                 <EditorPane
@@ -240,7 +262,9 @@ function ChallengeWorkspace({
                   isCssChallenge={true}
                   allowVisualMode={allowVisualMode}
                   allowAnalyzerEditor={allowAnalyzerEditor}
-                  onConfigureChallenge={() => setShowTeacherPanel((prev) => !prev)}
+                  onConfigureChallenge={() =>
+                    setShowTeacherPanel((prev) => !prev)
+                  }
                   useAdvancedEditor={useAdvancedEditor}
                   onToggleAdvancedEditor={setUseAdvancedEditor}
                 />
@@ -289,9 +313,19 @@ function ChallengeWorkspace({
             </div>
           </Resizable>
 
-          <div className="lesson-content" style={{ height: `${100 - topRowPercent}%`, padding: 0 }}>
+          <div
+            className="lesson-content"
+            style={{ height: `${100 - topRowPercent}%`, padding: 0 }}
+          >
             {showTeacherPanel && isAdmin ? (
-              <div style={{ height: "100%", background: "var(--color-bg)", padding: "20px", overflowY: "auto" }}>
+              <div
+                style={{
+                  height: "100%",
+                  background: "var(--color-bg)",
+                  padding: "20px",
+                  overflowY: "auto",
+                }}
+              >
                 <TeacherTaskCreator
                   locale="en"
                   initialTask={challenge?.task}
@@ -313,7 +347,13 @@ function ChallengeWorkspace({
                 />
               </div>
             ) : (
-              <div style={{ height: "100%", position: "relative", background: "var(--color-bg)" }}>
+              <div
+                style={{
+                  height: "100%",
+                  position: "relative",
+                  background: "var(--color-bg)",
+                }}
+              >
                 <div
                   style={{
                     position: useAdvancedEditor ? "relative" : "absolute",
@@ -325,7 +365,11 @@ function ChallengeWorkspace({
                     visibility: useAdvancedEditor ? "visible" : "hidden",
                   }}
                 >
-                  <TaskPanel showChecks={true} customPadding="25px" bgColor="transparent" />
+                  <TaskPanel
+                    showChecks={true}
+                    customPadding="25px"
+                    bgColor="transparent"
+                  />
                 </div>
                 <div
                   style={{
@@ -352,8 +396,13 @@ function ChallengeWorkspace({
         isOpen={showWarningModal}
         onClose={() => setShowWarningModal(false)}
         actions={
-          <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-            <button className="btn-ghost" onClick={() => setShowWarningModal(false)}>
+          <div
+            style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}
+          >
+            <button
+              className="btn-ghost"
+              onClick={() => setShowWarningModal(false)}
+            >
               Cancel and fix
             </button>
             <button
@@ -370,23 +419,30 @@ function ChallengeWorkspace({
         }
       >
         <p>
-          Your solution did not reach 100%. The current score is <strong>{latestScoreRef.current}%</strong>.
+          Your solution did not reach 100%. The current score is{" "}
+          <strong>{latestScoreRef.current}%</strong>.
         </p>
-        <p>You can still submit, but we recommend evaluating and fixing the remaining issues first.</p>
+        <p>
+          You can still submit, but we recommend evaluating and fixing the
+          remaining issues first.
+        </p>
       </Modal>
     </>
   );
 }
 
 export default function CssChallengeWrapper(props: Props) {
-  const analyzerTask = useMemo(() => buildAnalyzerTask(props.taskData), [props.taskData]);
+  const analyzerTask = useMemo(
+    () => buildAnalyzerTask(props.taskData),
+    [props.taskData],
+  );
 
   return (
     <ChallengeProvider
       key={analyzerTask.id}
       task={analyzerTask}
       locale="en"
-      onComplete={(_result: ChallengeCompleteResult) => {}}
+      onComplete={() => {}}
     >
       <ChallengeWorkspace {...props} analyzerTask={analyzerTask} />
     </ChallengeProvider>

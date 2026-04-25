@@ -122,7 +122,7 @@ export default function EditorPane({
     readonlyJs !== undefined || task?.editableJs !== undefined;
 
   const isHtmlTabDisabled = !hasHtmlSource;
-  const isCssTabDisabled = useVisualEditor ? false : !hasCssSource;
+  const isCssTabDisabled = useVisualEditor || !hasCssSource;
   const isJsTabDisabled = useVisualEditor || !hasJsSource;
   const preferredTab: Tab = isCssChallenge
     ? "css"
@@ -153,11 +153,25 @@ export default function EditorPane({
   }, [currentIndex, preferredTab]);
 
   useEffect(() => {
+    if (useVisualEditor) {
+      if (hasHtmlSource && activeTab !== "html") {
+        setActiveTab("html");
+      }
+      return;
+    }
+
     if (activeTab === "html" && hasHtmlSource) return;
     if (activeTab === "css" && hasCssSource) return;
     if (activeTab === "js" && hasJsSource) return;
     setActiveTab(preferredTab);
-  }, [activeTab, hasHtmlSource, hasCssSource, hasJsSource, preferredTab]);
+  }, [
+    activeTab,
+    hasHtmlSource,
+    hasCssSource,
+    hasJsSource,
+    preferredTab,
+    useVisualEditor,
+  ]);
 
   useEffect(() => {
     if (!allowVisualMode && useVisualEditor) {
@@ -432,7 +446,16 @@ export default function EditorPane({
 
       <div
         className="editor-container"
-        style={isCssChallenge ? { flexDirection: "column", display: "flex", flexGrow: 1, position: "relative" } : undefined}
+        style={
+          isCssChallenge
+            ? {
+                flexDirection: "column",
+                display: "flex",
+                flexGrow: 1,
+                position: "relative",
+              }
+            : undefined
+        }
       >
         {useVisualEditor && (activeTab === "html" || activeTab === "css") ? (
           <div
@@ -567,11 +590,9 @@ export default function EditorPane({
                 <Download size={20} style={{ marginRight: 8 }} /> Download
               </button>
               {onConfigureChallenge && (
-                <button
-                  onClick={onConfigureChallenge}
-                  className="btn-primary"
-                >
-                  <Settings size={20} style={{ marginRight: 8 }} /> Set CSS challenge
+                <button onClick={onConfigureChallenge} className="btn-primary">
+                  <Settings size={20} style={{ marginRight: 8 }} /> Set CSS
+                  challenge
                 </button>
               )}
             </div>

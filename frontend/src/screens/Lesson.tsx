@@ -290,7 +290,9 @@ export default function Lesson() {
           let configInitialCss = tasks[idx].editableCss;
 
           try {
-            const parsed = JSON.parse(s.challengeConfig) as { initialCss?: string };
+            const parsed = JSON.parse(s.challengeConfig) as {
+              initialCss?: string;
+            };
             if (parsed.initialCss !== undefined) {
               configInitialCss = parsed.initialCss;
             }
@@ -445,7 +447,9 @@ export default function Lesson() {
                   style={{ padding: 40, textAlign: "center" }}
                 >
                   <h1>New Course: {slug}</h1>
-                  <p>You are in creation mode. Add tasks and edit code above.</p>
+                  <p>
+                    You are in creation mode. Add tasks and edit code above.
+                  </p>
                 </div>
               ) : (
                 <MDXProvider>{LessonContent && <LessonContent />}</MDXProvider>
