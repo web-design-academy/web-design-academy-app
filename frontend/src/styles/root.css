@@ -132,6 +132,42 @@ header {
   cursor: default;
 }
 
+.user-info,
+.mobile-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-info {
+  align-items: flex-end;
+}
+
+.user-info-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.user-name-text {
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.8;
+  cursor: inherit;
+}
+
+.user-email {
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  opacity: 0.7;
+  white-space: nowrap;
+  cursor: inherit;
+}
+
 .btn-primary,
 .btn-ghost {
   box-sizing: border-box;
@@ -252,6 +288,16 @@ header {
     flex-direction: column;
     gap: var(--space-3);
     padding: var(--space-3);
+  }
+
+  .mobile-user-info {
+    align-items: flex-start;
+  }
+
+  .mobile-user-info .user-name-text {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    opacity: 0.9;
   }
 
   .mobile-menu-overlay {

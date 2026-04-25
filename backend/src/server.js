@@ -277,7 +277,12 @@ app.post("/api/auth/google", async (req, res) => {
     );
 
     res.cookie(COOKIE_NAME, token, sessionCookieOptions);
-    res.json({ userId: user.id, role: user.role, name: user.name });
+    res.json({
+      userId: user.id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+    });
   } catch (err) {
     res.status(401).json({ error: "Invalid Google Token" });
   }
@@ -288,6 +293,7 @@ app.get("/api/auth/session", authenticateToken, (req, res) => {
     userId: req.user.sub,
     role: req.user.role,
     name: req.user.name,
+    email: req.user.email,
   });
 });
 

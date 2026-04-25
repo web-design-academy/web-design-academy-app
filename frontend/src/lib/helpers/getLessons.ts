@@ -22,13 +22,13 @@ const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
 function normalizeLessonMeta(meta: LessonMeta): LessonMeta {
   return {
     hidden: false,
-    enableVisualMode: true,
+    enableVisualMode: false,
     enableAnalyzerEditor: false,
     ...meta,
   };
 }
 
-function getAllLessons(): LessonMeta[] {
+export function getAllLessons(): LessonMeta[] {
   const fileLessons = Object.values(modules).map((mod) =>
     normalizeLessonMeta(mod.frontmatter),
   );

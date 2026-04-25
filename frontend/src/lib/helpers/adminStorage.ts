@@ -4,6 +4,21 @@ import type { TaskCode } from "./getTasks";
 const COURSES_KEY = "admin_custom_courses";
 const TASKS_KEY_PREFIX = "admin_custom_tasks_";
 
+export function clearAllCustomData() {
+  localStorage.removeItem(COURSES_KEY);
+
+  const keysToRemove: string[] = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(TASKS_KEY_PREFIX)) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+}
+
 export function getCustomCourses(): LessonMeta[] {
   const data = localStorage.getItem(COURSES_KEY);
   return data ? JSON.parse(data) : [];
@@ -47,6 +62,10 @@ export function clearCustomData(lessonSlug: string) {
   const courses = getCustomCourses();
   const updatedCourses = courses.filter((c) => c.slug !== lessonSlug);
   if (updatedCourses.length !== courses.length) {
-    localStorage.setItem(COURSES_KEY, JSON.stringify(updatedCourses));
+    if (updatedCourses.length === 0) {
+      localStorage.removeItem(COURSES_KEY);
+    } else {
+      localStorage.setItem(COURSES_KEY, JSON.stringify(updatedCourses));
+    }
   }
 }

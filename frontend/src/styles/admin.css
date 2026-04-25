@@ -70,6 +70,67 @@
   overflow-x: auto;
 }
 
+.admin-submission-groups {
+  display: flex;
+  flex-direction: column;
+}
+
+.submission-group + .submission-group {
+  border-top: var(--border-width-thin) solid var(--color-border);
+}
+
+.submission-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.submission-group-toggle:hover {
+  background-color: var(--table-row-hover-bg);
+}
+
+.submission-group-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.submission-group-user,
+.submission-group-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.submission-group-name {
+  font-weight: var(--font-weight-semibold);
+}
+
+.submission-group-email,
+.submission-group-meta {
+  font-size: var(--font-size-sm);
+  opacity: 0.75;
+}
+
+.submission-group-meta {
+  align-items: flex-end;
+}
+
+.submission-group-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;

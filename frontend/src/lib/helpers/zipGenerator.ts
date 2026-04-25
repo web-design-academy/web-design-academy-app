@@ -11,13 +11,16 @@ export async function generateCourseZip(
   const courseFolder = zip.folder(course.slug);
   if (!courseFolder) throw new Error("Failed to create zip folder");
 
-  const mdxContent = `---
+const mdxContent = `---
 title: "${course.title}"
 description: "${course.description}"
 slug: "${course.slug}"
 color: "${course.color}"
 order: ${course.order}
 icon: ${course.icon}
+hidden: ${course.hidden ?? false}
+enableVisualMode: ${course.enableVisualMode ?? false}
+enableAnalyzerEditor: ${course.enableAnalyzerEditor ?? false}
 ---
 
 # ${course.title}

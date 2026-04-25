@@ -88,6 +88,33 @@ export default function Root() {
     navigate("/");
   };
 
+  const userIdentityContent = user ? (
+    <>
+      <span className="user-name-text">{user.name}</span>
+      <span className="user-email">{user.email}</span>
+    </>
+  ) : null;
+
+  const userIdentity = user ? (
+    user.role === "admin" ? (
+      <Link to="/admin" className="nav-link user-info-link">
+        {userIdentityContent}
+      </Link>
+    ) : (
+      <div className="user-info">{userIdentityContent}</div>
+    )
+  ) : null;
+
+  const mobileUserIdentity = user ? (
+    user.role === "admin" ? (
+      <Link to="/admin" className="nav-link mobile-user-info user-info-link">
+        {userIdentityContent}
+      </Link>
+    ) : (
+      <div className="mobile-user-info">{userIdentityContent}</div>
+    )
+  ) : null;
+
   return (
     <div className="app-container">
       <Modal
@@ -129,13 +156,7 @@ export default function Root() {
         <div className="header-right">
           {isAuthenticated ? (
             <>
-              {user?.role === "admin" ? (
-                <Link to="/admin" className="nav-link">
-                  {user?.name}
-                </Link>
-              ) : (
-                <span className="user-text">{user?.name}</span>
-              )}
+              {userIdentity}
               <button onClick={handleLogout} className="btn-ghost">
                 Sign Out
               </button>
@@ -170,13 +191,7 @@ export default function Root() {
         <div className="mobile-drawer-content">
           {isAuthenticated ? (
             <div className="mobile-row">
-              {user?.role === "admin" ? (
-                <Link to="/admin" className="mobile-row-label nav-link">
-                  {user?.name}
-                </Link>
-              ) : (
-                <span className="mobile-row-label">{user?.name}</span>
-              )}
+              {mobileUserIdentity}
               <button
                 onClick={handleLogout}
                 className="icon-button mobile-row-icon"

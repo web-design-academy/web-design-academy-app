@@ -4,6 +4,7 @@ export interface AuthData {
   userId: string;
   role: "student" | "admin";
   name: string;
+  email: string;
 }
 
 export async function loginWithGoogle(idToken: string): Promise<AuthData> {

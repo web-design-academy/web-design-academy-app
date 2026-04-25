@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { useAdminSubmissions } from "@/lib/hooks/useSubmissions";
 import { useNavigate, Link } from "react-router";
 import Modal from "@/components/Modal";
 import { saveCustomCourse, addCustomTask } from "@/lib/helpers/adminStorage";
+import { getAllLessons } from "@/lib/helpers/getLessons";
 import "@/styles/admin.css";
 
 export default function AdminPage() {
@@ -18,6 +20,7 @@ export default function AdminPage() {
   } = useAdminSubmissions();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -25,6 +28,9 @@ export default function AdminPage() {
     color: "oklch(60% 0.15 250)",
     icon: "Question",
     order: 0,
+    hidden: false,
+    enableVisualMode: false,
+    enableAnalyzerEditor: false,
   });
 
   useEffect(() => {
@@ -33,13 +39,10 @@ export default function AdminPage() {
     }
 
     if (user?.role === "admin") {
-      import("@/lib/helpers/getLessons").then((m) => {
-        const lessons = m.getLessons();
-        if (lessons.length > 0) {
-          const maxOrder = Math.max(...lessons.map((l) => l.order));
-          setFormData((prev) => ({ ...prev, order: maxOrder + 1 }));
-        }
-      });
+      const lessons = getAllLessons();
+      const nextOrder = Math.max(0, ...lessons.map((lesson) => lesson.order)) + 1;
+
+      setFormData((prev) => ({ ...prev, order: nextOrder }));
     }
   }, [user, authLoading, navigate]);
 
@@ -56,6 +59,61 @@ export default function AdminPage() {
     });
 
     navigate(`/lessons/${formData.slug}`);
+  };
+
+  const groupedSubmissions = useMemo(() => {
+    if (!submissions || submissions.length === 0) {
+      return [];
+    }
+
+    const sortedSubmissions = [...submissions].sort(
+      (left, right) =>
+        new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+    );
+
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        email?: string;
+        latestTimestamp: string;
+        submissions: typeof sortedSubmissions;
+      }
+    >();
+
+    sortedSubmissions.forEach((submission) => {
+      const key =
+        submission.user_id ||
+        submission.user_email ||
+        submission.user_name ||
+        `anonymous-${submission.id}`;
+
+      const existingGroup = groups.get(key);
+
+      if (existingGroup) {
+        existingGroup.submissions.push(submission);
+        return;
+      }
+
+      groups.set(key, {
+        key,
+        name: submission.user_name || "Anonymous",
+        email: submission.user_email,
+        latestTimestamp: submission.timestamp,
+        submissions: [submission],
+      });
+    });
+
+    return Array.from(groups.values()).sort(
+      (left, right) =>
+        new Date(right.latestTimestamp).getTime() -
+        new Date(left.latestTimestamp).getTime(),
+    );
+  }, [submissions]);
+
+  const toggleUserGroup = (userKey: string) => {
+    setExpandedUsers((prev) => ({ ...prev, [userKey]: !prev[userKey] }));
   };
 
   if (authLoading || submissionsLoading) return <LoadingSpinner />;
@@ -92,64 +150,112 @@ export default function AdminPage() {
             </span>
           </div>
 
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>User</th>
-                  <th>Lesson</th>
-                  <th>Task</th>
-                  <th>Submitted</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!submissions || submissions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="empty-state">
-                      No submissions yet
-                    </td>
-                  </tr>
-                ) : (
-                  submissions.map((sub) => (
-                    <tr key={sub.id}>
-                      <td className="font-mono">#{sub.id}</td>
-                      <td
-                        className="font-mono"
-                        title={sub.user_name || "Unknown"}
-                      >
-                        {sub.user_name || "Anonymous"}
-                      </td>
-                      <td>
-                        <span className="pill pill-blue">
-                          {sub.lesson_slug}
-                        </span>
-                      </td>
-                      <td>Task {sub.task_id}</td>
-                      <td>
-                        {new Date(sub.timestamp).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                      <td>
-                        <Link
-                          to={`/lessons/${sub.lesson_slug}?submissionId=${sub.id}`}
-                          className="btn-text"
-                          style={{ textDecoration: "none", fontWeight: 600 }}
+          {!groupedSubmissions.length ? (
+            <div className="empty-state">No submissions yet</div>
+          ) : (
+            <div className="admin-submission-groups">
+              {groupedSubmissions.map((group) => {
+                const isExpanded = expandedUsers[group.key] ?? false;
+
+                return (
+                  <section key={group.key} className="submission-group">
+                    <button
+                      type="button"
+                      className="submission-group-toggle"
+                      onClick={() => toggleUserGroup(group.key)}
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="submission-group-heading">
+                        <span
+                          className="submission-group-chevron"
+                          aria-hidden="true"
                         >
-                          View
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                          {isExpanded ? (
+                            <ChevronDown size={20} />
+                          ) : (
+                            <ChevronRight size={20} />
+                          )}
+                        </span>
+                        <div className="submission-group-user">
+                          <span className="submission-group-name">{group.name}</span>
+                          {group.email && (
+                            <span className="submission-group-email">{group.email}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="submission-group-meta">
+                        <span>{group.submissions.length} submissions</span>
+                        <span>
+                          Latest{" "}
+                          {new Date(group.latestTimestamp).toLocaleString(
+                            undefined,
+                            {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </span>
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="table-responsive">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Lesson</th>
+                              <th>Task</th>
+                              <th>Submitted</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.submissions.map((sub) => (
+                              <tr key={sub.id}>
+                                <td className="font-mono">#{sub.id}</td>
+                                <td>
+                                  <span className="pill pill-blue">
+                                    {sub.lesson_slug}
+                                  </span>
+                                </td>
+                                <td>Task {sub.task_id}</td>
+                                <td>
+                                  {new Date(sub.timestamp).toLocaleString(
+                                    undefined,
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
+                                </td>
+                                <td>
+                                  <Link
+                                    to={`/lessons/${sub.lesson_slug}?submissionId=${sub.id}`}
+                                    className="btn-text"
+                                    style={{
+                                      textDecoration: "none",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    View
+                                  </Link>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <Modal
@@ -242,6 +348,56 @@ export default function AdminPage() {
                   className="admin-input"
                 />
               </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <label
+                style={{ display: "flex", alignItems: "center", gap: 8 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.hidden}
+                  onChange={(e) =>
+                    setFormData({ ...formData, hidden: e.target.checked })
+                  }
+                />
+                Hidden lesson
+              </label>
+              <label
+                style={{ display: "flex", alignItems: "center", gap: 8 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.enableVisualMode}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      enableVisualMode: e.target.checked,
+                    })
+                  }
+                />
+                Enable visual mode
+              </label>
+              <label
+                style={{ display: "flex", alignItems: "center", gap: 8 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.enableAnalyzerEditor}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      enableAnalyzerEditor: e.target.checked,
+                    })
+                  }
+                />
+                Enable analyzer editor
+              </label>
             </div>
           </div>
         </Modal>

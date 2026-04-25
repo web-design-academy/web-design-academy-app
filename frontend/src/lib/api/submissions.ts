@@ -17,6 +17,7 @@ export interface SubmissionRecord {
   id: number;
   user_id: string;
   user_name?: string;
+  user_email?: string;
   lesson_slug: string;
   task_id: string;
   html: string;

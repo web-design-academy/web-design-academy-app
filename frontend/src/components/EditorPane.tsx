@@ -202,7 +202,7 @@ export default function EditorPane({
   const handleDiscard = async () => {
     if (!lessonSlug) return;
     clearCustomData(lessonSlug);
-    window.location.reload();
+    navigate("/admin");
   };
 
   const content = useMemo(() => {
@@ -589,7 +589,7 @@ export default function EditorPane({
               <button onClick={handleDownloadZip} className="btn-primary">
                 <Download size={20} style={{ marginRight: 8 }} /> Download
               </button>
-              {onConfigureChallenge && (
+              {allowAnalyzerEditor && onConfigureChallenge && (
                 <button onClick={onConfigureChallenge} className="btn-primary">
                   <Settings size={20} style={{ marginRight: 8 }} /> Set CSS
                   challenge

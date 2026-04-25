@@ -6,6 +6,7 @@ import {
   type AuthData,
 } from "@/lib/api/auth";
 import { isOnlineMode } from "@/lib/config/appMode";
+import { clearAllCustomData } from "@/lib/helpers/adminStorage";
 import { AuthContext, type User } from "./useAuth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -28,12 +29,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userId: session.userId,
           role: session.role,
           name: session.name,
+          email: session.email,
         });
       })
       .finally(() => {
         setIsLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      clearAllCustomData();
+    }
+  }, [isLoading, user]);
 
   const loginWithGoogle = async (idToken: string): Promise<AuthData> => {
     if (!isOnlineMode) {
@@ -46,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userId: data.userId,
       role: data.role,
       name: data.name,
+      email: data.email,
     });
 
     return data;
@@ -53,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     logoutSession().catch(() => {});
+    clearAllCustomData();
     setUser(null);
   };
 
