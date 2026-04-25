@@ -1,7 +1,7 @@
 {
   "id": "task-final-dashboard",
-  "title": "Final project: Dashboard layout",
-  "instructions": "<h3>Final challenge: Assemble the entire application</h3><p>Your task is to transform the broken HTML code into a modern dashboard. You will need to use everything you know about <strong>CSS Grid, Flexbox, and Position</strong>.</p><ul><li><strong>.app-container:</strong> The entire application runs in a wrapper. Use <strong>Flexbox</strong> on it so that the sidebar and main content sit nicely side by side. Ensure the application takes up the full height of the screen.</li><li><strong>.sidebar:</strong> Set the width to 250px and use Flexbox to arrange the menu items in a column, pushing them apart so that the logout button goes all the way to the bottom.</li><li><strong>.main-content:</strong> It occupies the remaining space. It has its own 30px padding.</li><li><strong>.stats-grid:</strong> In the main content, there is a statistics grid. Set it up as a <strong>CSS Grid</strong> with 3 equal columns and a 20px gap.</li><li><strong>.user-profile:</strong> In the header, there is a name and a notification. Use Flexbox on them so they are vertically aligned.</li><li><strong>.badge:</strong> This is the hardest part. Change <code>.notification</code> to <code>relative</code>. Change the red bubble itself (<code>.badge</code>) to <code>absolute</code> in the top-right corner (-5px from the top and right). Do not forget to round the corners, add a background color, set the height and width to 18px, set the font size to 12px, and center it correctly.</li></ul>",
+  "title": "Final Project: Dashboard Layout",
+  "instructions": "<h3>Final challenge: Assemble the entire application</h3><p>Your task is to transform the broken HTML code into a modern Dashboard. You will need to use everything you know about <strong>CSS Grid, Flexbox, and Absolute Positioning</strong>.</p><ul><li><strong>.app-container:</strong> The entire application runs in a wrapper. Use <strong>Flexbox</strong> so that the Sidebar and Main Content are nicely side-by-side. Ensure the application takes up the full height of the screen (<code>100vh</code>).</li><li><strong>.sidebar:</strong> Use Flexbox (with <code>column</code> direction) so the menu items are stacked. Then, push them apart so the logout button goes all the way to the bottom.</li><li><strong>.main-content:</strong> Command it to occupy all the remaining space (use <code>flex-grow: 1</code> or <code>flex: 1</code>).</li><li><strong>.stats-grid:</strong> Set this area as a <strong>CSS Grid</strong>. Split it into 3 equally wide columns.</li><li><strong>.user-profile:</strong> Use Flexbox to align the name and the bell vertically to the center.</li><li><strong>.badge (The hardest part!):</strong><ul><li>The red notification bubble needs to float. Give it <code>position: absolute;</code> (its parent is already set to relative).</li><li>Move it to the top right corner (<code>top: -5px</code> and <code>right: -5px</code>).</li><li>Set its design: <code>width: 18px</code>, <code>height: 18px</code>, red background (<code>#ef4444</code>), white text (<code>color: white</code>), font size to <code>12px</code>, and make it fully rounded (circle).</li><li>Finally, apply Flexbox directly to this badge to perfectly center the number inside (both horizontally and vertically).</li></ul></li></ul>",
   "targetSelectors": [
     ".app-container",
     ".sidebar",
@@ -20,8 +20,8 @@
       "property": "display",
       "value": "flex",
       "level": "error",
-      "message": "The main application wrapper must be a Flexbox (so the sidebar and content are side by side).",
-      "studentHint": "The main application wrapper (.app-container) is a Flexbox with the height of the entire screen."
+      "message": "The main application wrapper must be a Flexbox (so the sidebar and content are side-by-side).",
+      "studentHint": "The main wrapper (.app-container) is a Flexbox with full-screen height."
     },
     {
       "id": "check-app-height",
@@ -30,38 +30,18 @@
       "property": "height",
       "value": "100vh",
       "level": "error",
-      "message": "The application must occupy the full height of the screen.",
-      "studentHint": ""
-    },
-    {
-      "id": "check-sidebar-width",
-      "type": "exact-match",
-      "selector": ".sidebar",
-      "property": "width",
-      "value": "250px",
-      "level": "error",
-      "message": "The sidebar must have an exact width of 250px.",
-      "studentHint": "The sidebar has a fixed width and uses Flexbox (column with space-between)."
+      "message": "The application must occupy the full height of the screen (100vh).",
+      "studentHint": "The application uses the entire browser window height."
     },
     {
       "id": "check-sidebar-flex",
-      "type": "exact-match",
+      "type": "regex-match",
       "selector": ".sidebar",
       "property": "justify-content",
-      "value": "space-between",
+      "value": "^(space-between)$",
       "level": "error",
-      "message": "The sidebar items must be pushed apart so that the Logout button goes to the bottom.",
-      "studentHint": ""
-    },
-    {
-      "id": "check-main-grow",
-      "type": "exact-match",
-      "selector": ".main-content",
-      "property": "flex-grow",
-      "value": "1",
-      "level": "error",
-      "message": "The main content (.main-content) must occupy the entire remaining space of the screen.",
-      "studentHint": "The main content occupies the remaining free space and has a padding of 30px."
+      "message": "The sidebar items must be pushed to the edges so the Logout button goes to the bottom.",
+      "studentHint": "Menu items and the Logout button are pushed apart."
     },
     {
       "id": "check-grid",
@@ -71,17 +51,17 @@
       "value": "^(repeat\\(3,\\s*1fr\\)|1fr\\s+1fr\\s+1fr)$",
       "level": "error",
       "message": "The statistics grid must have 3 equal columns.",
-      "studentHint": "The statistics grid (.stats-grid) is in a CSS Grid (3 columns, 20px gap)."
+      "studentHint": "Statistics (.stats-grid) use a CSS Grid (3 equal columns)."
     },
     {
       "id": "check-profile-flex",
       "type": "exact-match",
       "selector": ".user-profile",
-      "property": "display",
-      "value": "flex",
+      "property": "align-items",
+      "value": "center",
       "level": "error",
-      "message": "The user profile must be in Flexbox.",
-      "studentHint": "The user profile header (.user-profile) is a Flexbox, vertically aligned."
+      "message": "Items in the user profile (.user-profile) must be perfectly centered vertically.",
+      "studentHint": "The profile header is vertically centered."
     },
     {
       "id": "check-badge-pos",
@@ -90,24 +70,20 @@
       "property": "position",
       "value": "absolute",
       "level": "error",
-      "message": "The red notification badge must be absolutely positioned relative to the bell icon.",
-      "studentHint": "The red notification badge (.badge) has an absolute position in the top right corner."
+      "message": "The red notification badge must be absolutely positioned to 'break out' of the normal flow.",
+      "studentHint": "The notification bubble (.badge) is absolutely positioned."
+    },
+    {
+      "id": "check-badge-flex",
+      "type": "exact-match",
+      "selector": ".badge",
+      "property": "display",
+      "value": "flex",
+      "level": "warning",
+      "message": "Remember, the best way to perfectly center the number inside the small bubble is to make the bubble a Flexbox and use 'center' for both axes.",
+      "studentHint": "The number inside the notification is perfectly centered."
     }
   ],
-  "initialCss": "body {\nmargin: 0;\n background: #f8fafc;\n}\n.sidebar {\n background: #1e293b;\n color: white;\n padding: 20px;\n}\n.logo {\n font-size: 24px;\n font-weight: bold;\n margin-bottom: 40px;\n color: #38bdf8;\n }\n.menu a, .logout {\n display: block;\n color: #cbd5e1;\n text-decoration: none;\n padding: 10px 0;\n}\n.menu a:hover, .logout:hover {\n color: white;\n}\n.header {\n display: flex;\n justify-content: space-between;\n margin-bottom: 30px;\n border-bottom: 1px solid #e2e8f0;\n padding-bottom: 20px;\n }\nh2 {\n margin: 0;\n color: #0f172a;\n }\n.stat-card {\n background: white;\n padding: 20px;\n border-radius: 12px;\n box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);\n}\n.stat-card h4 {\n margin: 0;\n color: #64748b;\n font-size: 14px;\n}\n.stat-card .number {\n margin: 10px 0 0 0;\n font-size: 28px;\n font-weight: bold;\n color: #10b981;\n}\n.notification {\n font-size: 24px;\n cursor: pointer;\n position: relative;\n}\n.user-profile {\n gap: 15px;\n}\n\n.app-container {\n \n}\n\n.sidebar {\n\n}\n\n.main-content {\n\n}\n\n.stats-grid {\n\n}\n\n.user-profile {\n \n}\n\n.badge {\n\n}\n",
-  "solutionCss": ".app-container {\n  display: flex;\n  height: 100vh;\n}\n\n.sidebar {\n  width: 250px;\n  display: flex;\n  flex-direction: column;\n  justify-content: space-between;\n}\n\n.main-content {\n  flex-grow: 1;\n  padding: 30px;\n}\n\n.stats-grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr 1fr;\n  gap: 20px;\n}\n\n.user-profile {\n  display: flex;\n  align-items: center;\n}\n\n.badge {\n  position: absolute;\n  top: -5px;\n  right: -5px;\n  background-color: #ef4444;\n  color: white;\n  border-radius: 50%;\n  width: 18px;\n  height: 18px;\n  font-size: 12px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}"
+  "initialCss": "body {\n  margin: 0;\n  background: #f8fafc;\n}\n.logo {\n  font-size: 24px;\n  font-weight: bold;\n  margin-bottom: 40px;\n  color: #38bdf8;\n}\n.menu a, .logout {\n  display: block;\n  color: #cbd5e1;\n  text-decoration: none;\n  padding: 10px 0;\n}\n.menu a:hover, .logout:hover {\n  color: white;\n}\n.header {\n  display: flex;\n  justify-content: space-between;\n  margin-bottom: 30px;\n  border-bottom: 1px solid #e2e8f0;\n  padding-bottom: 20px;\n}\nh2 {\n  margin: 0;\n  color: #0f172a;\n}\n.stat-card {\n  background: white;\n  padding: 20px;\n  border-radius: 12px;\n  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);\n}\n.stat-card h4 {\n  margin: 0;\n  color: #64748b;\n  font-size: 14px;\n}\n.stat-card .number {\n  margin: 10px 0 0 0;\n  font-size: 28px;\n  font-weight: bold;\n  color: #10b981;\n}\n.notification {\n  font-size: 24px;\n  cursor: pointer;\n  position: relative;\n}\n\n.app-container {\n \n}\n\n.sidebar {\n  background: #1e293b;\n  color: white;\n  padding: 20px;\n  width: 250px;\n}\n\n.main-content {\n  padding: 30px;\n}\n\n.stats-grid {\n  gap: 20px;\n}\n\n.user-profile {\n  gap: 15px;\n}\n\n.badge {\n\n}\n",
+  "solutionCss": ".app-container {\n  display: flex;\n  height: 100vh;\n}\n\n.sidebar {\n  background: #1e293b;\n  color: white;\n  padding: 20px;\n  width: 250px;\n  display: flex;\n  flex-direction: column;\n  justify-content: space-between;\n}\n\n.main-content {\n  padding: 30px;\n  flex-grow: 1;\n}\n\n.stats-grid {\n  gap: 20px;\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n}\n\n.user-profile {\n  gap: 15px;\n  display: flex;\n  align-items: center;\n}\n\n.badge {\n  position: absolute;\n  top: -5px;\n  right: -5px;\n  background-color: #ef4444;\n  color: white;\n  border-radius: 50%;\n  width: 18px;\n  height: 18px;\n  font-size: 12px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}"
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
