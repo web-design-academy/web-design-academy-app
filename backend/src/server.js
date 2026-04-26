@@ -175,6 +175,13 @@ const sessionCookieOptions = {
   path: "/",
 };
 
+function isAllowedUniversityEmail(email) {
+  return (
+    /@(?:[a-z0-9-]+\.)*vutbr\.cz$/i.test(email) ||
+    /@(?:[a-z0-9-]+\.)*vut\.cz$/i.test(email)
+  );
+}
+
 const lessonSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function validateSubmissionPayload(payload) {
@@ -247,12 +254,12 @@ app.post("/api/auth/google", async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name } = payload;
 
-    const isVutbr = email.endsWith("@vutbr.cz");
+    const isVutEmail = isAllowedUniversityEmail(email);
     const isAdmin = email === ADMIN_EMAIL;
 
-    if (!isVutbr && !isAdmin) {
+    if (!isVutEmail && !isAdmin) {
       return res.status(403).json({
-        error: "Access denied. Please use your @vutbr.cz account.",
+        error: "Access denied. Please use your VUT account.",
       });
     }
 

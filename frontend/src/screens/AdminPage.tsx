@@ -20,7 +20,9 @@ export default function AdminPage() {
   } = useAdminSubmissions();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
+  const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>(
+    {},
+  );
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -40,7 +42,8 @@ export default function AdminPage() {
 
     if (user?.role === "admin") {
       const lessons = getAllLessons();
-      const nextOrder = Math.max(0, ...lessons.map((lesson) => lesson.order)) + 1;
+      const nextOrder =
+        Math.max(0, ...lessons.map((lesson) => lesson.order)) + 1;
 
       setFormData((prev) => ({ ...prev, order: nextOrder }));
     }
@@ -68,7 +71,8 @@ export default function AdminPage() {
 
     const sortedSubmissions = [...submissions].sort(
       (left, right) =>
-        new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+        new Date(right.timestamp).getTime() -
+        new Date(left.timestamp).getTime(),
     );
 
     const groups = new Map<
@@ -177,9 +181,13 @@ export default function AdminPage() {
                           )}
                         </span>
                         <div className="submission-group-user">
-                          <span className="submission-group-name">{group.name}</span>
+                          <span className="submission-group-name">
+                            {group.name}
+                          </span>
                           {group.email && (
-                            <span className="submission-group-email">{group.email}</span>
+                            <span className="submission-group-email">
+                              {group.email}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -356,9 +364,7 @@ export default function AdminPage() {
                 gap: 12,
               }}
             >
-              <label
-                style={{ display: "flex", alignItems: "center", gap: 8 }}
-              >
+              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
                   type="checkbox"
                   checked={formData.hidden}
@@ -368,9 +374,7 @@ export default function AdminPage() {
                 />
                 Hidden lesson
               </label>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: 8 }}
-              >
+              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
                   type="checkbox"
                   checked={formData.enableVisualMode}
@@ -383,9 +387,7 @@ export default function AdminPage() {
                 />
                 Enable visual mode
               </label>
-              <label
-                style={{ display: "flex", alignItems: "center", gap: 8 }}
-              >
+              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
                   type="checkbox"
                   checked={formData.enableAnalyzerEditor}

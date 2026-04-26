@@ -25,11 +25,14 @@ export default function Lesson() {
   const { isAuthenticated, user } = useAuth();
 
   const isAdmin = user?.role === "admin";
-  const [isNew, setIsNew] = useState(false);
+  const [isNew, setIsNew] = useState<boolean | null>(null);
 
   const submitMutation = useSubmitSolution();
-  const { data: loadedSubmission, isLoading: isLoadingSubmission } =
-    useSubmission(submissionId || "");
+  const {
+    data: loadedSubmission,
+    isLoading: isLoadingSubmission,
+    error: submissionError,
+  } = useSubmission(submissionId || "");
 
   const [tasks, setTasks] = useState<Partial<TaskCode>[]>([]);
   const [taskStates, setTaskStates] = useState<Partial<TaskCode>[]>([]);
@@ -56,8 +59,19 @@ export default function Lesson() {
   useEffect(() => {
     if (!slug) return;
 
+    let cancelled = false;
+
     import("@/lib/helpers/adminStorage").then((m) => {
-      setIsNew(m.isCustomCourse(slug));
+      if (cancelled) return;
+
+      const customCourse = m.isCustomCourse(slug);
+      setIsNew(customCourse);
+
+      if (!customCourse) {
+        setLessonContent(lazy(() => import(`../lessons/${slug}/index.mdx`)));
+      } else {
+        setLessonContent(null);
+      }
     });
 
     const localTasks = getLessonTasksSync(slug);
@@ -71,10 +85,10 @@ export default function Lesson() {
       })),
     );
 
-    if (!isNew) {
-      setLessonContent(lazy(() => import(`../lessons/${slug}/index.mdx`)));
-    }
-  }, [slug, isNew]);
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   useEffect(() => {
     const onResize = () => {
@@ -211,7 +225,22 @@ export default function Lesson() {
     };
   }, [currentTaskIndex, isNew, slug]);
 
-  if (!tasks.length || isLoadingSubmission) return <LoadingSpinner />;
+  if (submissionId && submissionError) {
+    return (
+      <main className="lesson-container">
+        <div className="admin-error" style={{ margin: 24 }}>
+          {submissionError instanceof Error
+            ? submissionError.message
+            : "Failed to load submission."}
+        </div>
+      </main>
+    );
+  }
+
+  if (isNew === null || isLoadingSubmission) return <LoadingSpinner />;
+  if (!lessonMeta && !isNew) return <Navigate to="/" />;
+  if (lessonMeta?.hidden && !isNew) return <Navigate to="/" />;
+  if (!tasks.length) return <Navigate to={isNew ? "/admin" : "/"} />;
 
   const currentTask = tasks[currentTaskIndex];
   const currentTaskState = taskStates[currentTaskIndex];
@@ -220,8 +249,7 @@ export default function Lesson() {
 
   const isCssChallenge = challengeTaskData.challengeConfig !== undefined;
 
-  if (!currentTask && !isNew) return <Navigate to="/" />;
-  if (lessonMeta?.hidden && !isNew) return <Navigate to="/" />;
+  if (!currentTask) return <Navigate to={isNew ? "/admin" : "/"} />;
 
   const srcDoc = `
   <!DOCTYPE html>

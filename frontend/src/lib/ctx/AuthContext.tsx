@@ -12,6 +12,7 @@ import { AuthContext, type User } from "./useAuth";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [shouldClearLocalData, setShouldClearLocalData] = useState(false);
 
   useEffect(() => {
     if (!isOnlineMode) {
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchSession()
       .then((session) => {
         if (!session) {
+          setShouldClearLocalData(true);
           return;
         }
 
@@ -31,6 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: session.name,
           email: session.email,
         });
+        setShouldClearLocalData(false);
+      })
+      .catch(() => {
+        setShouldClearLocalData(false);
       })
       .finally(() => {
         setIsLoading(false);
@@ -38,10 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !user && shouldClearLocalData) {
       clearAllCustomData();
     }
-  }, [isLoading, user]);
+  }, [isLoading, shouldClearLocalData, user]);
 
   const loginWithGoogle = async (idToken: string): Promise<AuthData> => {
     if (!isOnlineMode) {
@@ -49,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await apiLoginWithGoogle(idToken);
+    setShouldClearLocalData(false);
 
     setUser({
       userId: data.userId,
@@ -62,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     logoutSession().catch(() => {});
+    setShouldClearLocalData(true);
     clearAllCustomData();
     setUser(null);
   };
