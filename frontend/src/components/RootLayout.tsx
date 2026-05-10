@@ -115,17 +115,6 @@ export default function Root() {
     )
   ) : null;
 
-  const questionnaireLink = (
-    <a
-      href="https://forms.gle/HPXmQ8gu2WNzpSpH7"
-      target="_blank"
-      rel="noreferrer"
-      className="nav-link questionnaire-link"
-    >
-      Answer Questionnaire
-    </a>
-  );
-
   return (
     <div className="app-container">
       <Modal
@@ -165,8 +154,6 @@ export default function Root() {
         </button>
 
         <div className="header-right">
-          {questionnaireLink}
-
           {isAuthenticated ? (
             <>
               {userIdentity}
@@ -202,11 +189,6 @@ export default function Root() {
         </div>
 
         <div className="mobile-drawer-content">
-          <div className="mobile-row">
-            <span className="mobile-row-label">Questionnaire</span>
-            {questionnaireLink}
-          </div>
-
           {isAuthenticated ? (
             <div className="mobile-row">
               {mobileUserIdentity}

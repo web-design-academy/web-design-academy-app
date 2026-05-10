@@ -31,8 +31,6 @@ export default function AdminPage() {
     icon: "Question",
     order: 0,
     hidden: false,
-    enableVisualMode: false,
-    enableAnalyzerEditor: false,
   });
 
   useEffect(() => {
@@ -373,32 +371,6 @@ export default function AdminPage() {
                   }
                 />
                 Hidden lesson
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={formData.enableVisualMode}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      enableVisualMode: e.target.checked,
-                    })
-                  }
-                />
-                Enable visual mode
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={formData.enableAnalyzerEditor}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      enableAnalyzerEditor: e.target.checked,
-                    })
-                  }
-                />
-                Enable analyzer editor
               </label>
             </div>
           </div>

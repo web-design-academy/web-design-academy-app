@@ -123,10 +123,6 @@ header {
   opacity: 1;
 }
 
-.questionnaire-link {
-  white-space: nowrap;
-}
-
 .user-text {
   font-size: var(--font-size-sm);
   font-weight: 600;

@@ -67,9 +67,7 @@ export default function Dashboard() {
               <div
                 className="lesson-card-avatar"
                 style={{
-                  background: color
-                    ? `linear-gradient(135deg, ${color}, oklch(from ${color} 70% 0.25 h))`
-                    : "linear-gradient(135deg, var(--color-primary), oklch(80% 0.2 150))",
+                  background: color,
                 }}
               >
                 <LessonIcon name={icon} />

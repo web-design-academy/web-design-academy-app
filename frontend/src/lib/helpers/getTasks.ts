@@ -13,11 +13,10 @@ export interface TaskCode {
   solutionHtml?: string;
   solutionCss?: string;
   solutionJs?: string;
-  challengeConfig?: string;
 }
 
 const allModules = import.meta.glob<string>(
-  "../../lessons/*/tasks/*/*.{html,css,js,json}",
+  "../../lessons/*/tasks/*/*.{html,css,js}",
   { query: "raw", import: "default", eager: true },
 );
 
@@ -33,16 +32,14 @@ export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
 
     const content = allModules[path] as string;
     const match = path.match(
-      /tasks[\\/](\d+)[\\/](editable|hidden|readonly|solution|challenge)\.(html|css|js|json)$/,
+      /tasks[\\/](\d+)[\\/](editable|hidden|readonly|solution)\.(html|css|js)$/,
     );
     if (!match) continue;
 
     const [, taskId, fileName, ext] = match;
     if (!tasksMap[taskId]) tasksMap[taskId] = {};
 
-    if (fileName === "challenge" && ext === "json") {
-      tasksMap[taskId].challengeConfig = content;
-    } else if (fileName === "editable" && ext === "html")
+    if (fileName === "editable" && ext === "html")
       tasksMap[taskId].editableHtml = content;
     else if (fileName === "editable" && ext === "css")
       tasksMap[taskId].editableCss = content;

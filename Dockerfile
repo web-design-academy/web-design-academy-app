@@ -1,13 +1,3 @@
-FROM alpine/git:latest AS visual_editor_submodule
-ARG GITHUB_TOKEN
-WORKDIR /visual-editor
-RUN git clone --depth=1 https://x-access-token:${GITHUB_TOKEN}@github.com/web-design-academy/Web-Visual-Editor.git .
-
-FROM alpine/git:latest AS css_analyzer_submodule
-ARG GITHUB_TOKEN
-WORKDIR /css-analyzer
-RUN git clone --depth=1 https://x-access-token:${GITHUB_TOKEN}@github.com/web-design-academy/css-analyzer.git .
-
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -17,12 +7,6 @@ ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 ARG VITE_APP_MODE=offline
 ENV VITE_APP_MODE=$VITE_APP_MODE
-
-COPY --from=visual_editor_submodule /visual-editor/VisualEditor ./Web-Visual-Editor/VisualEditor
-COPY --from=css_analyzer_submodule /css-analyzer ./css-analyzer
-
-WORKDIR /app/Web-Visual-Editor/VisualEditor
-RUN npm ci
 
 WORKDIR /app/frontend
 

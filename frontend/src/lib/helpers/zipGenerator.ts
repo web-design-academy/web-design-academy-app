@@ -19,8 +19,6 @@ color: "${course.color}"
 order: ${course.order}
 icon: ${course.icon}
 hidden: ${course.hidden ?? false}
-enableVisualMode: ${course.enableVisualMode ?? false}
-enableAnalyzerEditor: ${course.enableAnalyzerEditor ?? false}
 ---
 
 # ${course.title}

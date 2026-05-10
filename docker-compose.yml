@@ -24,8 +24,6 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend:/app/frontend
-      - ./Web-Visual-Editor:/app/Web-Visual-Editor
-      - ./css-analyzer:/app/css-analyzer
       - /app/frontend/node_modules
 
 volumes:

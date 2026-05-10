@@ -8,8 +8,6 @@ export type LessonMeta = {
   order: number;
   icon: string;
   hidden?: boolean;
-  enableVisualMode?: boolean;
-  enableAnalyzerEditor?: boolean;
 };
 
 const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
@@ -22,8 +20,6 @@ const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
 function normalizeLessonMeta(meta: LessonMeta): LessonMeta {
   return {
     hidden: false,
-    enableVisualMode: false,
-    enableAnalyzerEditor: false,
     ...meta,
   };
 }

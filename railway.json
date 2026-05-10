@@ -8,9 +8,6 @@
       },
       "VITE_GOOGLE_CLIENT_ID": {
         "fromEnv": "VITE_GOOGLE_CLIENT_ID"
-      },
-      "GITHUB_TOKEN": {
-        "fromEnv": "GITHUB_TOKEN"
       }
     }
   },
