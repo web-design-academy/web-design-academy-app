@@ -11,10 +11,14 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
 import { getLessonMeta } from "@/lib/helpers/getLessons";
 import { getLessonTasksSync, type TaskCode } from "@/lib/helpers/getTasks";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  submitSolution,
+  fetchSubmissionById,
+  type SubmissionPayload,
+} from "@/lib/api/submissions";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { isOnlineMode } from "@/lib/config/appMode";
-
-import { useSubmitSolution, useSubmission } from "@/lib/hooks/useSubmissions";
 
 export default function Lesson() {
   const { slug } = useParams<{ slug: string }>();
@@ -26,12 +30,19 @@ export default function Lesson() {
   const isAdmin = user?.role === "admin";
   const [isNew, setIsNew] = useState<boolean | null>(null);
 
-  const submitMutation = useSubmitSolution();
+  const submitMutation = useMutation({
+    mutationFn: (payload: SubmissionPayload) => submitSolution(payload),
+  });
+
   const {
     data: loadedSubmission,
     isLoading: isLoadingSubmission,
     error: submissionError,
-  } = useSubmission(submissionId || "");
+  } = useQuery({
+    queryKey: ["submission", submissionId],
+    queryFn: () => fetchSubmissionById(submissionId!),
+    enabled: !!submissionId && isOnlineMode,
+  });
 
   const [tasks, setTasks] = useState<Partial<TaskCode>[]>([]);
   const [taskStates, setTaskStates] = useState<Partial<TaskCode>[]>([]);

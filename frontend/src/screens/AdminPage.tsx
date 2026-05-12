@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useAuth } from "@/lib/ctx/useAuth";
-import { useAdminSubmissions } from "@/lib/hooks/useSubmissions";
+import { fetchSubmissions } from "@/lib/api/submissions";
 import { useNavigate, Link } from "react-router";
 import Modal from "@/components/Modal";
 import { saveCustomCourse, addCustomTask } from "@/lib/helpers/adminStorage";
 import { getAllLessons } from "@/lib/helpers/getLessons";
+import { isOnlineMode } from "@/lib/config/appMode";
 import "@/styles/admin.css";
 
 export default function AdminPage() {
@@ -17,7 +19,12 @@ export default function AdminPage() {
     data: submissions,
     isLoading: submissionsLoading,
     error: queryError,
-  } = useAdminSubmissions();
+  } = useQuery({
+    queryKey: ["submissions"],
+    queryFn: fetchSubmissions,
+    staleTime: 1000 * 60,
+    enabled: isOnlineMode,
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>(

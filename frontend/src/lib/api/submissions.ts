@@ -50,7 +50,10 @@ export async function fetchSubmissions(): Promise<SubmissionRecord[]> {
 
   const response = await fetch("/api/submissions");
 
-  if (!response.ok) throw new Error("Failed to fetch submissions");
+  if (!response.ok) {
+    throw new Error("Failed to fetch submissions");
+  }
+
   return response.json();
 }
 
@@ -61,6 +64,9 @@ export async function fetchSubmissionById(
 
   const response = await fetch(`/api/submissions/${id}`);
 
-  if (!response.ok) throw new Error("Failed to fetch submission");
+  if (!response.ok) {
+    throw new Error("Failed to fetch submission");
+  }
+
   return response.json();
 }

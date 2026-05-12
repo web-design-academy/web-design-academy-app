@@ -295,7 +295,7 @@ app.post("/api/auth/google", async (req, res) => {
   }
 });
 
-app.get("/api/auth/session", authenticateToken, (req, res) => {
+app.get("/api/auth/me", authenticateToken, (req, res) => {
   res.json({
     userId: req.user.sub,
     role: req.user.role,

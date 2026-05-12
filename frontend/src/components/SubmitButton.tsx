@@ -5,7 +5,6 @@ type SubmitState = "idle" | "loading" | "success" | "error";
 
 interface SubmitButtonProps {
   onClick: () => Promise<void>;
-  state?: SubmitState;
 }
 
 export default function SubmitButton({ onClick }: SubmitButtonProps) {

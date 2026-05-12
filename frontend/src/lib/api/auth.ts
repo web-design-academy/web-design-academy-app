@@ -25,7 +25,7 @@ export async function loginWithGoogle(idToken: string): Promise<AuthData> {
 }
 
 export async function fetchSession(): Promise<AuthData | null> {
-  const response = await fetch("/api/auth/session");
+  const response = await fetch("/api/auth/me");
 
   if (response.status === 401 || response.status === 403) {
     return null;

@@ -1,24 +1,30 @@
 # Web Design Academy
 
-## Development
+## Environment
 
-### Frontend
+- Node.js `22.x`
+- npm `10+`
+- Docker Engine/Desktop with Docker Compose
 
-1. Set `VITE_APP_MODE`, and `VITE_GOOGLE_CLIENT_ID=` in `./frontend/.env`
+## Required env files
 
-2. Run
+Create env files from examples:
 
 ```sh
-cd frontend
-npm install
-npm run dev
+cp frontend/.env.example frontend/.env
+cp backend/.env.example backend/.env
 ```
 
-### Backend
+Minimal variables:
 
-1. Set `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `JWT_SECRET` and `CORS_ORIGINS` in `./backend/.env`
+- `frontend/.env`: `VITE_APP_MODE` (`offline` or `online`), `VITE_GOOGLE_CLIENT_ID`
+- `backend/.env`: `JWT_SECRET` (at least 32 chars), `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `CORS_ORIGINS`
 
-2. Run
+> In `online` mode, both frontend and backend Google client IDs must be configured.
+
+## Local development
+
+Run in two terminals:
 
 ```sh
 cd backend
@@ -26,8 +32,21 @@ npm install
 npm run start
 ```
 
-## Docker
+```sh
+cd frontend
+npm install
+npm run dev
+```
+
+Backend runs on `http://localhost:3000`, frontend on `http://localhost:5173`.
+
+## Docker (dev)
 
 ```sh
-docker compose up
+docker compose up --build
 ```
+
+This starts:
+
+- backend: `http://localhost:3000`
+- frontend: `http://localhost:5173`
