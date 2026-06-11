@@ -18,7 +18,7 @@ cp backend/.env.example backend/.env
 Minimal variables:
 
 - `frontend/.env`: `VITE_APP_MODE` (`offline` or `online`), `VITE_GOOGLE_CLIENT_ID`
-- `backend/.env`: `JWT_SECRET` (at least 32 chars), `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `CORS_ORIGINS`
+- `backend/.env`: `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `CORS_ORIGINS`
 
 > In `online` mode, both frontend and backend Google client IDs must be configured.
 
