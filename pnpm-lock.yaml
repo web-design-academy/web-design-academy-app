@@ -427,8 +427,8 @@ importers:
         specifier: ^2.3.1
         version: 2.3.1
       dompurify:
-        specifier: ^3.0.6
-        version: 3.2.7
+        specifier: ^3.4.0
+        version: 3.4.0
       re-resizable:
         specifier: ^6.11.2
         version: 6.11.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -2097,6 +2097,9 @@ packages:
 
   dompurify@3.2.7:
     resolution: {integrity: sha512-WhL/YuveyGXJaerVlMYGWhvQswa7myDG17P7Vu65EWC05o8vfeNbvNf4d/BOvH99+ZW+LlQsc1GDKMa1vNK6dw==}
+
+  dompurify@3.4.0:
+    resolution: {integrity: sha512-nolgK9JcaUXMSmW+j1yaSvaEaoXYHwWyGJlkoCTghc97KgGDDSnpoU/PlEnw63Ah+TGKFOyY+X5LnxaWbCSfXg==}
 
   dotenv@17.4.2:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
@@ -5698,6 +5701,10 @@ snapshots:
       redux: 4.2.1
 
   dompurify@3.2.7:
+    optionalDependencies:
+      '@types/trusted-types': 2.0.7
+
+  dompurify@3.4.0:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 

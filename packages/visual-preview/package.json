@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "css-tree": "^2.3.1",
-    "dompurify": "^3.0.6",
+    "dompurify": "^3.4.0",
     "re-resizable": "^6.11.2"
   },
   "devDependencies": {
