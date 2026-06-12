@@ -13,10 +13,14 @@ ENV VITE_APP_MODE=$VITE_APP_MODE
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend/package.json ./apps/backend/
+COPY packages/visual-preview/package.json ./packages/visual-preview/
+COPY packages/visual-editor/VisualEditor/package.json ./packages/visual-editor/VisualEditor/
 
 RUN pnpm install --frozen-lockfile
 
 COPY apps/frontend/ ./apps/frontend/
+COPY packages/visual-preview/ ./packages/visual-preview/
+COPY packages/visual-editor/VisualEditor/ ./packages/visual-editor/VisualEditor/
 RUN pnpm --filter web-design-academy build
 
 FROM node:22-alpine
