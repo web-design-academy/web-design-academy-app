@@ -1,0 +1,45 @@
+---
+title: "CSS Grid Layout"
+description: "Learn how to build modern 2D layouts using CSS Grid, including columns, rows, gaps, and responsive design patterns."
+slug: "css-grid-layout"
+color: "oklch(54.6% 0.245 262.881)"
+order: 2
+icon: Layout
+---
+
+import C from "../../components/C";
+
+# CSS Grid Layout
+
+## Task Instructions
+
+## 1. **Grid Basics – 2D Layout**
+
+You have a simple layout with 6 boxes inside a `.grid` container. The structure is already prepared, but the layout is not defined yet.
+
+- On the <C l="css">.grid</C> container:
+  - Set <C l="css">display: grid</C> to enable Grid layout  
+  - Create 3 columns using <C l="css">grid-template-columns: repeat(3, 1fr)</C>  
+  - Create 2 rows using <C l="css">grid-template-rows: repeat(2, 150px)</C>  
+  - Add spacing between items using <C l="css">gap</C>  
+
+## 2. **Grid Areas – Layout Structure**
+
+You have a page layout with four semantic sections: header, sidebar, content, and footer. The HTML structure is already prepared, but the layout is not defined yet.
+
+- On the <C l="css">.grid</C> container:
+  - Set <C l="css">display: grid</C>  
+  - Use <C l="css">grid-template-areas</C> to define the layout:
+    ```
+    "header header"
+    "sidebar content"
+    "footer footer"
+    ```
+  - Set column structure using <C l="css">grid-template-columns: 1fr 2fr</C>  
+  - Add spacing using <C l="css">gap</C>  
+
+- Assign each element to its grid area:
+  - <C l="css">.header → header</C>  
+  - <C l="css">.sidebar → sidebar</C>  
+  - <C l="css">.content → content</C>  
+  - <C l="css">.footer → footer</C>  

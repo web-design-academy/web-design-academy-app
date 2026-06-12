@@ -1,0 +1,41 @@
+body {
+  font-family: sans-serif;
+}
+
+/* TODO:
+1. nastav display: grid
+2. použij grid-template-areas:
+   "header header"
+   "sidebar content"
+   "footer footer"
+3. nastav grid-template-columns (např. 1fr 2fr)
+4. přidej gap
+*/
+
+.grid {
+  
+}
+
+/* TODO:
+přiřaď jednotlivým třídám jejich grid-area
+.header → header
+.sidebar → sidebar
+.content → content
+.footer → footer
+*/
+
+.header {}
+.sidebar {}
+.content {}
+.footer {}
+
+/* styling (už hotový) */
+.header { background: #ff6b6b; }
+.sidebar { background: #4ecdc4; }
+.content { background: #1a535c; color: white; }
+.footer { background: #ffe66d; }
+
+.grid > * {
+  padding: 20px;
+  font-weight: bold;
+}

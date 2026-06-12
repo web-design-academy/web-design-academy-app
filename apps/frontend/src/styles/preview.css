@@ -1,0 +1,99 @@
+.preview-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.preview-inner-visual {
+  background: #fff;
+}
+
+.preview-selector {
+  padding: var(--space-2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  background-color: var(--color-bg);
+}
+
+.preview-selector label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.preview-selector select,
+.preview-selector input {
+  height: var(--size-button-height);
+  box-sizing: border-box;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  line-height: 1.2;
+  color: var(--color-text);
+  background-color: var(--color-card);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.preview-selector select:hover,
+.preview-selector input:hover {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 var(--border-width-thin) var(--color-primary);
+}
+
+.preview-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-bg);
+  position: relative;
+  overflow: auto;
+}
+
+.preview-resizable {
+  margin: auto;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: visible;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: var(--surface-preview);
+  transform-origin: top left;
+}
+
+.preview-size-overlay {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: var(--overlay-dark-70);
+  color: var(--surface-preview);
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 10;
+}
+
+@media (max-width: 900px) {
+  .lesson-mobile-preview .preview-container {
+    align-items: flex-start;
+    padding: var(--space-2);
+  }
+
+  .lesson-mobile-preview .preview-resizable {
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+}

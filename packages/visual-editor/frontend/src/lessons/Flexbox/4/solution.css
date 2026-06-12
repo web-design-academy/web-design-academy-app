@@ -1,0 +1,11 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 200px;
+  padding: 20px;
+  background: #fff;
+}
+
+button {
+  margin-top: auto;
+}

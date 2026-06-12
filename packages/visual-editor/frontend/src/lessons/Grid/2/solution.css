@@ -1,0 +1,40 @@
+body {
+  font-family: sans-serif;
+}
+
+.grid {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebar content"
+    "footer footer";
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+}
+
+.header {
+  grid-area: header;
+}
+
+.sidebar {
+  grid-area: sidebar;
+}
+
+.content {
+  grid-area: content;
+}
+
+.footer {
+  grid-area: footer;
+}
+
+/* styling */
+.header { background: #ff6b6b; }
+.sidebar { background: #4ecdc4; }
+.content { background: #1a535c; color: white; }
+.footer { background: #ffe66d; }
+
+.grid > * {
+  padding: 20px;
+  font-weight: bold;
+}

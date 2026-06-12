@@ -3,7 +3,7 @@
 ## Environment
 
 - Node.js `22.x`
-- npm `10+`
+- pnpm `9+` (or `10+`)
 - Docker Engine/Desktop with Docker Compose
 
 ## Required env files
@@ -11,31 +11,35 @@
 Create env files from examples:
 
 ```sh
-cp frontend/.env.example frontend/.env
-cp backend/.env.example backend/.env
+cp apps/frontend/.env.example apps/frontend/.env
+cp apps/backend/.env.example apps/backend/.env
 ```
 
 Minimal variables:
 
-- `frontend/.env`: `VITE_APP_MODE` (`offline` or `online`), `VITE_GOOGLE_CLIENT_ID`
-- `backend/.env`: `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `CORS_ORIGINS`
+- `apps/frontend/.env`: `VITE_APP_MODE` (`offline` or `online`), `VITE_GOOGLE_CLIENT_ID`
+- `apps/backend/.env`: `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `CORS_ORIGINS`
 
 > In `online` mode, both frontend and backend Google client IDs must be configured.
 
 ## Local development
 
-Run in two terminals:
+Run pnpm install from the root:
 
 ```sh
-cd backend
-npm install
-npm run start
+pnpm install
+```
+
+Run in separate terminals (or with your preferred runner):
+
+```sh
+# Start backend
+pnpm start:backend
 ```
 
 ```sh
-cd frontend
-npm install
-npm run dev
+# Start frontend
+pnpm dev:frontend
 ```
 
 Backend runs on `http://localhost:3000`, frontend on `http://localhost:5173`.

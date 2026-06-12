@@ -1,0 +1,39 @@
+/*
+  Visual Editor package CSS.
+  
+  Strategy: Import Tailwind theme tokens only (no base/preflight) to avoid
+  polluting the host app. The component wraps everything in .visual-editor-root
+  and all Tailwind utilities are scoped under it via @scope so they are
+  self-contained and don't leak or get overridden.
+*/
+
+/* Theme tokens only — no CSS resets or base layer */
+@import "tailwindcss/theme" layer(ve-theme);
+
+/* All utilities scoped to our root element */
+@scope (.visual-editor-root) {
+  /* Re-emit utilities only within this scope */
+  @import "tailwindcss/utilities";
+
+  :scope {
+    box-sizing: border-box;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  *, *::before, *::after {
+    box-sizing: inherit;
+  }
+}
+
+@keyframes ve-slide-down {
+  0%   { transform: translateY(-20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.visual-editor-root .animate-slide-down {
+  animation: ve-slide-down 0.25s ease-out forwards;
+}

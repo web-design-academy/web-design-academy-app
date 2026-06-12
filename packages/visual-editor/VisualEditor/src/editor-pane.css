@@ -1,0 +1,163 @@
+.vep-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-card, #111827);
+  color: var(--color-text, #f9fafb);
+  border-right: 1px solid var(--color-border, rgba(148, 163, 184, 0.2));
+}
+
+.vep-toolbar,
+.vep-footer-row,
+.vep-admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-bg, #0f172a);
+  border-bottom: 1px solid var(--color-border, rgba(148, 163, 184, 0.2));
+}
+
+.vep-footer-row {
+  border-top: 1px solid var(--color-border, rgba(148, 163, 184, 0.2));
+  border-bottom: 0;
+}
+
+.vep-admin-row {
+  background: var(--color-card, #111827);
+  border-top: 1px solid var(--color-border, rgba(148, 163, 184, 0.2));
+  border-bottom: 0;
+}
+
+.vep-tab-list,
+.vep-toolbar-actions,
+.vep-admin-actions,
+.vep-mode-switcher,
+.vep-task-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vep-tab-list {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.vep-tab,
+.vep-mode-button,
+.vep-button,
+.vep-inline-icon {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.vep-tab,
+.vep-mode-button {
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--color-text-muted, #94a3b8);
+  white-space: nowrap;
+}
+
+.vep-tab.is-active,
+.vep-mode-button.is-active {
+  color: var(--color-primary, #7c3aed);
+  background: color-mix(in srgb, var(--color-primary, #7c3aed) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary, #7c3aed) 30%, transparent);
+}
+
+.vep-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.vep-button-ghost {
+  color: inherit;
+  background: transparent;
+  border-color: var(--color-border, rgba(148, 163, 184, 0.25));
+}
+
+.vep-button-primary {
+  color: #fff;
+  background: var(--color-primary, #7c3aed);
+}
+
+.vep-tab:disabled,
+.vep-mode-button:disabled,
+.vep-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vep-editor-body,
+.vep-editor-body > div,
+.vep-visual-surface {
+  flex: 1;
+  min-height: 0;
+}
+
+.vep-editor-body {
+  display: flex;
+  overflow: hidden;
+}
+
+.vep-visual-surface {
+  overflow: auto;
+}
+
+.vep-inline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary, #7c3aed);
+  background: transparent;
+  border-color: var(--color-border, rgba(148, 163, 184, 0.25));
+}
+
+.vep-task-counter {
+  justify-content: center;
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.monaco-editor .vep-readonly-line {
+  background: rgba(148, 163, 184, 0.08);
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .vep-toolbar,
+  .vep-footer-row,
+  .vep-admin-row {
+    flex-wrap: wrap;
+  }
+
+  .vep-toolbar-actions,
+  .vep-admin-actions,
+  .vep-button {
+    width: 100%;
+  }
+
+  .vep-button {
+    justify-content: center;
+  }
+
+  .vep-footer-row {
+    gap: 8px;
+  }
+}

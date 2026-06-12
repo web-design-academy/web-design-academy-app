@@ -1,0 +1,12 @@
+{
+  "name": "e-learning-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "pnpm --filter web-design-academy dev",
+    "start:backend": "pnpm --filter backend start",
+    "build:frontend": "pnpm --filter web-design-academy build",
+    "lint:frontend": "pnpm --filter web-design-academy lint",
+    "style": "pnpm -r style"
+  }
+}

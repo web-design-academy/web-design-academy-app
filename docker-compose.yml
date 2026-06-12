@@ -1,29 +1,29 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ./apps/backend
       dockerfile: Dockerfile.dev
     env_file:
-      - backend/.env
+      - apps/backend/.env
     ports:
       - "3000:3000"
     volumes:
-      - ./backend:/app
+      - ./apps/backend:/app
       - /app/node_modules
       - backend_storage:/app/storage
 
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile.dev
+      dockerfile: apps/frontend/Dockerfile.dev
     env_file:
-      - frontend/.env
+      - apps/frontend/.env
     environment:
       - VITE_PROXY_TARGET=http://backend:3000
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend:/app/frontend
+      - ./apps/frontend:/app/frontend
       - /app/frontend/node_modules
 
 volumes:
