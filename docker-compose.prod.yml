@@ -1,0 +1,41 @@
+services:
+  backend:
+    container_name: webdesignacademy-backend
+    restart: unless-stopped
+    image: dexter.fit.vutbr.cz/webdesignacademy/webdesignacademy-backend
+    env_file:
+      - .env
+    volumes:
+      - storage:/app/storage
+    networks:
+      - webdesignacademyNetwork
+
+  frontend:
+    container_name: webdesignacademy-frontend
+    restart: unless-stopped
+    image: dexter.fit.vutbr.cz/webdesignacademy/webdesignacademy-frontend
+    depends_on:
+      - backend
+    networks:
+      - webdesignacademyNetwork
+
+  proxy:
+    container_name: webdesignacademy-proxy
+    image: nginx:1.19
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+    networks:
+      - webdesignacademyNetwork
+      - network
+
+networks:
+  network:
+    name: kristyna-dev
+    external: true
+  webdesignacademyNetwork:
+    name: webdesignacademyNetwork
+
+volumes:
+  storage:

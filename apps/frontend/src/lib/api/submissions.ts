@@ -1,4 +1,5 @@
 import { requireOnlineMode } from "@/lib/config/appMode";
+import { API_BASE } from "./client";
 
 export interface SubmissionPayload {
   lessonSlug: string;
@@ -31,7 +32,7 @@ export async function submitSolution(
 ): Promise<SubmissionResponse> {
   requireOnlineMode("Submissions");
 
-  const response = await fetch("/api/submissions", {
+  const response = await fetch(`${API_BASE}/submissions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -48,7 +49,7 @@ export async function submitSolution(
 export async function fetchSubmissions(): Promise<SubmissionRecord[]> {
   requireOnlineMode("Submissions");
 
-  const response = await fetch("/api/submissions");
+  const response = await fetch(`${API_BASE}/submissions`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch submissions");
@@ -62,7 +63,7 @@ export async function fetchSubmissionById(
 ): Promise<SubmissionRecord> {
   requireOnlineMode("Submissions");
 
-  const response = await fetch(`/api/submissions/${id}`);
+  const response = await fetch(`${API_BASE}/submissions/${id}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch submission");

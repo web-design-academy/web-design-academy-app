@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_APP_MODE: "online" | "offline";
   readonly VITE_GOOGLE_CLIENT_ID: string;
+  readonly BASE_URL: string;
 }
 
 interface ImportMeta {

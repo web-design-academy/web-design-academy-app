@@ -7,6 +7,7 @@ import { getLessonTasksSync } from "@/lib/helpers/getTasks";
 import LessonIcon from "@/components/LessonIcon";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { isOnlineMode } from "@/lib/config/appMode";
+import { API_BASE } from "@/lib/api/client";
 import { ArrowRight } from "lucide-react";
 
 export default function Dashboard() {
@@ -31,7 +32,7 @@ export default function Dashboard() {
       const lessonsWithProgress = await Promise.all(
         allLessons.map(async (lesson) => {
           try {
-            const res = await fetch(`/api/progress/${lesson.slug}`);
+            const res = await fetch(`${API_BASE}/progress/${lesson.slug}`);
             const data = await res.json();
             const completedCount = data.completedTaskIds?.length || 0;
             const totalTasks = getLessonTasksSync(lesson.slug).length;

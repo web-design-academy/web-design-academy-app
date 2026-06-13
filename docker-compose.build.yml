@@ -1,0 +1,14 @@
+services:
+  backend:
+    image: dexter.fit.vutbr.cz/webdesignacademy/webdesignacademy-backend
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+
+  frontend:
+    image: dexter.fit.vutbr.cz/webdesignacademy/webdesignacademy-frontend
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}

@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/submissions";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { isOnlineMode } from "@/lib/config/appMode";
+import { API_BASE } from "@/lib/api/client";
 
 export default function Lesson() {
   const { slug } = useParams<{ slug: string }>();
@@ -135,7 +136,7 @@ export default function Lesson() {
 
   useEffect(() => {
     if (slug && isOnlineMode && isAuthenticated) {
-      fetch(`/api/progress/${slug}`)
+      fetch(`${API_BASE}/progress/${slug}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.completedTaskIds) {

@@ -1,4 +1,5 @@
 import { requireOnlineMode } from "@/lib/config/appMode";
+import { API_BASE } from "./client";
 
 export interface AuthData {
   userId: string;
@@ -10,7 +11,7 @@ export interface AuthData {
 export async function loginWithGoogle(idToken: string): Promise<AuthData> {
   requireOnlineMode("Authentication");
 
-  const response = await fetch("/api/auth/google", {
+  const response = await fetch(`${API_BASE}/auth/google`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ idToken }),
@@ -25,7 +26,7 @@ export async function loginWithGoogle(idToken: string): Promise<AuthData> {
 }
 
 export async function fetchSession(): Promise<AuthData | null> {
-  const response = await fetch("/api/auth/me");
+  const response = await fetch(`${API_BASE}/auth/me`);
 
   if (response.status === 401 || response.status === 403) {
     return null;
@@ -39,7 +40,7 @@ export async function fetchSession(): Promise<AuthData | null> {
 }
 
 export async function logoutSession() {
-  const response = await fetch("/api/auth/logout", {
+  const response = await fetch(`${API_BASE}/auth/logout`, {
     method: "POST",
   });
 

@@ -135,7 +135,7 @@ export default function Root() {
         <div className="header-left">
           <Link to="/" className="logo-link">
             <img
-              src="/logo.png"
+              src={`${import.meta.env.BASE_URL}logo.png`}
               alt="Web Design Academy logo: Academic cap and letters WDA"
               className="logo-image"
             />
