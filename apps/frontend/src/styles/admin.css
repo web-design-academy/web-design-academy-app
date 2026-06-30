@@ -162,11 +162,10 @@
 .admin-lesson-card {
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 4rem 3rem minmax(6rem, calc(28% - 2.5rem)) minmax(20rem, 1fr) auto;
+  grid-template-columns: 3.5rem 2.75rem 1fr auto;
   align-items: center;
-  gap: var(--space-3);
-  min-height: 4.5rem;
-  padding: var(--space-3);
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-3);
   border: var(--border-width-thin) solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-bg);
@@ -246,14 +245,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: var(--radius-control);
   color: var(--surface-preview);
 }
 
 .admin-lesson-main {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .admin-lesson-title-row {
@@ -273,11 +275,10 @@
 }
 
 .admin-lesson-description {
-  display: block;
   margin: 0;
   overflow: hidden;
   color: var(--color-text);
-  opacity: 0.82;
+  opacity: 0.6;
   font-size: var(--font-size-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -866,13 +867,16 @@
   }
 
   .admin-lesson-card {
-    grid-template-columns: 2.5rem 3rem minmax(0, 1fr);
+    grid-template-columns: 3.5rem 2.75rem 1fr;
   }
 
-  .admin-lesson-description,
   .admin-lesson-card .admin-row-button {
     grid-column: 1 / -1;
     width: 100%;
+  }
+
+  .admin-lesson-description {
+    white-space: normal;
   }
 
   .lesson-icon-field .lesson-picker-button {
