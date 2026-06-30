@@ -2,12 +2,11 @@ import JSZip from "jszip";
 import type { LessonMeta } from "./getLessons";
 import type { TaskCode } from "./getTasks";
 
-export async function generateCourseZip(
+function addCourseToZip(
+  zip: JSZip,
   course: LessonMeta,
   tasks: Partial<TaskCode>[],
 ) {
-  const zip = new JSZip();
-
   const courseFolder = zip.folder(course.slug);
   if (!courseFolder) throw new Error("Failed to create zip folder");
 
@@ -49,12 +48,14 @@ hidden: ${course.hidden ?? false}
     addFile("hidden.css", task.hiddenCss);
     addFile("hidden.js", task.hiddenJs);
   });
+}
 
+async function downloadZip(zip: JSZip, suggestedName: string) {
   const blob = await zip.generateAsync({ type: "blob" });
 
   if (window.showSaveFilePicker) {
     const handle = await window.showSaveFilePicker({
-      suggestedName: `${course.slug}.zip`,
+      suggestedName,
       types: [
         {
           description: "Zip Archive",
@@ -71,9 +72,30 @@ hidden: ${course.hidden ?? false}
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${course.slug}.zip`;
+  link.download = suggestedName;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+export async function generateCourseZip(
+  course: LessonMeta,
+  tasks: Partial<TaskCode>[],
+) {
+  const zip = new JSZip();
+  addCourseToZip(zip, course, tasks);
+  await downloadZip(zip, `${course.slug}.zip`);
+}
+
+export async function generateCoursesZip(
+  courses: {
+    course: LessonMeta;
+    tasks: Partial<TaskCode>[];
+  }[],
+  suggestedName = "lessons.zip",
+) {
+  const zip = new JSZip();
+  courses.forEach(({ course, tasks }) => addCourseToZip(zip, course, tasks));
+  await downloadZip(zip, suggestedName);
 }

@@ -7,14 +7,15 @@ interface LessonIconProps {
   size?: number;
 }
 
-export default function LessonIcon({ name }: LessonIconProps) {
+export default function LessonIcon({ name, size = 30 }: LessonIconProps) {
   const maybeIcon = (LucideIcons as Record<string, unknown>)[name];
 
-  const isRenderableIcon = maybeIcon !== null && typeof maybeIcon === "object";
+  const isRenderableIcon =
+    maybeIcon !== null && ["function", "object"].includes(typeof maybeIcon);
 
   const IconComponent = isRenderableIcon
     ? (maybeIcon as React.ComponentType<LucideProps>)
     : HelpCircle;
 
-  return <IconComponent size={30} strokeWidth={2} />;
+  return <IconComponent size={size} strokeWidth={2} />;
 }

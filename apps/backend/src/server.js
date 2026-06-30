@@ -17,8 +17,17 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
 const JWT_SECRET = process.env.JWT_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const COOKIE_NAME = "wa_session";
+
+function parseEmailList(value) {
+  return (value || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+const ADMIN_EMAILS = parseEmailList(process.env.ADMIN_EMAILS);
+const ADMIN_EMAIL_SET = new Set(ADMIN_EMAILS);
 
 const DEFAULT_ORIGINS = [
   "http://localhost:5173",
@@ -39,8 +48,8 @@ if (IS_PRODUCTION) {
   if (!GOOGLE_CLIENT_ID) {
     throw new Error("GOOGLE_CLIENT_ID must be set in production");
   }
-  if (!ADMIN_EMAIL) {
-    throw new Error("ADMIN_EMAIL must be set in production");
+  if (ADMIN_EMAIL_SET.size === 0) {
+    throw new Error("ADMIN_EMAILS must be set in production");
   }
 }
 
@@ -60,7 +69,7 @@ app.use(
 
       callback(new Error("Origin not allowed by CORS"));
     },
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
     credentials: true,
   }),
 );
@@ -183,6 +192,116 @@ function isAllowedUniversityEmail(email) {
 }
 
 const lessonSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const tagNamePattern = /^[\p{L}\p{N}][\p{L}\p{N}\s._-]*$/u;
+
+function requireAdmin(req, res, next) {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  next();
+}
+
+function parsePositiveInteger(value, fallback, max) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.min(parsed, max);
+}
+
+function parseOptionalTagId(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number.parseInt(String(value), 10);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+function normalizeTagName(value) {
+  const name = typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+
+  if (name.length > 32 || !tagNamePattern.test(name)) {
+    return null;
+  }
+
+  return name;
+}
+
+function hydrateUserTags(users) {
+  if (users.length === 0) {
+    return users;
+  }
+
+  const ids = users.map((user) => user.id);
+  const placeholders = ids.map(() => "?").join(",");
+  const tags = db
+    .prepare(
+      `
+      SELECT ut.user_id, t.id, t.name
+      FROM user_tags ut
+      JOIN tags t ON t.id = ut.tag_id
+      WHERE ut.user_id IN (${placeholders})
+      ORDER BY t.name ASC
+    `,
+    )
+    .all(...ids);
+
+  const tagsByUser = new Map();
+  tags.forEach((tag) => {
+    const list = tagsByUser.get(tag.user_id) || [];
+    list.push({ id: tag.id, name: tag.name });
+    tagsByUser.set(tag.user_id, list);
+  });
+
+  return users.map((user) => ({
+    ...user,
+    tags: tagsByUser.get(user.id) || [],
+  }));
+}
+
+function hydrateSubmissionUserTags(submissions) {
+  const userIds = Array.from(
+    new Set(submissions.map((submission) => submission.user_id).filter(Boolean)),
+  );
+
+  if (userIds.length === 0) {
+    return submissions.map((submission) => ({ ...submission, user_tags: [] }));
+  }
+
+  const placeholders = userIds.map(() => "?").join(",");
+  const tags = db
+    .prepare(
+      `
+      SELECT ut.user_id, t.id, t.name
+      FROM user_tags ut
+      JOIN tags t ON t.id = ut.tag_id
+      WHERE ut.user_id IN (${placeholders})
+      ORDER BY t.name ASC
+    `,
+    )
+    .all(...userIds);
+
+  const tagsByUser = new Map();
+  tags.forEach((tag) => {
+    const list = tagsByUser.get(tag.user_id) || [];
+    list.push({ id: tag.id, name: tag.name });
+    tagsByUser.set(tag.user_id, list);
+  });
+
+  return submissions.map((submission) => ({
+    ...submission,
+    user_tags: tagsByUser.get(submission.user_id) || [],
+  }));
+}
 
 function validateSubmissionPayload(payload) {
   if (!payload || typeof payload !== "object") {
@@ -241,7 +360,7 @@ app.post("/api/auth/google", async (req, res) => {
   const { idToken } = req.body;
   if (!idToken) return res.status(400).json({ error: "No ID Token" });
 
-  if (!GOOGLE_CLIENT_ID || !ADMIN_EMAIL) {
+  if (!GOOGLE_CLIENT_ID || ADMIN_EMAIL_SET.size === 0) {
     return res.status(503).json({ error: "Authentication is not configured" });
   }
 
@@ -253,9 +372,14 @@ app.post("/api/auth/google", async (req, res) => {
 
     const payload = ticket.getPayload();
     const { email, name } = payload;
+    if (!email) {
+      return res.status(401).json({ error: "Invalid Google Token" });
+    }
 
-    const isVutEmail = isAllowedUniversityEmail(email);
-    const isAdmin = email === ADMIN_EMAIL;
+    const normalizedEmail = email.toLowerCase();
+
+    const isVutEmail = isAllowedUniversityEmail(normalizedEmail);
+    const isAdmin = ADMIN_EMAIL_SET.has(normalizedEmail);
 
     if (!isVutEmail && !isAdmin) {
       return res.status(403).json({
@@ -314,6 +438,120 @@ app.post("/api/auth/logout", (_req, res) => {
   res.json({ success: true });
 });
 
+app.get("/api/admin/tags", authenticateToken, requireAdmin, (_req, res) => {
+  const tags = db
+    .prepare(
+      `
+      SELECT t.id, t.name, COUNT(ut.user_id) as user_count
+      FROM tags t
+      LEFT JOIN user_tags ut ON ut.tag_id = t.id
+      GROUP BY t.id
+      ORDER BY t.name ASC
+    `,
+    )
+    .all();
+
+  res.json(tags);
+});
+
+app.get("/api/admin/users", authenticateToken, requireAdmin, (req, res) => {
+  const page = parsePositiveInteger(req.query.page, 1, 100000);
+  const pageSize = parsePositiveInteger(req.query.pageSize, 20, 100);
+  const offset = (page - 1) * pageSize;
+  const tagId = parseOptionalTagId(req.query.tagId);
+
+  if (tagId === undefined) {
+    return res.status(400).json({ error: "Invalid tagId" });
+  }
+
+  const where = tagId ? "WHERE EXISTS (SELECT 1 FROM user_tags ut WHERE ut.user_id = u.id AND ut.tag_id = ?)" : "";
+  const params = tagId ? [tagId] : [];
+
+  const total = db
+    .prepare(`SELECT COUNT(*) as count FROM users u ${where}`)
+    .get(...params).count;
+
+  const users = db
+    .prepare(
+      `
+      SELECT u.id, u.email, u.name, u.role, u.created_at
+      FROM users u
+      ${where}
+      ORDER BY CASE u.role WHEN 'admin' THEN 0 ELSE 1 END, u.created_at DESC
+      LIMIT ? OFFSET ?
+    `,
+    )
+    .all(...params, pageSize, offset);
+
+  res.json({
+    items: hydrateUserTags(users),
+    total,
+    page,
+    pageSize,
+  });
+});
+
+app.post(
+  "/api/admin/users/:userId/tags",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    const user = db
+      .prepare("SELECT id FROM users WHERE id = ?")
+      .get(req.params.userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    let tagId = Number.parseInt(String(req.body.tagId ?? ""), 10);
+
+    if (!Number.isFinite(tagId) || tagId < 1) {
+      const name = normalizeTagName(req.body.name);
+
+      if (!name) {
+        return res.status(400).json({ error: "Invalid tag name" });
+      }
+
+      db.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)").run(name);
+      tagId = db.prepare("SELECT id FROM tags WHERE name = ?").get(name).id;
+    }
+
+    const tag = db.prepare("SELECT id, name FROM tags WHERE id = ?").get(tagId);
+
+    if (!tag) {
+      return res.status(404).json({ error: "Tag not found" });
+    }
+
+    db.prepare("INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)").run(
+      req.params.userId,
+      tag.id,
+    );
+
+    res.json({ success: true, tag });
+  },
+);
+
+app.delete(
+  "/api/admin/users/:userId/tags/:tagId",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    const tagId = Number.parseInt(req.params.tagId, 10);
+
+    if (!Number.isFinite(tagId) || tagId < 1) {
+      return res.status(400).json({ error: "Invalid tagId" });
+    }
+
+    db.prepare("DELETE FROM user_tags WHERE user_id = ? AND tag_id = ?").run(
+      req.params.userId,
+      tagId,
+    );
+
+    res.json({ success: true });
+  },
+);
+
 app.post("/api/submissions", authenticateToken, (req, res) => {
   const validationError = validateSubmissionPayload(req.body);
   if (validationError) {
@@ -345,10 +583,21 @@ app.post("/api/submissions", authenticateToken, (req, res) => {
   }
 });
 
-app.get("/api/submissions", authenticateToken, (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Forbidden" });
+app.get("/api/submissions", authenticateToken, requireAdmin, (req, res) => {
+  const hasPagination = req.query.page !== undefined || req.query.pageSize !== undefined;
+  const page = parsePositiveInteger(req.query.page, 1, 100000);
+  const pageSize = parsePositiveInteger(req.query.pageSize, 20, 100);
+  const offset = (page - 1) * pageSize;
+  const tagId = parseOptionalTagId(req.query.tagId);
+
+  if (tagId === undefined) {
+    return res.status(400).json({ error: "Invalid tagId" });
   }
+
+  const where = tagId
+    ? "WHERE EXISTS (SELECT 1 FROM user_tags ut WHERE ut.user_id = s.user_id AND ut.tag_id = ?)"
+    : "";
+  const params = tagId ? [tagId] : [];
 
   const submissions = db
     .prepare(
@@ -356,12 +605,36 @@ app.get("/api/submissions", authenticateToken, (req, res) => {
     SELECT s.*, u.name as user_name, u.email as user_email
     FROM submissions s
     LEFT JOIN users u ON s.user_id = u.id
+    ${where}
     ORDER BY s.timestamp DESC
+    ${hasPagination ? "LIMIT ? OFFSET ?" : ""}
   `,
     )
-    .all();
+    .all(...params, ...(hasPagination ? [pageSize, offset] : []));
 
-  res.json(submissions);
+  const hydratedSubmissions = hydrateSubmissionUserTags(submissions);
+
+  if (!hasPagination) {
+    res.json(hydratedSubmissions);
+    return;
+  }
+
+  const total = db
+    .prepare(
+      `
+      SELECT COUNT(*) as count
+      FROM submissions s
+      ${where}
+    `,
+    )
+    .get(...params).count;
+
+  res.json({
+    items: hydratedSubmissions,
+    total,
+    page,
+    pageSize,
+  });
 });
 
 app.get("/api/submissions/:id", authenticateToken, (req, res) => {

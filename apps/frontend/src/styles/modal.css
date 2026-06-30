@@ -17,6 +17,8 @@
   border-radius: var(--radius-lg);
   width: 90%;
   max-width: var(--layout-max-modal);
+  max-height: calc(100vh - var(--space-6));
+  overflow: visible;
   box-shadow: var(--shadow-lg);
   border: var(--border-width-thin) solid var(--color-border);
   display: flex;
@@ -55,6 +57,7 @@
   padding: var(--space-4);
   font-size: var(--font-size-base);
   color: var(--color-text);
+  overflow: visible;
 }
 
 .modal-actions {

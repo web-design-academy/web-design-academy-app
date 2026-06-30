@@ -19,12 +19,31 @@ export interface SubmissionRecord {
   user_id: string;
   user_name?: string;
   user_email?: string;
+  user_tags?: UserTag[];
   lesson_slug: string;
   task_id: string;
   html: string;
   css: string;
   js: string;
   timestamp: string;
+}
+
+export interface UserTag {
+  id: number;
+  name: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SubmissionQuery {
+  page?: number;
+  pageSize?: number;
+  tagId?: number | "";
 }
 
 export async function submitSolution(
@@ -46,10 +65,20 @@ export async function submitSolution(
   return response.json();
 }
 
-export async function fetchSubmissions(): Promise<SubmissionRecord[]> {
+export async function fetchSubmissions(
+  query?: SubmissionQuery,
+): Promise<SubmissionRecord[] | PaginatedResponse<SubmissionRecord>> {
   requireOnlineMode("Submissions");
 
-  const response = await fetch(`${API_BASE}/submissions`);
+  const params = new URLSearchParams();
+
+  if (query?.page) params.set("page", String(query.page));
+  if (query?.pageSize) params.set("pageSize", String(query.pageSize));
+  if (query?.tagId) params.set("tagId", String(query.tagId));
+
+  const response = await fetch(
+    `${API_BASE}/submissions${params.size ? `?${params.toString()}` : ""}`,
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch submissions");

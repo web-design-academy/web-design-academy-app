@@ -25,11 +25,15 @@ function normalizeLessonMeta(meta: LessonMeta): LessonMeta {
 }
 
 export function getAllLessons(): LessonMeta[] {
-  const fileLessons = Object.values(modules).map((mod) =>
-    normalizeLessonMeta(mod.frontmatter),
-  );
+  const fileLessons = getDefaultLessons();
   const customLessons = getCustomCourses();
-  const allLessons = [...fileLessons];
+  const customLessonsBySlug = new Map(
+    customLessons.map((lesson) => [lesson.slug, normalizeLessonMeta(lesson)]),
+  );
+  const allLessons = fileLessons.map((lesson) => ({
+    ...lesson,
+    ...customLessonsBySlug.get(lesson.slug),
+  }));
 
   customLessons.forEach((custom) => {
     if (!allLessons.find((l) => l.slug === custom.slug)) {
@@ -38,6 +42,12 @@ export function getAllLessons(): LessonMeta[] {
   });
 
   return allLessons.sort((a, b) => a.order - b.order);
+}
+
+export function getDefaultLessons(): LessonMeta[] {
+  return Object.values(modules)
+    .map((mod) => normalizeLessonMeta(mod.frontmatter))
+    .sort((a, b) => a.order - b.order);
 }
 
 export function getLessons(): LessonMeta[] {
