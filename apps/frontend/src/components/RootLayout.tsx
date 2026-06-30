@@ -139,7 +139,6 @@ export default function Root() {
               alt="Web Design Academy logo: Academic cap and letters WDA"
               className="logo-image"
             />
-            <span className="logo-title">Web Design Academy</span>
           </Link>
         </div>
 

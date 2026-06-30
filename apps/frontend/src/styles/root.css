@@ -135,12 +135,6 @@ header {
   width: var(--size-logo-desktop);
 }
 
-.logo-title {
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-lg);
-  letter-spacing: -0.02em;
-}
-
 .nav-link {
   color: var(--color-text);
   text-decoration: none;
@@ -284,10 +278,6 @@ header {
   .logo-image {
     width: var(--size-logo-mobile);
     height: var(--size-logo-mobile);
-  }
-
-  .logo-title {
-    font-size: var(--font-size-base);
   }
 
   .hamburger-toggle {
