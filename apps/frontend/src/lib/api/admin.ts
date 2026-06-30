@@ -1,5 +1,6 @@
 import { requireOnlineMode } from "@/lib/config/appMode";
 import type { PaginatedResponse, UserTag } from "@/lib/api/submissions";
+import { API_BASE } from "@/lib/api/client";
 
 export interface AdminUser {
   id: string;
@@ -45,7 +46,7 @@ async function readJsonResponse<T>(response: Response, fallbackMessage: string) 
 export async function fetchAdminTags(): Promise<AdminTag[]> {
   requireOnlineMode("Admin tags");
 
-  const response = await fetch("/api/admin/tags");
+  const response = await fetch(`${API_BASE}/admin/tags`);
   return readJsonResponse(response, "Failed to fetch tags");
 }
 
@@ -54,7 +55,7 @@ export async function fetchAdminUsers(
 ): Promise<PaginatedResponse<AdminUser>> {
   requireOnlineMode("Admin users");
 
-  const response = await fetch(`/api/admin/users?${buildQuery(query)}`);
+  const response = await fetch(`${API_BASE}/admin/users?${buildQuery(query)}`);
   return readJsonResponse(response, "Failed to fetch users");
 }
 
@@ -64,7 +65,7 @@ export async function addUserTag(
 ) {
   requireOnlineMode("Admin tags");
 
-  const response = await fetch(`/api/admin/users/${userId}/tags`, {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/tags`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -79,7 +80,7 @@ export async function addUserTag(
 export async function removeUserTag(userId: string, tagId: number) {
   requireOnlineMode("Admin tags");
 
-  const response = await fetch(`/api/admin/users/${userId}/tags/${tagId}`, {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/tags/${tagId}`, {
     method: "DELETE",
   });
 

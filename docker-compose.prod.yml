@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     volumes:
-      - storage:/app/storage
+      - ./storage:/app/storage
     networks:
       - webdesignacademyNetwork
 
@@ -37,5 +37,3 @@ networks:
   webdesignacademyNetwork:
     name: webdesignacademyNetwork
 
-volumes:
-  storage:
