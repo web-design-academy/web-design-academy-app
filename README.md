@@ -18,9 +18,10 @@ cp apps/backend/.env.example apps/backend/.env
 Minimal variables:
 
 - `apps/frontend/.env`: `VITE_APP_MODE` (`offline` or `online`), `VITE_GOOGLE_CLIENT_ID`
-- `apps/backend/.env`: `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `ADMIN_EMAIL`, `CORS_ORIGINS`
+- `apps/backend/.env`: `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`, `CORS_ORIGINS`
 
 > In `online` mode, both frontend and backend Google client IDs must be configured.
+> Set `ADMIN_EMAILS` to a comma-separated list, for example `one@example.com,two@example.com`.
 
 ## Local development
 

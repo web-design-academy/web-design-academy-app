@@ -43,6 +43,37 @@ const initDb = () => {
   `,
   ).run();
 
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL COLLATE NOCASE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `,
+  ).run();
+
+  db.prepare(
+    `
+    CREATE TABLE IF NOT EXISTS user_tags (
+      user_id TEXT NOT NULL,
+      tag_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, tag_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    )
+  `,
+  ).run();
+
+  db.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_user_tags_tag_id ON user_tags(tag_id)",
+  ).run();
+
+  db.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_submissions_user_timestamp ON submissions(user_id, timestamp DESC)",
+  ).run();
+
   console.log(`Database initialized successfully at ${dbPath}`);
 };
 

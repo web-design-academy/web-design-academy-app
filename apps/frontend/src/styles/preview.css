@@ -6,7 +6,7 @@
 }
 
 .preview-inner-visual {
-  background: #fff;
+  background: var(--surface-preview);
 }
 
 .preview-selector {
@@ -44,7 +44,7 @@
 .preview-selector input:hover {
   border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 var(--border-width-thin) var(--color-primary);
+  box-shadow: var(--shadow-focus);
 }
 
 .preview-container {

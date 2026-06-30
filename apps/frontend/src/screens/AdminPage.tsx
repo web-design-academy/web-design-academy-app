@@ -1,388 +1,1420 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  type DragOverEvent,
+  DragOverlay,
+  type DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import * as LucideIcons from "lucide-react";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Edit3,
+  Filter,
+  GripVertical,
+  Plus,
+  Search,
+  Send,
+  Users,
+  X,
+} from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HexColorPicker } from "react-colorful";
+import { converter, formatHex, parse } from "culori";
+import { Link, useNavigate } from "react-router";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { useAuth } from "@/lib/ctx/useAuth";
-import { fetchSubmissions } from "@/lib/api/submissions";
-import { useNavigate, Link } from "react-router";
+import LessonIcon from "@/components/LessonIcon";
 import Modal from "@/components/Modal";
-import { saveCustomCourse, addCustomTask } from "@/lib/helpers/adminStorage";
-import { getAllLessons } from "@/lib/helpers/getLessons";
+import { useAuth } from "@/lib/ctx/useAuth";
+import {
+  addUserTag,
+  type AdminTag,
+  fetchAdminTags,
+  fetchAdminUsers,
+  removeUserTag,
+  type AdminUser,
+} from "@/lib/api/admin";
+import {
+  fetchSubmissions,
+  type PaginatedResponse,
+  type SubmissionRecord,
+} from "@/lib/api/submissions";
+import {
+  addCustomTask,
+  clearAllCustomData,
+  saveCustomCourse,
+} from "@/lib/helpers/adminStorage";
+import {
+  getAllLessons,
+  getDefaultLessons,
+  type LessonMeta,
+} from "@/lib/helpers/getLessons";
+import { getLessonTasksSync } from "@/lib/helpers/getTasks";
+import { generateCourseZip, generateCoursesZip } from "@/lib/helpers/zipGenerator";
 import { isOnlineMode } from "@/lib/config/appMode";
 import "@/styles/admin.css";
+
+const PAGE_SIZE = 12;
+const LESSON_COLOR_OPTIONS = [
+  "oklch(64.6% 0.222 41.116)",
+  "oklch(54.6% 0.245 262.881)",
+  "oklch(79.5% 0.184 86.047)",
+  "oklch(58.6% 0.253 17.585)",
+  "oklch(55.8% 0.288 302.321)",
+  "oklch(60% 0.18 170)",
+  "oklch(62% 0.16 230)",
+  "oklch(68% 0.2 130)",
+];
+
+const DEFAULT_ICON = "Code";
+const DEFAULT_OKLCH = { lightness: 64.6, chroma: 0.222, hue: 41.116 };
+const toOklch = converter("oklch");
+
+type AdminSection = "lessons" | "users" | "submissions";
+type LessonForm = Omit<LessonMeta, "slug" | "order">;
+type TagDraft = Record<string, { tagId: string; name: string }>;
+type UserTag = AdminUser["tags"][number];
+
+const ALL_LUCIDE_ICON_NAMES = Object.entries(LucideIcons)
+  .filter(([name, value]) => {
+    if (!/^[A-Z]/.test(name)) return false;
+    if (name === "Icon" || name.startsWith("Lucide") || name.endsWith("Icon")) {
+      return false;
+    }
+
+    return value !== null && ["function", "object"].includes(typeof value);
+  })
+  .map(([name]) => name)
+  .sort((left, right) => left.localeCompare(right));
+
+function formatNumber(value: number, maxFractionDigits: number) {
+  return Number(value.toFixed(maxFractionDigits)).toString();
+}
+
+function formatOklchColor({
+  lightness,
+  chroma,
+  hue,
+}: {
+  lightness: number;
+  chroma: number;
+  hue: number;
+}) {
+  return `oklch(${formatNumber(lightness, 1)}% ${formatNumber(
+    chroma,
+    3,
+  )} ${formatNumber(hue, 3)})`;
+}
+
+function hexFromOklch(value: string) {
+  const parsedColor = parse(value);
+  return parsedColor ? formatHex(parsedColor) : "#f54900";
+}
+
+function oklchFromHex(value: string) {
+  const oklchColor = toOklch(value);
+
+  if (!oklchColor) {
+    return formatOklchColor(DEFAULT_OKLCH);
+  }
+
+  return formatOklchColor({
+    lightness: oklchColor.l * 100,
+    chroma: oklchColor.c,
+    hue: oklchColor.h ?? 0,
+  });
+}
+
+function parseOklchColor(value: string) {
+  const match = value.match(
+    /oklch\(\s*([\d.]+)%?\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*\)/i,
+  );
+
+  if (!match) return DEFAULT_OKLCH;
+
+  return {
+    lightness: Number(match[1]),
+    chroma: Number(match[2]),
+    hue: Number(match[3]),
+  };
+}
+
+function slugifyTitle(title: string) {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function emptyForm(): LessonForm {
+  return {
+    title: "",
+    description: "",
+    color: LESSON_COLOR_OPTIONS[0],
+    icon: DEFAULT_ICON,
+    hidden: false,
+  };
+}
+
+function haveLessonsChangedFromDefault(
+  lessons: LessonMeta[],
+  defaultLessons: LessonMeta[],
+) {
+  if (lessons.length !== defaultLessons.length) return true;
+
+  const defaultLessonsBySlug = new Map(
+    defaultLessons.map((lesson) => [lesson.slug, lesson]),
+  );
+
+  return lessons.some((lesson) => {
+    const defaultLesson = defaultLessonsBySlug.get(lesson.slug);
+
+    return (
+      !defaultLesson ||
+      lesson.title !== defaultLesson.title ||
+      lesson.description !== defaultLesson.description ||
+      lesson.color !== defaultLesson.color ||
+      lesson.order !== defaultLesson.order ||
+      lesson.icon !== defaultLesson.icon ||
+      (lesson.hidden ?? false) !== (defaultLesson.hidden ?? false)
+    );
+  });
+}
+
+function SortableLessonCard({
+  lesson,
+  onEdit,
+}: {
+  lesson: LessonMeta;
+  onEdit: (lesson: LessonMeta) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: lesson.slug });
+
+  return (
+    <article
+      ref={setNodeRef}
+      className={`admin-lesson-card ${isDragging ? "is-dragging" : ""}`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+    >
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        className="admin-lesson-drag-handle"
+        aria-label={`Reorder ${lesson.title}`}
+        {...attributes}
+        {...listeners}
+      >
+        <span className="admin-lesson-order-number">{lesson.order}</span>
+        <GripVertical
+          className="admin-lesson-order-drag-icon"
+          size={24}
+          aria-hidden="true"
+        />
+      </button>
+      <div
+        className="admin-lesson-icon"
+        style={{ backgroundColor: lesson.color }}
+      >
+        <LessonIcon name={lesson.icon} size={24} />
+      </div>
+      <div className="admin-lesson-main">
+        <div className="admin-lesson-title-row">
+          <h2>{lesson.title}</h2>
+          {lesson.hidden && <span className="admin-tag">Hidden</span>}
+        </div>
+      </div>
+      <p className="admin-lesson-description">{lesson.description}</p>
+      <button
+        type="button"
+        className="admin-row-button"
+        onClick={() => onEdit(lesson)}
+      >
+        <Edit3 size={16} />
+        Edit metadata
+      </button>
+    </article>
+  );
+}
+
+function LessonDragOverlayCard({
+  lesson,
+  width,
+}: {
+  lesson: LessonMeta;
+  width: number | null;
+}) {
+  return (
+    <article
+      className="admin-lesson-card admin-lesson-card-overlay"
+      style={width ? { width } : undefined}
+    >
+      <div className="admin-lesson-drag-handle" aria-hidden="true">
+        <GripVertical
+          className="admin-lesson-order-drag-icon"
+          size={24}
+          aria-hidden="true"
+        />
+      </div>
+      <div
+        className="admin-lesson-icon"
+        style={{ backgroundColor: lesson.color }}
+      >
+        <LessonIcon name={lesson.icon} size={24} />
+      </div>
+      <div className="admin-lesson-main">
+        <div className="admin-lesson-title-row">
+          <h2>{lesson.title}</h2>
+          {lesson.hidden && <span className="admin-tag">Hidden</span>}
+        </div>
+      </div>
+      <p className="admin-lesson-description">{lesson.description}</p>
+      <button type="button" className="admin-row-button" tabIndex={-1}>
+        <Edit3 size={16} />
+        Edit metadata
+      </button>
+    </article>
+  );
+}
+
+function Pagination({
+  page,
+  total,
+  pageSize,
+  onChange,
+}: {
+  page: number;
+  total: number;
+  pageSize: number;
+  onChange: (page: number) => void;
+}) {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastItem = Math.min(total, page * pageSize);
+
+  return (
+    <div className="admin-pagination">
+      <span>
+        {firstItem}-{lastItem} of {total}
+      </span>
+      <div className="admin-pagination-actions">
+        <button
+          type="button"
+          className="admin-icon-button"
+          onClick={() => onChange(page - 1)}
+          disabled={page <= 1}
+          aria-label="Previous page"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <span>
+          Page {page} / {pageCount}
+        </span>
+        <button
+          type="button"
+          className="admin-icon-button"
+          onClick={() => onChange(page + 1)}
+          disabled={page >= pageCount}
+          aria-label="Next page"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TagFilter({
+  value,
+  onChange,
+  tags,
+}: {
+  value: number | "";
+  onChange: (value: number | "") => void;
+  tags: { id: number; name: string; user_count?: number }[];
+}) {
+  return (
+    <label className="admin-filter">
+      <Filter size={16} aria-hidden="true" />
+      <select
+        value={value}
+        onChange={(event) =>
+          onChange(event.target.value ? Number(event.target.value) : "")
+        }
+      >
+        <option value="">All tags</option>
+        {tags.map((tag) => (
+          <option key={tag.id} value={tag.id}>
+            {tag.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function UserTagPopover({
+  tags,
+  userTags,
+  draftName,
+  isPending,
+  onSelectExisting,
+  onDraftNameChange,
+  onCreateTag,
+}: {
+  tags: AdminTag[];
+  userTags: AdminUser["tags"];
+  draftName: string;
+  isPending: boolean;
+  onSelectExisting: (tagId: number) => void;
+  onDraftNameChange: (value: string) => void;
+  onCreateTag: () => void;
+}) {
+  return (
+    <div className="lesson-picker-popover admin-tag-popover" role="dialog">
+      <div className="admin-tag-popover-list">
+        {tags.length ? (
+          tags.map((tag) => {
+            const isAssigned = userTags.some(
+              (assignedTag) => assignedTag.id === tag.id,
+            );
+
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                className="admin-tag-choice"
+                disabled={isAssigned || isPending}
+                onClick={() => onSelectExisting(tag.id)}
+              >
+                {tag.name}
+                {isAssigned && <span>Added</span>}
+              </button>
+            );
+          })
+        ) : (
+          <span className="admin-muted">No saved tags</span>
+        )}
+      </div>
+      <div className="admin-new-tag-row">
+        <input
+          value={draftName}
+          onChange={(event) => onDraftNameChange(event.target.value)}
+          placeholder="New tag"
+        />
+        <button
+          type="button"
+          className="admin-row-button"
+          onClick={onCreateTag}
+          disabled={isPending || !draftName.trim()}
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CompactTags({
+  tags,
+  canRemove = false,
+  expanded,
+  onToggleExpanded,
+  onRemove,
+  children,
+}: {
+  tags: UserTag[];
+  canRemove?: boolean;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
+  onRemove?: (tagId: number) => void;
+  children?: ReactNode;
+}) {
+  if (!tags.length) {
+    return (
+      <div className="admin-tags">
+        <span className="admin-muted">No tags</span>
+        {children}
+      </div>
+    );
+  }
+
+  const [firstTag, ...hiddenTags] = tags;
+
+  const renderTag = (tag: UserTag) =>
+    canRemove && onRemove ? (
+      <button
+        key={tag.id}
+        type="button"
+        className="admin-tag removable"
+        onClick={() => onRemove(tag.id)}
+        aria-label={`Remove ${tag.name}`}
+      >
+        {tag.name}
+        <X size={12} />
+      </button>
+    ) : (
+      <span key={tag.id} className="admin-tag">
+        {tag.name}
+      </span>
+    );
+
+  return (
+    <div className="admin-tags">
+      {renderTag(firstTag)}
+      {hiddenTags.length > 0 && (
+        <span className="admin-more-tags-anchor">
+          <button
+            type="button"
+            className="admin-more-tags-button"
+            onClick={onToggleExpanded}
+            aria-expanded={expanded}
+          >
+            {hiddenTags.length} more
+          </button>
+          {expanded && (
+            <div className="lesson-picker-popover admin-hidden-tags-popover">
+              <div className="admin-hidden-tags-list">
+                {hiddenTags.map((tag) => renderTag(tag))}
+              </div>
+            </div>
+          )}
+        </span>
+      )}
+      {children}
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const {
-    data: submissions,
-    isLoading: submissionsLoading,
-    error: queryError,
-  } = useQuery({
-    queryKey: ["submissions"],
-    queryFn: fetchSubmissions,
-    staleTime: 1000 * 60,
-    enabled: isOnlineMode,
-  });
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>(
-    {},
+  const [activeSection, setActiveSection] = useState<AdminSection>("lessons");
+  const [lessonsVersion, setLessonsVersion] = useState(0);
+  const [lessonModalMode, setLessonModalMode] = useState<"create" | "edit">(
+    "create",
   );
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    slug: "",
-    color: "oklch(60% 0.15 250)",
-    icon: "Question",
-    order: 0,
-    hidden: false,
-  });
+  const [editingLesson, setEditingLesson] = useState<LessonMeta | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const [hasTouchedTitle, setHasTouchedTitle] = useState(false);
+  const [iconSearch, setIconSearch] = useState("");
+  const [formData, setFormData] = useState<LessonForm>(emptyForm);
+  const [userPage, setUserPage] = useState(1);
+  const [submissionPage, setSubmissionPage] = useState(1);
+  const [userTagFilter, setUserTagFilter] = useState<number | "">("");
+  const [submissionTagFilter, setSubmissionTagFilter] = useState<number | "">(
+    "",
+  );
+  const [tagDrafts, setTagDrafts] = useState<TagDraft>({});
+  const [openTagPopoverUserId, setOpenTagPopoverUserId] = useState<
+    string | null
+  >(null);
+  const [openMoreTagsKey, setOpenMoreTagsKey] = useState<string | null>(null);
+  const [orderedLessons, setOrderedLessons] = useState<LessonMeta[]>(() =>
+    getAllLessons(),
+  );
+  const [activeLessonSlug, setActiveLessonSlug] = useState<string | null>(null);
+  const [activeLessonWidth, setActiveLessonWidth] = useState<number | null>(
+    null,
+  );
+  const [isDownloadingLessonChanges, setIsDownloadingLessonChanges] =
+    useState(false);
 
   useEffect(() => {
     if (!authLoading && user?.role !== "admin") {
       navigate("/");
     }
-
-    if (user?.role === "admin") {
-      const lessons = getAllLessons();
-      const nextOrder =
-        Math.max(0, ...lessons.map((lesson) => lesson.order)) + 1;
-
-      setFormData((prev) => ({ ...prev, order: nextOrder }));
-    }
   }, [user, authLoading, navigate]);
 
+  useEffect(() => setUserPage(1), [userTagFilter]);
+  useEffect(() => setSubmissionPage(1), [submissionTagFilter]);
+
+  const lessons = useMemo(() => getAllLessons(), [lessonsVersion]);
+  const defaultLessons = useMemo(() => getDefaultLessons(), []);
+  useEffect(() => {
+    setOrderedLessons(lessons);
+  }, [lessons]);
+
+  const displayedLessons = useMemo(
+    () =>
+      orderedLessons.map((lesson, index) => ({
+        ...lesson,
+        order: index + 1,
+      })),
+    [orderedLessons],
+  );
+  const lessonIds = useMemo(
+    () => displayedLessons.map((lesson) => lesson.slug),
+    [displayedLessons],
+  );
+  const lessonDragSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+  const activeDraggedLesson = useMemo(
+    () =>
+      displayedLessons.find((lesson) => lesson.slug === activeLessonSlug) ??
+      null,
+    [activeLessonSlug, displayedLessons],
+  );
+  const hasLessonChanges = useMemo(
+    () => haveLessonsChangedFromDefault(displayedLessons, defaultLessons),
+    [defaultLessons, displayedLessons],
+  );
+  const generatedSlug = useMemo(
+    () => slugifyTitle(formData.title),
+    [formData.title],
+  );
+
+  const titleValidationError = useMemo(() => {
+    if (!formData.title.trim()) return "Title is required.";
+    if (!generatedSlug) return "Title must contain at least one letter or number.";
+
+    const slugExists = lessons.some(
+      (lesson) =>
+        lesson.slug === generatedSlug && lesson.slug !== editingLesson?.slug,
+    );
+    return slugExists ? "A lesson with this title already exists." : "";
+  }, [editingLesson?.slug, formData.title, generatedSlug, lessons]);
+
+  const currentOklchColor = useMemo(
+    () => parseOklchColor(formData.color),
+    [formData.color],
+  );
+  const currentHexColor = useMemo(
+    () => hexFromOklch(formData.color),
+    [formData.color],
+  );
+  const filteredIconNames = useMemo(() => {
+    const normalizedSearch = iconSearch.trim().toLowerCase();
+    if (!normalizedSearch) return ALL_LUCIDE_ICON_NAMES;
+
+    return ALL_LUCIDE_ICON_NAMES.filter((name) =>
+      name.toLowerCase().includes(normalizedSearch),
+    );
+  }, [iconSearch]);
+
+  const { data: tags = [], error: tagsError } = useQuery({
+    queryKey: ["admin-tags"],
+    queryFn: fetchAdminTags,
+    enabled: isOnlineMode && user?.role === "admin",
+  });
+
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    error: usersError,
+  } = useQuery({
+    queryKey: ["admin-users", userPage, userTagFilter],
+    queryFn: () =>
+      fetchAdminUsers({
+        page: userPage,
+        pageSize: PAGE_SIZE,
+        tagId: userTagFilter,
+      }),
+    enabled: isOnlineMode && user?.role === "admin",
+  });
+
+  const {
+    data: submissionsData,
+    isLoading: submissionsLoading,
+    error: submissionsError,
+  } = useQuery({
+    queryKey: ["submissions", submissionPage, submissionTagFilter],
+    queryFn: async () =>
+      (await fetchSubmissions({
+        page: submissionPage,
+        pageSize: PAGE_SIZE,
+        tagId: submissionTagFilter,
+      })) as PaginatedResponse<SubmissionRecord>,
+    enabled: isOnlineMode && user?.role === "admin",
+  });
+
+  const addTagMutation = useMutation({
+    mutationFn: ({
+      userId,
+      tagId,
+      name,
+    }: {
+      userId: string;
+      tagId?: number | "";
+      name?: string;
+    }) => addUserTag(userId, { tagId, name }),
+    onSuccess: (_data, variables) => {
+      setTagDrafts((prev) => ({
+        ...prev,
+        [variables.userId]: { tagId: "", name: "" },
+      }));
+      setOpenTagPopoverUserId(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    },
+  });
+
+  const removeTagMutation = useMutation({
+    mutationFn: ({ userId, tagId }: { userId: string; tagId: number }) =>
+      removeUserTag(userId, tagId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    },
+  });
+
+  const openCreateModal = () => {
+    setLessonModalMode("create");
+    setEditingLesson(null);
+    setFormData(emptyForm());
+    setHasTouchedTitle(false);
+    setIsColorPickerOpen(false);
+    setIsIconPickerOpen(false);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (lesson: LessonMeta) => {
+    setLessonModalMode("edit");
+    setEditingLesson(lesson);
+    setFormData({
+      title: lesson.title,
+      description: lesson.description,
+      color: lesson.color,
+      icon: lesson.icon,
+      hidden: lesson.hidden ?? false,
+    });
+    setHasTouchedTitle(false);
+    setIsColorPickerOpen(false);
+    setIsIconPickerOpen(false);
+    setIsModalOpen(true);
+  };
+
   const handleCreateCourse = () => {
+    if (titleValidationError) {
+      setHasTouchedTitle(true);
+      return;
+    }
+
+    const nextOrder = Math.max(0, ...lessons.map((lesson) => lesson.order)) + 1;
+
     saveCustomCourse({
       ...formData,
-      order: Number(formData.order),
+      slug: generatedSlug,
+      order: nextOrder,
     });
 
-    addCustomTask(formData.slug, {
+    addCustomTask(generatedSlug, {
       editableHtml: "<h1>New Task</h1>\n<p>Start editing...</p>",
       editableCss: "h1 { color: blue; }",
       editableJs: 'console.log("Hello World");',
     });
 
-    navigate(`/lessons/${formData.slug}`);
+    setLessonsVersion((version) => version + 1);
+    setIsModalOpen(false);
+    navigate(`/lessons/${generatedSlug}`);
   };
 
-  const groupedSubmissions = useMemo(() => {
-    if (!submissions || submissions.length === 0) {
-      return [];
+  const handleLessonDragStart = ({ active }: DragStartEvent) => {
+    setActiveLessonSlug(String(active.id));
+    setActiveLessonWidth(active.rect.current.initial?.width ?? null);
+  };
+
+  const handleLessonDragOver = ({ active, over }: DragOverEvent) => {
+    if (!over || active.id === over.id) return;
+
+    setOrderedLessons((currentLessons) => {
+      const oldIndex = currentLessons.findIndex(
+        (lesson) => lesson.slug === active.id,
+      );
+      const newIndex = currentLessons.findIndex(
+        (lesson) => lesson.slug === over.id,
+      );
+
+      if (oldIndex < 0 || newIndex < 0) return currentLessons;
+
+      return arrayMove(currentLessons, oldIndex, newIndex);
+    });
+  };
+
+  const handleLessonDragEnd = ({ active, over }: DragEndEvent) => {
+    setActiveLessonSlug(null);
+    setActiveLessonWidth(null);
+
+    if (!over) {
+      setOrderedLessons(lessons);
+      return;
     }
 
-    const sortedSubmissions = [...submissions].sort(
-      (left, right) =>
-        new Date(right.timestamp).getTime() -
-        new Date(left.timestamp).getTime(),
+    const hasActiveLesson = displayedLessons.some(
+      (lesson) => lesson.slug === active.id,
+    );
+    const hasOverLesson = displayedLessons.some(
+      (lesson) => lesson.slug === over.id,
     );
 
-    const groups = new Map<
-      string,
-      {
-        key: string;
-        name: string;
-        email?: string;
-        latestTimestamp: string;
-        submissions: typeof sortedSubmissions;
-      }
-    >();
+    if (!hasActiveLesson || !hasOverLesson) return;
 
-    sortedSubmissions.forEach((submission) => {
-      const key =
-        submission.user_id ||
-        submission.user_email ||
-        submission.user_name ||
-        `anonymous-${submission.id}`;
+    const nextLessons = displayedLessons.map((lesson, index) => ({
+      ...lesson,
+      order: index + 1,
+    }));
 
-      const existingGroup = groups.get(key);
+    if (haveLessonsChangedFromDefault(nextLessons, defaultLessons)) {
+      nextLessons.forEach((lesson) => saveCustomCourse(lesson));
+    } else {
+      clearAllCustomData();
+    }
 
-      if (existingGroup) {
-        existingGroup.submissions.push(submission);
-        return;
-      }
-
-      groups.set(key, {
-        key,
-        name: submission.user_name || "Anonymous",
-        email: submission.user_email,
-        latestTimestamp: submission.timestamp,
-        submissions: [submission],
-      });
-    });
-
-    return Array.from(groups.values()).sort(
-      (left, right) =>
-        new Date(right.latestTimestamp).getTime() -
-        new Date(left.latestTimestamp).getTime(),
-    );
-  }, [submissions]);
-
-  const toggleUserGroup = (userKey: string) => {
-    setExpandedUsers((prev) => ({ ...prev, [userKey]: !prev[userKey] }));
+    setLessonsVersion((version) => version + 1);
   };
 
-  if (authLoading || submissionsLoading) return <LoadingSpinner />;
+  const handleLessonDragCancel = () => {
+    setActiveLessonSlug(null);
+    setActiveLessonWidth(null);
+    setOrderedLessons(lessons);
+  };
+
+  const handleDownloadLessonChanges = async () => {
+    if (!hasLessonChanges || isDownloadingLessonChanges) return;
+
+    setIsDownloadingLessonChanges(true);
+
+    try {
+      await generateCoursesZip(
+        displayedLessons.map((lesson) => ({
+          course: lesson,
+          tasks: getLessonTasksSync(lesson.slug),
+        })),
+        "lessons.zip",
+      );
+      clearAllCustomData();
+      setLessonsVersion((version) => version + 1);
+    } finally {
+      setIsDownloadingLessonChanges(false);
+    }
+  };
+
+  const handleDownloadEditedLesson = async () => {
+    if (!editingLesson) return;
+    if (titleValidationError) {
+      setHasTouchedTitle(true);
+      return;
+    }
+
+    await generateCourseZip(
+      {
+        ...editingLesson,
+        ...formData,
+        slug: generatedSlug,
+        order: editingLesson.order,
+      },
+      getLessonTasksSync(editingLesson.slug),
+    );
+
+    setIsModalOpen(false);
+  };
+
+  const updateTagDraft = (
+    userId: string,
+    field: "tagId" | "name",
+    value: string,
+  ) => {
+    setTagDrafts((prev) => ({
+      ...prev,
+      [userId]: {
+        tagId: prev[userId]?.tagId ?? "",
+        name: prev[userId]?.name ?? "",
+        [field]: value,
+      },
+    }));
+  };
+
+  const submitTag = (targetUser: AdminUser) => {
+    const draft = tagDrafts[targetUser.id] ?? { tagId: "", name: "" };
+    const tagId = draft.tagId ? Number(draft.tagId) : "";
+    const name = draft.name.trim();
+
+    if (!tagId && !name) return;
+
+    addTagMutation.mutate({
+      userId: targetUser.id,
+      tagId,
+      name,
+    });
+  };
+
+  const error = tagsError || usersError || submissionsError;
+
+  if (authLoading) return <LoadingSpinner />;
 
   return (
     <main className="admin-page">
-      <div className="admin-container">
-        <div
-          className="admin-header-actions"
-          style={{
-            marginBottom: 24,
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-            + Create New Course
-          </button>
+      <aside className="admin-sidebar" aria-label="Admin sections">
+        <div className="admin-sidebar-heading">
+          <strong>Control panel</strong>
         </div>
+        <nav className="admin-sidebar-nav">
+          {[
+            { key: "lessons", label: "Lessons", icon: BookOpen },
+            { key: "users", label: "Users", icon: Users },
+            { key: "submissions", label: "Submissions", icon: Send },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={`admin-nav-item ${
+                  activeSection === item.key ? "is-active" : ""
+                }`}
+                onClick={() => setActiveSection(item.key as AdminSection)}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
 
-        {queryError && (
+      <section className="admin-workspace">
+        {error && (
           <div className="admin-error">
-            {queryError instanceof Error
-              ? queryError.message
-              : "Error loading data"}
+            {error instanceof Error ? error.message : "Error loading data"}
           </div>
         )}
 
-        <section className="admin-card">
-          <div className="card-header">
-            <h2>Recent Submissions</h2>
-            <span className="badge-count">
-              {submissions ? submissions.length : 0} Total
-            </span>
-          </div>
-
-          {!groupedSubmissions.length ? (
-            <div className="empty-state">No submissions yet</div>
-          ) : (
-            <div className="admin-submission-groups">
-              {groupedSubmissions.map((group) => {
-                const isExpanded = expandedUsers[group.key] ?? false;
-
-                return (
-                  <section key={group.key} className="submission-group">
-                    <button
-                      type="button"
-                      className="submission-group-toggle"
-                      onClick={() => toggleUserGroup(group.key)}
-                      aria-expanded={isExpanded}
-                    >
-                      <div className="submission-group-heading">
-                        <span
-                          className="submission-group-chevron"
-                          aria-hidden="true"
-                        >
-                          {isExpanded ? (
-                            <ChevronDown size={20} />
-                          ) : (
-                            <ChevronRight size={20} />
-                          )}
-                        </span>
-                        <div className="submission-group-user">
-                          <span className="submission-group-name">
-                            {group.name}
-                          </span>
-                          {group.email && (
-                            <span className="submission-group-email">
-                              {group.email}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="submission-group-meta">
-                        <span>{group.submissions.length} submissions</span>
-                        <span>
-                          Latest{" "}
-                          {new Date(group.latestTimestamp).toLocaleString(
-                            undefined,
-                            {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
-                        </span>
-                      </div>
-                    </button>
-
-                    {isExpanded && (
-                      <div className="table-responsive">
-                        <table className="admin-table">
-                          <thead>
-                            <tr>
-                              <th>ID</th>
-                              <th>Lesson</th>
-                              <th>Task</th>
-                              <th>Submitted</th>
-                              <th>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {group.submissions.map((sub) => (
-                              <tr key={sub.id}>
-                                <td className="font-mono">#{sub.id}</td>
-                                <td>
-                                  <span className="pill pill-blue">
-                                    {sub.lesson_slug}
-                                  </span>
-                                </td>
-                                <td>Task {sub.task_id}</td>
-                                <td>
-                                  {new Date(sub.timestamp).toLocaleString(
-                                    undefined,
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    },
-                                  )}
-                                </td>
-                                <td>
-                                  <Link
-                                    to={`/lessons/${sub.lesson_slug}?submissionId=${sub.id}`}
-                                    className="btn-text"
-                                    style={{
-                                      textDecoration: "none",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    View
-                                  </Link>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
+        {activeSection === "lessons" && (
+          <section className="admin-panel">
+            <div className="admin-panel-header">
+              <div>
+                <h1>Lessons</h1>
+                <p>{displayedLessons.length} lessons available</p>
+              </div>
+              <div className="admin-panel-header-actions">
+                <button
+                  type="button"
+                  onClick={handleDownloadLessonChanges}
+                  className="admin-row-button"
+                  disabled={!hasLessonChanges || isDownloadingLessonChanges}
+                >
+                  <Download size={16} />
+                  Download
+                </button>
+                <button
+                  type="button"
+                  onClick={openCreateModal}
+                  className="btn-primary"
+                >
+                  <Plus size={16} />
+                  Create new lesson
+                </button>
+              </div>
             </div>
-          )}
-        </section>
+
+            <DndContext
+              sensors={lessonDragSensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleLessonDragStart}
+              onDragOver={handleLessonDragOver}
+              onDragEnd={handleLessonDragEnd}
+              onDragCancel={handleLessonDragCancel}
+            >
+              <SortableContext
+                items={lessonIds}
+                strategy={verticalListSortingStrategy}
+              >
+                <div
+                  className={`admin-lesson-grid ${
+                    activeDraggedLesson ? "is-dragging" : ""
+                  }`}
+                >
+                  {displayedLessons.map((lesson) => (
+                    <SortableLessonCard
+                      key={lesson.slug}
+                      lesson={lesson}
+                      onEdit={openEditModal}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+              <DragOverlay zIndex={10000}>
+                {activeDraggedLesson ? (
+                  <LessonDragOverlayCard
+                    lesson={activeDraggedLesson}
+                    width={activeLessonWidth}
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </section>
+        )}
+
+        {activeSection === "users" && (
+          <section className="admin-panel admin-table-panel">
+            <div className="admin-panel-header">
+              <div>
+                <h1>Users</h1>
+                <p>Admins and signed-in students</p>
+              </div>
+              <TagFilter
+                value={userTagFilter}
+                onChange={setUserTagFilter}
+                tags={tags}
+              />
+            </div>
+
+            {usersLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <>
+                <div className="admin-table-scroll">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Tags</th>
+                        <th>Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(usersData?.items ?? []).map((row) => {
+                        const draft = tagDrafts[row.id] ?? {
+                          tagId: "",
+                          name: "",
+                        };
+
+                        return (
+                          <tr key={row.id}>
+                            <td>
+                              <strong>{row.name || "Unnamed user"}</strong>
+                              <span className="admin-cell-subtitle">
+                                {row.email}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="admin-role-pill">{row.role}</span>
+                            </td>
+                            <td>
+                              <div className="admin-tags-cell">
+                                <CompactTags
+                                  tags={row.tags}
+                                  canRemove
+                                  expanded={openMoreTagsKey === `user-${row.id}`}
+                                  onToggleExpanded={() =>
+                                    setOpenMoreTagsKey((current) =>
+                                      current === `user-${row.id}`
+                                        ? null
+                                        : `user-${row.id}`,
+                                    )
+                                  }
+                                  onRemove={(tagId) =>
+                                    removeTagMutation.mutate({
+                                      userId: row.id,
+                                      tagId,
+                                    })
+                                  }
+                                >
+                                  <span className="admin-tag-add-anchor">
+                                    <button
+                                      type="button"
+                                      className="admin-tag-add-button"
+                                      onClick={() =>
+                                        setOpenTagPopoverUserId((current) =>
+                                          current === row.id ? null : row.id,
+                                        )
+                                      }
+                                      aria-label={`Add tag to ${
+                                        row.name || row.email
+                                      }`}
+                                      aria-expanded={
+                                        openTagPopoverUserId === row.id
+                                      }
+                                    >
+                                      <Plus size={14} />
+                                    </button>
+                                    {openTagPopoverUserId === row.id && (
+                                      <UserTagPopover
+                                        tags={tags}
+                                        userTags={row.tags}
+                                        draftName={draft.name}
+                                        isPending={addTagMutation.isPending}
+                                        onSelectExisting={(tagId) =>
+                                          addTagMutation.mutate({
+                                            userId: row.id,
+                                            tagId,
+                                          })
+                                        }
+                                        onDraftNameChange={(value) =>
+                                          updateTagDraft(row.id, "name", value)
+                                        }
+                                        onCreateTag={() => submitTag(row)}
+                                      />
+                                    )}
+                                  </span>
+                                </CompactTags>
+                              </div>
+                            </td>
+                            <td>{formatDate(row.created_at)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination
+                  page={usersData?.page ?? userPage}
+                  total={usersData?.total ?? 0}
+                  pageSize={usersData?.pageSize ?? PAGE_SIZE}
+                  onChange={setUserPage}
+                />
+              </>
+            )}
+          </section>
+        )}
+
+        {activeSection === "submissions" && (
+          <section className="admin-panel admin-table-panel">
+            <div className="admin-panel-header">
+              <div>
+                <h1>Submissions</h1>
+                <p>Latest student work</p>
+              </div>
+              <TagFilter
+                value={submissionTagFilter}
+                onChange={setSubmissionTagFilter}
+                tags={tags}
+              />
+            </div>
+
+            {submissionsLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <>
+                <div className="admin-table-scroll">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Tags</th>
+                        <th>Lesson</th>
+                        <th>Task</th>
+                        <th>Submitted</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(submissionsData?.items ?? []).map((sub) => (
+                        <tr key={sub.id}>
+                          <td className="font-mono">#{sub.id}</td>
+                          <td>
+                            <strong>{sub.user_name || "Anonymous"}</strong>
+                            <span className="admin-cell-subtitle">
+                              {sub.user_email}
+                            </span>
+                          </td>
+                          <td>
+                            <CompactTags
+                              tags={sub.user_tags ?? []}
+                              expanded={openMoreTagsKey === `submission-${sub.id}`}
+                              onToggleExpanded={() =>
+                                setOpenMoreTagsKey((current) =>
+                                  current === `submission-${sub.id}`
+                                    ? null
+                                    : `submission-${sub.id}`,
+                                )
+                              }
+                            />
+                          </td>
+                          <td>
+                            <span className="pill pill-blue">
+                              {sub.lesson_slug}
+                            </span>
+                          </td>
+                          <td>Task {sub.task_id}</td>
+                          <td>{formatDate(sub.timestamp)}</td>
+                          <td>
+                            <Link
+                              to={`/lessons/${sub.lesson_slug}?submissionId=${sub.id}`}
+                              className="admin-row-button"
+                            >
+                              View
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination
+                  page={submissionsData?.page ?? submissionPage}
+                  total={submissionsData?.total ?? 0}
+                  pageSize={submissionsData?.pageSize ?? PAGE_SIZE}
+                  onChange={setSubmissionPage}
+                />
+              </>
+            )}
+          </section>
+        )}
 
         <Modal
-          title="Create new course"
+          title={
+            lessonModalMode === "create"
+              ? "Create new lesson"
+              : "Edit lesson metadata"
+          }
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           actions={
-            <div
-              style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}
-            >
+            <div className="admin-modal-actions">
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="btn-ghost"
               >
                 Cancel
               </button>
-              <button onClick={handleCreateCourse} className="btn-primary">
-                Create
+              <button
+                type="button"
+                onClick={
+                  lessonModalMode === "create"
+                    ? handleCreateCourse
+                    : handleDownloadEditedLesson
+                }
+                className="btn-primary"
+                disabled={Boolean(titleValidationError)}
+              >
+                {lessonModalMode === "create" ? (
+                  <>
+                    <Plus size={16} />
+                    Create
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Download
+                  </>
+                )}
               </button>
             </div>
           }
         >
-          <div
-            className="admin-form"
-            style={{ display: "flex", flexDirection: "column", gap: 16 }}
-          >
+          <div className="admin-form">
             <div className="form-group">
               <label>Title</label>
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
+                onChange={(event) => {
+                  setHasTouchedTitle(true);
+                  setFormData({ ...formData, title: event.target.value });
+                }}
                 placeholder="Intro to React"
                 className="admin-input"
               />
-            </div>
-            <div className="form-group">
-              <label>Slug</label>
-              <input
-                type="text"
-                value={formData.slug}
-                onChange={(e) =>
-                  setFormData({ ...formData, slug: e.target.value })
-                }
-                placeholder="intro-react"
-                className="admin-input"
-              />
+              {hasTouchedTitle && titleValidationError ? (
+                <p className="form-error">{titleValidationError}</p>
+              ) : generatedSlug ? (
+                <p className="form-hint">Slug: {generatedSlug}</p>
+              ) : null}
             </div>
             <div className="form-group">
               <label>Description</label>
               <textarea
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                onChange={(event) =>
+                  setFormData({ ...formData, description: event.target.value })
                 }
                 className="admin-input"
               />
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-              }}
-            >
-              <div className="form-group">
-                <label>Order</label>
-                <input
-                  type="number"
-                  value={formData.order}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      order: parseInt(e.target.value),
-                    })
-                  }
-                  className="admin-input"
-                />
+            <div className="lesson-picker-row">
+              <div className="form-group lesson-color-field">
+                <label>Color</label>
+                <div className="lesson-picker">
+                  <button
+                    type="button"
+                    className="lesson-picker-button"
+                    onClick={() => {
+                      setIsColorPickerOpen((prev) => !prev);
+                      setIsIconPickerOpen(false);
+                    }}
+                    aria-expanded={isColorPickerOpen}
+                  >
+                    <span
+                      className="lesson-picker-color-preview"
+                      style={{ backgroundColor: formData.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="lesson-picker-button-text">
+                      {formData.color}
+                    </span>
+                  </button>
+                  {isColorPickerOpen && (
+                    <div className="lesson-picker-popover color" role="dialog">
+                      <HexColorPicker
+                        color={currentHexColor}
+                        onChange={(color) =>
+                          setFormData({
+                            ...formData,
+                            color: oklchFromHex(color),
+                          })
+                        }
+                      />
+                      <div className="lesson-color-options">
+                        {LESSON_COLOR_OPTIONS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            className={`lesson-color-option ${
+                              formData.color === color ? "is-selected" : ""
+                            }`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => setFormData({ ...formData, color })}
+                            aria-label={`Use color ${color}`}
+                            aria-pressed={formData.color === color}
+                          />
+                        ))}
+                      </div>
+                      <div className="lesson-color-meta">
+                        <span>
+                          L {formatNumber(currentOklchColor.lightness, 1)}%
+                        </span>
+                        <span>C {formatNumber(currentOklchColor.chroma, 3)}</span>
+                        <span>H {formatNumber(currentOklchColor.hue, 1)}</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={formData.color}
+                        onChange={(event) =>
+                          setFormData({
+                            ...formData,
+                            color: event.target.value,
+                          })
+                        }
+                        className="admin-input lesson-color-text"
+                        aria-label="OKLCH color value"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="form-group">
+              <div className="form-group lesson-icon-field">
                 <label>Icon</label>
-                <input
-                  type="text"
-                  value={formData.icon}
-                  onChange={(e) =>
-                    setFormData({ ...formData, icon: e.target.value })
-                  }
-                  className="admin-input"
-                />
+                <div className="lesson-picker lesson-picker-right">
+                  <button
+                    type="button"
+                    className="lesson-picker-button"
+                    onClick={() => {
+                      setIsIconPickerOpen((prev) => !prev);
+                      setIsColorPickerOpen(false);
+                    }}
+                    aria-expanded={isIconPickerOpen}
+                  >
+                    <span className="lesson-picker-icon-preview">
+                      <LessonIcon name={formData.icon} size={24} />
+                    </span>
+                    <span className="lesson-picker-icon-name">
+                      {formData.icon}
+                    </span>
+                  </button>
+                  {isIconPickerOpen && (
+                    <div className="lesson-picker-popover icon" role="dialog">
+                      <label className="lesson-icon-search">
+                        <Search size={18} aria-hidden="true" />
+                        <input
+                          type="search"
+                          value={iconSearch}
+                          onChange={(event) => setIconSearch(event.target.value)}
+                          placeholder="Search Lucide icons"
+                          autoFocus
+                        />
+                      </label>
+                      <div className="lesson-icon-result-count">
+                        {filteredIconNames.length} icons
+                      </div>
+                      <div className="lesson-icon-options">
+                        {filteredIconNames.map((icon) => (
+                          <button
+                            key={icon}
+                            type="button"
+                            className={`lesson-icon-option ${
+                              formData.icon === icon ? "is-selected" : ""
+                            }`}
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, icon }));
+                              setIsIconPickerOpen(false);
+                            }}
+                            aria-label={`Use ${icon} icon`}
+                            aria-pressed={formData.icon === icon}
+                          >
+                            <LessonIcon name={icon} size={22} />
+                            <span>{icon}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
-              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={formData.hidden}
-                  onChange={(e) =>
-                    setFormData({ ...formData, hidden: e.target.checked })
-                  }
-                />
-                Hidden lesson
-              </label>
-            </div>
+            <label className="admin-checkbox-row">
+              <input
+                type="checkbox"
+                checked={formData.hidden}
+                onChange={(event) =>
+                  setFormData({ ...formData, hidden: event.target.checked })
+                }
+              />
+              Hidden lesson
+            </label>
           </div>
         </Modal>
-      </div>
+      </section>
     </main>
   );
 }

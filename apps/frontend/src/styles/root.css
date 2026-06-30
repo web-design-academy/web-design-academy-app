@@ -78,17 +78,20 @@ header {
   justify-content: center;
   width: var(--size-icon-button);
   height: var(--size-icon-button);
-  border: 1px solid var(--color-border);
-  background: transparent;
+  border: var(--border-width-thin) solid var(--color-border);
+  background: var(--color-card);
   color: var(--color-text);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   cursor: pointer;
   display: inline-flex;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .icon-button:hover {
-  background-color: var(--color-bg);
-  border-color: var(--color-text);
+  background: var(--table-row-hover-bg);
+  border-color: var(--color-primary);
 }
 
 .hamburger-toggle {
@@ -142,7 +145,7 @@ header {
   color: var(--color-text);
   text-decoration: none;
   font-size: var(--font-size-base);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   transition:
@@ -157,7 +160,7 @@ header {
 
 .user-text {
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   opacity: 0.8;
   margin: var(--space-4);
@@ -186,7 +189,7 @@ header {
   margin: 0;
   padding: 0;
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   opacity: 0.8;
   cursor: inherit;
@@ -206,19 +209,23 @@ header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-sm);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
   height: var(--size-button-height);
-  border: 1px solid transparent;
+  border: var(--border-width-thin) solid transparent;
 }
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: white;
+  color: var(--surface-preview);
   text-decoration: none;
 }
 
@@ -227,19 +234,20 @@ header {
 }
 
 .btn-ghost {
-  background: transparent;
+  background: var(--color-card);
   color: var(--color-text);
   border-color: var(--color-border);
+  text-decoration: none;
 }
 
-.btn-ghost:hover {
-  background-color: var(--color-bg);
-  border-color: var(--color-text);
+.btn-ghost:hover:not(:disabled) {
+  background: var(--table-row-hover-bg);
+  border-color: var(--color-primary);
 }
 
 .btn-ghost:disabled,
 .btn-primary:disabled {
-  opacity: 0.3;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -247,6 +255,11 @@ header {
 .btn-primary:disabled:hover {
   background-color: inherit;
   border-color: inherit;
+}
+
+.btn-ghost:disabled:hover {
+  background: var(--color-card);
+  border-color: var(--color-border);
 }
 
 @keyframes spin {
@@ -298,7 +311,7 @@ header {
     align-items: stretch;
     box-shadow: var(--shadow-lg);
     transform: translateX(100%);
-    transition: transform 0.24s ease;
+    transition: transform var(--transition-medium);
     z-index: var(--z-drawer);
   }
 
@@ -339,7 +352,7 @@ header {
     background: var(--overlay-backdrop);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--transition-fast);
     z-index: var(--z-overlay);
   }
 

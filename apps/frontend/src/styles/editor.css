@@ -46,13 +46,16 @@
   font-weight: var(--font-weight-semibold);
   border-right: var(--border-width-thin) solid var(--color-border);
   position: relative;
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
   white-space: nowrap;
 }
 
 .editor-tabs .tab:hover {
   opacity: 1;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--editor-tab-hover-bg);
 }
 
 .editor-tabs .tab.active {
@@ -111,7 +114,8 @@
   border: var(--border-width-thin) solid transparent;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text);
+  opacity: 0.68;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
@@ -136,6 +140,7 @@
 
 .editor-mode-toggle.is-active {
   color: var(--color-primary);
+  opacity: 1;
   background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
@@ -183,7 +188,7 @@
 }
 
 .monaco-editor .readonly-line {
-  background: rgba(200, 200, 200, 0.08);
+  background: var(--editor-readonly-line-bg);
   pointer-events: none;
 }
 
