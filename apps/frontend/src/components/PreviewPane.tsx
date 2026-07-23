@@ -125,7 +125,12 @@ export default function PreviewPane({
   return (
     <div className="preview-inner">
       <div className="preview-selector">
-        <select aria-label="Mode" value={mode} onChange={onSelect}>
+        <select
+          aria-label="Mode"
+          className="form-select-control"
+          value={mode}
+          onChange={onSelect}
+        >
           <option value="default">Default view</option>
           <option value="mobile">Mobile view</option>
         </select>

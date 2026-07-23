@@ -19,6 +19,8 @@ export interface PaginatedAdminQuery {
   page: number;
   pageSize: number;
   tagId?: number | "";
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
 }
 
 function buildQuery(query: PaginatedAdminQuery) {
@@ -29,6 +31,14 @@ function buildQuery(query: PaginatedAdminQuery) {
 
   if (query.tagId) {
     params.set("tagId", String(query.tagId));
+  }
+
+  if (query.sortBy) {
+    params.set("sortBy", query.sortBy);
+  }
+
+  if (query.sortDirection) {
+    params.set("sortDirection", query.sortDirection);
   }
 
   return params.toString();

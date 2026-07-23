@@ -44,6 +44,8 @@ export interface SubmissionQuery {
   page?: number;
   pageSize?: number;
   tagId?: number | "";
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
 }
 
 export async function submitSolution(
@@ -75,6 +77,10 @@ export async function fetchSubmissions(
   if (query?.page) params.set("page", String(query.page));
   if (query?.pageSize) params.set("pageSize", String(query.pageSize));
   if (query?.tagId) params.set("tagId", String(query.tagId));
+  if (query?.sortBy) params.set("sortBy", query.sortBy);
+  if (query?.sortDirection) {
+    params.set("sortDirection", query.sortDirection);
+  }
 
   const response = await fetch(
     `${API_BASE}/submissions${params.size ? `?${params.toString()}` : ""}`,

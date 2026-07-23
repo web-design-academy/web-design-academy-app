@@ -334,16 +334,14 @@
 .admin-lesson-changelog {
   flex: 0 0 auto;
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-bg);
+  gap: var(--space-3);
+  margin-top: var(--space-2);
 }
 
 .admin-lesson-changelog-heading {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
 }
 
 .admin-lesson-changelog ul {
@@ -370,8 +368,9 @@
   white-space: nowrap;
 }
 
-.admin-lesson-changelog p {
+.admin-lesson-changelog > .admin-muted {
   margin: 0;
+  font-size: var(--font-size-sm);
 }
 
 .admin-row-button {
@@ -506,6 +505,29 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.admin-sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 1.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-sort-header svg {
+  color: var(--color-text);
+  opacity: 0.42;
+}
+
+.admin-sort-header.is-active svg,
+.admin-sort-header:hover svg {
+  opacity: 0.9;
+}
+
 .admin-table tr:last-child td {
   border-bottom: 0;
 }
@@ -614,44 +636,60 @@
   width: 1.875rem;
   height: 1.875rem;
   padding: 0;
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-card);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
   color: var(--color-text);
   cursor: pointer;
 }
 
 .admin-tag-add-button:hover {
-  border-color: var(--color-primary);
+  background: var(--table-row-hover-bg);
   color: var(--color-primary);
 }
 
 .admin-more-tags-anchor {
   position: relative;
   display: inline-flex;
+  align-items: center;
   flex: 0 0 auto;
+  margin-left: var(--space-1);
 }
 
 .admin-more-tags-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 4.75rem;
   min-height: 1.875rem;
-  padding: 0 var(--space-2);
-  border: var(--border-width-thin) solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-card);
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-text);
   cursor: pointer;
   font: inherit;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: var(--border-width-thin);
+  text-underline-offset: 0.25em;
   white-space: nowrap;
+  opacity: 0.72;
+  transition:
+    color var(--transition-fast),
+    opacity var(--transition-fast),
+    background var(--transition-fast);
 }
 
-.admin-more-tags-button:hover {
-  border-color: var(--color-primary);
+.admin-more-tags-button:hover,
+.admin-more-tags-button:focus-visible,
+.admin-more-tags-button[aria-expanded="true"] {
+  background: var(--table-row-hover-bg);
+  color: var(--color-primary);
+  opacity: 1;
+  outline: none;
 }
 
 .admin-hidden-tags-popover {
@@ -800,8 +838,7 @@ button.admin-tag-choice:hover:not(:disabled) {
   margin-top: var(--space-3);
 }
 
-.admin-new-tag-row input,
-.admin-filter select {
+.admin-new-tag-row input {
   box-sizing: border-box;
   height: var(--size-button-height);
   min-width: 0;
@@ -812,15 +849,6 @@ button.admin-tag-choice:hover:not(:disabled) {
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-sm);
-}
-
-.admin-filter select {
-  appearance: none;
-  padding-right: var(--space-7);
-  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right var(--space-3) center;
-  background-size: 1rem;
 }
 
 .admin-filter {

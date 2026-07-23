@@ -22,6 +22,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import * as LucideIcons from "lucide-react";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BookOpen,
   Download,
   Edit3,
@@ -97,6 +100,13 @@ type AdminSection = "lessons" | "users" | "submissions";
 type LessonForm = Omit<LessonMeta, "slug" | "order">;
 type TagDraft = Record<string, { tagId: string; name: string }>;
 type UserTag = AdminUser["tags"][number];
+type SortDirection = "asc" | "desc";
+type UserSortKey = "id" | "user" | "role" | "joined";
+type SubmissionSortKey = "id" | "user" | "lesson" | "submitted";
+type SortState<T extends string> = {
+  key: T | null;
+  direction: SortDirection | null;
+};
 const POPOVER_BOUNDARY_SELECTOR = ".admin-popover-boundary";
 
 const ALL_LUCIDE_ICON_NAMES = Object.entries(LucideIcons)
@@ -188,6 +198,49 @@ function emptyForm(): LessonForm {
     icon: DEFAULT_ICON,
     hidden: false,
   };
+}
+
+function SortableHeader<T extends string>({
+  label,
+  column,
+  sort,
+  onSortChange,
+}: {
+  label: string;
+  column: T;
+  sort: SortState<T>;
+  onSortChange: (sort: SortState<T>) => void;
+}) {
+  const isActive = sort.key === column;
+  const Icon = isActive
+    ? sort.direction === "asc"
+      ? ArrowUp
+      : ArrowDown
+    : ArrowUpDown;
+  const nextSort: SortState<T> =
+    !isActive || sort.direction === null
+      ? { key: column, direction: "asc" }
+      : sort.direction === "asc"
+        ? { key: column, direction: "desc" }
+        : { key: null, direction: null };
+
+  return (
+    <button
+      type="button"
+      className={`admin-sort-header ${isActive ? "is-active" : ""}`}
+      onClick={() => onSortChange(nextSort)}
+      aria-label={`Sort by ${label} ${
+        isActive && sort.direction === "asc"
+          ? "descending"
+          : isActive && sort.direction === "desc"
+            ? "without sorting"
+            : "ascending"
+      }`}
+    >
+      <span>{label}</span>
+      <Icon size={14} aria-hidden="true" />
+    </button>
+  );
 }
 
 function SortableLessonCard({
@@ -367,6 +420,7 @@ function TagFilter({
   return (
     <label className="admin-filter">
       <select
+        className="form-select-control"
         value={value}
         onChange={(event) =>
           onChange(event.target.value ? Number(event.target.value) : "")
@@ -583,6 +637,16 @@ export default function AdminPage() {
   const [formData, setFormData] = useState<LessonForm>(emptyForm);
   const [userPage, setUserPage] = useState(1);
   const [submissionPage, setSubmissionPage] = useState(1);
+  const [userSort, setUserSort] = useState<SortState<UserSortKey>>({
+    key: null,
+    direction: null,
+  });
+  const [submissionSort, setSubmissionSort] = useState<
+    SortState<SubmissionSortKey>
+  >({
+    key: null,
+    direction: null,
+  });
   const [userTagFilter, setUserTagFilter] = useState<number | "">("");
   const [submissionTagFilter, setSubmissionTagFilter] = useState<number | "">(
     "",
@@ -638,6 +702,19 @@ export default function AdminPage() {
 
   useEffect(() => setUserPage(1), [userTagFilter]);
   useEffect(() => setSubmissionPage(1), [submissionTagFilter]);
+
+  const updateUserSort = useCallback((sort: SortState<UserSortKey>) => {
+    setUserSort(sort);
+    setUserPage(1);
+  }, []);
+
+  const updateSubmissionSort = useCallback(
+    (sort: SortState<SubmissionSortKey>) => {
+      setSubmissionSort(sort);
+      setSubmissionPage(1);
+    },
+    [],
+  );
 
   useEffect(() => {
     const hasOpenPopover =
@@ -779,12 +856,14 @@ export default function AdminPage() {
     isLoading: usersLoading,
     error: usersError,
   } = useQuery({
-    queryKey: ["admin-users", userPage, userTagFilter],
+    queryKey: ["admin-users", userPage, userTagFilter, userSort],
     queryFn: () =>
       fetchAdminUsers({
         page: userPage,
         pageSize: PAGE_SIZE,
         tagId: userTagFilter,
+        sortBy: userSort.key ?? undefined,
+        sortDirection: userSort.direction ?? undefined,
       }),
     enabled: isOnlineMode && user?.role === "admin",
   });
@@ -794,12 +873,19 @@ export default function AdminPage() {
     isLoading: submissionsLoading,
     error: submissionsError,
   } = useQuery({
-    queryKey: ["submissions", submissionPage, submissionTagFilter],
+    queryKey: [
+      "submissions",
+      submissionPage,
+      submissionTagFilter,
+      submissionSort,
+    ],
     queryFn: async () =>
       (await fetchSubmissions({
         page: submissionPage,
         pageSize: PAGE_SIZE,
         tagId: submissionTagFilter,
+        sortBy: submissionSort.key ?? undefined,
+        sortDirection: submissionSort.direction ?? undefined,
       })) as PaginatedResponse<SubmissionRecord>,
     enabled: isOnlineMode && user?.role === "admin",
   });
@@ -1312,7 +1398,7 @@ export default function AdminPage() {
               <div className="admin-lesson-changelog-heading">
                 Draft changelog
               </div>
-              {changedLessonSummaries.length > 0 ? (
+              {changedLessonSummaries.length > 0 && (
                 <ul>
                   {changedLessonSummaries.map((summary) => (
                     <li key={summary.lesson.slug}>
@@ -1326,10 +1412,9 @@ export default function AdminPage() {
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="admin-muted">
-                  No local lesson drafts. Built assets are unchanged.
-                </p>
+              )}
+              {changedLessonSummaries.length === 0 && (
+                <p className="admin-muted">No draft changes</p>
               )}
             </section>
           </section>
@@ -1429,10 +1514,31 @@ export default function AdminPage() {
                             onChange={setVisibleUsersSelected}
                           />
                         </th>
-                        <th>User</th>
-                        <th>Role</th>
+                        <th>
+                          <SortableHeader
+                            label="User"
+                            column="user"
+                            sort={userSort}
+                            onSortChange={updateUserSort}
+                          />
+                        </th>
+                        <th>
+                          <SortableHeader
+                            label="Role"
+                            column="role"
+                            sort={userSort}
+                            onSortChange={updateUserSort}
+                          />
+                        </th>
                         <th>Tags</th>
-                        <th>Joined</th>
+                        <th>
+                          <SortableHeader
+                            label="Joined"
+                            column="joined"
+                            sort={userSort}
+                            onSortChange={updateUserSort}
+                          />
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1577,12 +1683,40 @@ export default function AdminPage() {
                   <table className="admin-table admin-submissions-table">
                     <thead>
                       <tr>
-                        <th>ID</th>
-                        <th>User</th>
+                        <th>
+                          <SortableHeader
+                            label="ID"
+                            column="id"
+                            sort={submissionSort}
+                            onSortChange={updateSubmissionSort}
+                          />
+                        </th>
+                        <th>
+                          <SortableHeader
+                            label="User"
+                            column="user"
+                            sort={submissionSort}
+                            onSortChange={updateSubmissionSort}
+                          />
+                        </th>
                         <th>Tags</th>
-                        <th>Lesson</th>
+                        <th>
+                          <SortableHeader
+                            label="Lesson"
+                            column="lesson"
+                            sort={submissionSort}
+                            onSortChange={updateSubmissionSort}
+                          />
+                        </th>
                         <th>Task</th>
-                        <th>Submitted</th>
+                        <th>
+                          <SortableHeader
+                            label="Submitted"
+                            column="submitted"
+                            sort={submissionSort}
+                            onSortChange={updateSubmissionSort}
+                          />
+                        </th>
                         <th>Action</th>
                       </tr>
                     </thead>

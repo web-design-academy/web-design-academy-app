@@ -226,6 +226,24 @@ function parseOptionalTagId(value) {
   return parsed;
 }
 
+function parseSortDirection(value) {
+  const direction = String(value).toLowerCase();
+
+  if (direction === "asc") return "ASC";
+  if (direction === "desc") return "DESC";
+
+  return null;
+}
+
+function getOrderBy(sortBy, sortDirection, sortColumns) {
+  const column = sortColumns[sortBy];
+  const direction = parseSortDirection(sortDirection);
+
+  if (!column || !direction) return null;
+
+  return column(direction);
+}
+
 function normalizeTagName(value) {
   const name =
     typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
@@ -625,6 +643,13 @@ app.get("/api/admin/users", authenticateToken, requireAdmin, (req, res) => {
   const pageSize = parsePositiveInteger(req.query.pageSize, 20, 100);
   const offset = (page - 1) * pageSize;
   const tagId = parseOptionalTagId(req.query.tagId);
+  const orderBy = getOrderBy(req.query.sortBy, req.query.sortDirection, {
+    id: (direction) => `u.id ${direction}`,
+    user: (direction) =>
+      `LOWER(COALESCE(NULLIF(u.name, ''), u.email)) ${direction}, LOWER(u.email) ${direction}`,
+    role: (direction) => `u.role ${direction}`,
+    joined: (direction) => `u.created_at ${direction}`,
+  });
 
   if (tagId === undefined) {
     return res.status(400).json({ error: "Invalid tagId" });
@@ -645,7 +670,7 @@ app.get("/api/admin/users", authenticateToken, requireAdmin, (req, res) => {
       SELECT u.id, u.email, u.name, u.role, u.created_at
       FROM users u
       ${where}
-      ORDER BY CASE u.role WHEN 'admin' THEN 0 ELSE 1 END, u.created_at DESC
+      ORDER BY ${orderBy ? `${orderBy}, ` : ""}u.id ASC
       LIMIT ? OFFSET ?
     `,
     )
@@ -757,6 +782,14 @@ app.get("/api/submissions", authenticateToken, requireAdmin, (req, res) => {
   const pageSize = parsePositiveInteger(req.query.pageSize, 20, 100);
   const offset = (page - 1) * pageSize;
   const tagId = parseOptionalTagId(req.query.tagId);
+  const orderBy = getOrderBy(req.query.sortBy, req.query.sortDirection, {
+    id: (direction) => `s.id ${direction}`,
+    user: (direction) =>
+      `LOWER(COALESCE(NULLIF(u.name, ''), u.email, '')) ${direction}`,
+    lesson: (direction) =>
+      `LOWER(s.lesson_slug) ${direction}, s.task_id ${direction}`,
+    submitted: (direction) => `s.timestamp ${direction}`,
+  });
 
   if (tagId === undefined) {
     return res.status(400).json({ error: "Invalid tagId" });
@@ -774,7 +807,7 @@ app.get("/api/submissions", authenticateToken, requireAdmin, (req, res) => {
     FROM submissions s
     LEFT JOIN users u ON s.user_id = u.id
     ${where}
-    ORDER BY s.timestamp DESC
+    ORDER BY ${orderBy ? `${orderBy}, ` : ""}s.id ASC
     ${hasPagination ? "LIMIT ? OFFSET ?" : ""}
   `,
     )
@@ -805,32 +838,36 @@ app.get("/api/submissions", authenticateToken, requireAdmin, (req, res) => {
   });
 });
 
-app.get("/api/submissions/latest/:lessonSlug", authenticateToken, (req, res) => {
-  if (!lessonSlugPattern.test(req.params.lessonSlug)) {
-    return res.status(400).json({ error: "Invalid lesson slug" });
-  }
+app.get(
+  "/api/submissions/latest/:lessonSlug",
+  authenticateToken,
+  (req, res) => {
+    if (!lessonSlugPattern.test(req.params.lessonSlug)) {
+      return res.status(400).json({ error: "Invalid lesson slug" });
+    }
 
-  const rows = db
-    .prepare(
-      `
+    const rows = db
+      .prepare(
+        `
       SELECT *
       FROM submissions
       WHERE user_id = ? AND lesson_slug = ?
       ORDER BY timestamp DESC, id DESC
     `,
-    )
-    .all(req.user.sub, req.params.lessonSlug);
+      )
+      .all(req.user.sub, req.params.lessonSlug);
 
-  const latestByTaskId = new Map();
+    const latestByTaskId = new Map();
 
-  rows.forEach((row) => {
-    if (!latestByTaskId.has(row.task_id)) {
-      latestByTaskId.set(row.task_id, row);
-    }
-  });
+    rows.forEach((row) => {
+      if (!latestByTaskId.has(row.task_id)) {
+        latestByTaskId.set(row.task_id, row);
+      }
+    });
 
-  res.json({ items: Array.from(latestByTaskId.values()) });
-});
+    res.json({ items: Array.from(latestByTaskId.values()) });
+  },
+);
 
 app.get("/api/submissions/:id", authenticateToken, (req, res) => {
   if (!/^\d+$/.test(req.params.id)) {
