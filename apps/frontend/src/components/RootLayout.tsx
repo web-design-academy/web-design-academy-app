@@ -1,17 +1,80 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
-import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useEffect, useState } from "react";
-import { LogOut, Menu, X } from "lucide-react";
+import { Loader2, LogOut, Menu, X } from "lucide-react";
 import "@/styles/root.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import ViewSettingsButton from "@/components/ViewSettingsButton";
 import { useAuth } from "@/lib/ctx/useAuth";
 import Modal from "@/components/Modal";
-import { useTheme } from "@/lib/ctx/useTheme";
 import { isGoogleAuthEnabled } from "@/lib/config/appMode";
+import type { AuthData } from "@/lib/api/auth";
+
+interface GoogleSignInButtonProps {
+  onAuthenticated: (data: AuthData) => void;
+  onError: (message: string) => void;
+}
+
+function GoogleSignInButton({
+  onAuthenticated,
+  onError,
+}: GoogleSignInButtonProps) {
+  const { loginWithGoogle } = useAuth();
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
+  const finishLogin = async (accessToken: string) => {
+    try {
+      onError("");
+      setIsSigningIn(true);
+
+      const data = await loginWithGoogle({ accessToken });
+      onAuthenticated(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        onError(err.message);
+      } else {
+        onError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: ({ access_token }) => {
+      void finishLogin(access_token);
+    },
+    onError: () => onError("Google Auth Failed"),
+    onNonOAuthError: () => onError("Google Auth Failed"),
+    scope: "openid email profile",
+  });
+
+  return (
+    <button
+      type="button"
+      className="btn-ghost google-signin-button"
+      onClick={() => {
+        if (!isSigningIn) googleLogin();
+      }}
+      disabled={isSigningIn}
+    >
+      {isSigningIn ? (
+        <Loader2 size={16} className="spin" aria-hidden="true" />
+      ) : (
+        <img
+          src={`${import.meta.env.BASE_URL}google.svg`}
+          alt=""
+          className="google-signin-icon"
+          aria-hidden="true"
+        />
+      )}
+      <span>Sign in with Google</span>
+    </button>
+  );
+}
 
 export default function Root() {
-  const { user, logout, isAuthenticated, loginWithGoogle } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +82,6 @@ export default function Root() {
   const [isMobileViewport, setIsMobileViewport] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 768 : false,
   );
-  const { theme } = useTheme();
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -62,31 +124,22 @@ export default function Root() {
     };
   }, [isMobileMenuOpen]);
 
-  const handleSuccess = async (credentialResponse: CredentialResponse) => {
-    try {
-      if (!credentialResponse.credential) return;
-      setError(null);
-
-      const data = await loginWithGoogle(credentialResponse.credential);
-
-      if (data.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
-    }
-  };
-
   const handleLogout = () => {
     logout();
     setIsMobileMenuOpen(false);
     navigate("/");
+  };
+
+  const handleAuthenticated = (data: AuthData) => {
+    if (data.role === "admin") {
+      navigate("/admin");
+    } else {
+      navigate("/");
+    }
+  };
+
+  const handleAuthError = (message: string) => {
+    setError(message || null);
   };
 
   const userIdentityContent = user ? (
@@ -162,14 +215,9 @@ export default function Root() {
               </button>
             </>
           ) : isGoogleAuthEnabled && !isMobileViewport ? (
-            <GoogleLogin
-              onSuccess={handleSuccess}
-              onError={() => setError("Google Auth Failed")}
-              useOneTap={false}
-              theme={theme === "light" ? "outline" : "filled_black"}
-              shape="pill"
-              size="medium"
-              text="signin_with"
+            <GoogleSignInButton
+              onAuthenticated={handleAuthenticated}
+              onError={handleAuthError}
             />
           ) : null}
 
@@ -204,15 +252,9 @@ export default function Root() {
             </div>
           ) : isGoogleAuthEnabled && isMobileViewport && isMobileMenuOpen ? (
             <div className="mobile-row">
-              <span className="mobile-row-label">Sign in</span>
-              <GoogleLogin
-                onSuccess={handleSuccess}
-                onError={() => setError("Google Auth Failed")}
-                useOneTap={false}
-                theme={theme === "light" ? "outline" : "filled_black"}
-                type="icon"
-                shape="circle"
-                size="large"
+              <GoogleSignInButton
+                onAuthenticated={handleAuthenticated}
+                onError={handleAuthError}
               />
             </div>
           ) : null}

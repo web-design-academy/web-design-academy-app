@@ -356,22 +356,67 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-app.post("/api/auth/google", async (req, res) => {
-  const { idToken } = req.body;
-  if (!idToken) return res.status(400).json({ error: "No ID Token" });
+async function getGoogleUserFromAccessToken(accessToken) {
+  const tokenInfo = await client.getTokenInfo(accessToken);
 
-  if (!GOOGLE_CLIENT_ID || ADMIN_EMAIL_SET.size === 0) {
-    return res.status(503).json({ error: "Authentication is not configured" });
+  if (tokenInfo.aud !== GOOGLE_CLIENT_ID) {
+    throw new Error("Invalid token audience");
   }
 
-  try {
+  const userInfoResponse = await fetch(
+    "https://www.googleapis.com/oauth2/v3/userinfo",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!userInfoResponse.ok) {
+    throw new Error("Failed to fetch Google profile");
+  }
+
+  const profile = await userInfoResponse.json();
+
+  if (!profile.email || profile.email_verified === false) {
+    throw new Error("Invalid Google profile");
+  }
+
+  return {
+    email: profile.email,
+    name: profile.name || profile.email,
+  };
+}
+
+async function getGoogleUser({ idToken, accessToken }) {
+  if (idToken) {
     const ticket = await client.verifyIdToken({
       idToken,
       audience: GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    const { email, name } = payload;
+    return {
+      email: payload.email,
+      name: payload.name || payload.email,
+    };
+  }
+
+  return getGoogleUserFromAccessToken(accessToken);
+}
+
+app.post("/api/auth/google", async (req, res) => {
+  const { idToken, accessToken } = req.body;
+  if (!idToken && !accessToken) {
+    return res.status(400).json({ error: "No Google token" });
+  }
+
+  if (!GOOGLE_CLIENT_ID || ADMIN_EMAIL_SET.size === 0) {
+    return res.status(503).json({ error: "Authentication is not configured" });
+  }
+
+  try {
+    const { email, name } = await getGoogleUser({ idToken, accessToken });
     if (!email) {
       return res.status(401).json({ error: "Invalid Google Token" });
     }
@@ -453,6 +498,117 @@ app.get("/api/admin/tags", authenticateToken, requireAdmin, (_req, res) => {
 
   res.json(tags);
 });
+
+function parseUserIdList(value) {
+  if (!Array.isArray(value)) return null;
+
+  const ids = [...new Set(value.map((id) => String(id).trim()).filter(Boolean))];
+  return ids.length ? ids : null;
+}
+
+function resolveTagFromPayload(payload) {
+  let tagId = Number.parseInt(String(payload.tagId ?? ""), 10);
+
+  if (!Number.isFinite(tagId) || tagId < 1) {
+    const name = normalizeTagName(payload.name);
+
+    if (!name) {
+      return { error: "Invalid tag name" };
+    }
+
+    db.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)").run(name);
+    tagId = db.prepare("SELECT id FROM tags WHERE name = ?").get(name).id;
+  }
+
+  const tag = db.prepare("SELECT id, name FROM tags WHERE id = ?").get(tagId);
+
+  if (!tag) {
+    return { error: "Tag not found", status: 404 };
+  }
+
+  return { tag };
+}
+
+app.delete(
+  "/api/admin/tags/:tagId",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    const tagId = Number.parseInt(req.params.tagId, 10);
+
+    if (!Number.isFinite(tagId) || tagId < 1) {
+      return res.status(400).json({ error: "Invalid tagId" });
+    }
+
+    const deleteTagRecord = db.transaction(() => {
+      db.prepare("DELETE FROM user_tags WHERE tag_id = ?").run(tagId);
+      db.prepare("DELETE FROM tags WHERE id = ?").run(tagId);
+    });
+
+    deleteTagRecord();
+    res.json({ success: true });
+  },
+);
+
+app.post("/api/admin/users/tags", authenticateToken, requireAdmin, (req, res) => {
+  const userIds = parseUserIdList(req.body.userIds);
+
+  if (!userIds) {
+    return res.status(400).json({ error: "No users selected" });
+  }
+
+  const resolved = resolveTagFromPayload(req.body);
+  if (resolved.error) {
+    return res.status(resolved.status || 400).json({ error: resolved.error });
+  }
+
+  const existingUsers = db
+    .prepare(
+      `SELECT id FROM users WHERE id IN (${userIds.map(() => "?").join(",")})`,
+    )
+    .all(...userIds);
+
+  if (!existingUsers.length) {
+    return res.status(404).json({ error: "Users not found" });
+  }
+
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)",
+  );
+
+  const assignTags = db.transaction((users) => {
+    users.forEach((user) => insert.run(user.id, resolved.tag.id));
+  });
+
+  assignTags(existingUsers);
+  res.json({ success: true, tag: resolved.tag });
+});
+
+app.delete(
+  "/api/admin/users/tags/:tagId",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    const userIds = parseUserIdList(req.body.userIds);
+    const tagId = Number.parseInt(req.params.tagId, 10);
+
+    if (!userIds) {
+      return res.status(400).json({ error: "No users selected" });
+    }
+
+    if (!Number.isFinite(tagId) || tagId < 1) {
+      return res.status(400).json({ error: "Invalid tagId" });
+    }
+
+    db.prepare(
+      `DELETE FROM user_tags WHERE tag_id = ? AND user_id IN (${userIds
+        .map(() => "?")
+        .join(",")})`,
+    ).run(tagId, ...userIds);
+
+    res.json({ success: true });
+  },
+);
 
 app.get("/api/admin/users", authenticateToken, requireAdmin, (req, res) => {
   const page = parsePositiveInteger(req.query.page, 1, 100000);

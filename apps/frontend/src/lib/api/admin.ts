@@ -34,7 +34,10 @@ function buildQuery(query: PaginatedAdminQuery) {
   return params.toString();
 }
 
-async function readJsonResponse<T>(response: Response, fallbackMessage: string) {
+async function readJsonResponse<T>(
+  response: Response,
+  fallbackMessage: string,
+) {
   if (!response.ok) {
     const error = await response.json().catch(() => null);
     throw new Error(error?.error || fallbackMessage);
@@ -77,12 +80,55 @@ export async function addUserTag(
   );
 }
 
+export async function addTagToUsers(
+  userIds: string[],
+  payload: { tagId?: number | ""; name?: string },
+) {
+  requireOnlineMode("Admin tags");
+
+  const response = await fetch(`${API_BASE}/admin/users/tags`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, userIds }),
+  });
+
+  return readJsonResponse<{ success: true; tag: UserTag }>(
+    response,
+    "Failed to add tag",
+  );
+}
+
 export async function removeUserTag(userId: string, tagId: number) {
   requireOnlineMode("Admin tags");
 
-  const response = await fetch(`${API_BASE}/admin/users/${userId}/tags/${tagId}`, {
+  const response = await fetch(
+    `${API_BASE}/admin/users/${userId}/tags/${tagId}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  return readJsonResponse<{ success: true }>(response, "Failed to remove tag");
+}
+
+export async function removeTagFromUsers(userIds: string[], tagId: number) {
+  requireOnlineMode("Admin tags");
+
+  const response = await fetch(`${API_BASE}/admin/users/tags/${tagId}`, {
     method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userIds }),
   });
 
   return readJsonResponse<{ success: true }>(response, "Failed to remove tag");
+}
+
+export async function deleteTag(tagId: number) {
+  requireOnlineMode("Admin tags");
+
+  const response = await fetch(`${API_BASE}/admin/tags/${tagId}`, {
+    method: "DELETE",
+  });
+
+  return readJsonResponse<{ success: true }>(response, "Failed to delete tag");
 }

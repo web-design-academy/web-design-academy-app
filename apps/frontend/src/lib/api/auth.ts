@@ -8,13 +8,19 @@ export interface AuthData {
   email: string;
 }
 
-export async function loginWithGoogle(idToken: string): Promise<AuthData> {
+export type GoogleLoginPayload =
+  | { idToken: string; accessToken?: never }
+  | { accessToken: string; idToken?: never };
+
+export async function loginWithGoogle(
+  payload: GoogleLoginPayload,
+): Promise<AuthData> {
   requireOnlineMode("Authentication");
 
   const response = await fetch(`${API_BASE}/auth/google`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

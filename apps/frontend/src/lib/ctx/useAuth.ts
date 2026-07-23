@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { AuthData } from "../api/auth";
+import type { AuthData, GoogleLoginPayload } from "../api/auth";
 
 export interface User {
   userId: string;
@@ -12,7 +12,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  loginWithGoogle: (idToken: string) => Promise<AuthData>;
+  loginWithGoogle: (payload: GoogleLoginPayload) => Promise<AuthData>;
   logout: () => void;
 }
 

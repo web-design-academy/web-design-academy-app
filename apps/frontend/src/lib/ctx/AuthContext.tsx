@@ -4,6 +4,7 @@ import {
   fetchSession,
   logoutSession,
   type AuthData,
+  type GoogleLoginPayload,
 } from "@/lib/api/auth";
 import { isOnlineMode } from "@/lib/config/appMode";
 import { clearAllCustomData } from "@/lib/helpers/adminStorage";
@@ -49,12 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [isLoading, shouldClearLocalData, user]);
 
-  const loginWithGoogle = async (idToken: string): Promise<AuthData> => {
+  const loginWithGoogle = async (
+    payload: GoogleLoginPayload,
+  ): Promise<AuthData> => {
     if (!isOnlineMode) {
       throw new Error("Authentication is available only in online mode.");
     }
 
-    const data = await apiLoginWithGoogle(idToken);
+    const data = await apiLoginWithGoogle(payload);
     setShouldClearLocalData(false);
 
     setUser({

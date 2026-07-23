@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   closestCenter,
@@ -25,11 +25,11 @@ import {
   BookOpen,
   Download,
   Edit3,
-  Filter,
   GripVertical,
   Plus,
   Search,
   Send,
+  Tags,
   Users,
   X,
 } from "lucide-react";
@@ -43,10 +43,13 @@ import Modal from "@/components/Modal";
 import Pagination from "@/components/Pagination";
 import { useAuth } from "@/lib/ctx/useAuth";
 import {
+  addTagToUsers,
   addUserTag,
+  deleteTag,
   type AdminTag,
   fetchAdminTags,
   fetchAdminUsers,
+  removeTagFromUsers,
   removeUserTag,
   type AdminUser,
 } from "@/lib/api/admin";
@@ -66,7 +69,10 @@ import {
   type LessonMeta,
 } from "@/lib/helpers/getLessons";
 import { getLessonTasksSync } from "@/lib/helpers/getTasks";
-import { generateCourseZip, generateCoursesZip } from "@/lib/helpers/zipGenerator";
+import {
+  generateCourseZip,
+  generateCoursesZip,
+} from "@/lib/helpers/zipGenerator";
 import { isOnlineMode } from "@/lib/config/appMode";
 import "@/styles/admin.css";
 
@@ -90,6 +96,7 @@ type AdminSection = "lessons" | "users" | "submissions";
 type LessonForm = Omit<LessonMeta, "slug" | "order">;
 type TagDraft = Record<string, { tagId: string; name: string }>;
 type UserTag = AdminUser["tags"][number];
+const POPOVER_BOUNDARY_SELECTOR = ".admin-popover-boundary";
 
 const ALL_LUCIDE_ICON_NAMES = Object.entries(LucideIcons)
   .filter(([name, value]) => {
@@ -324,7 +331,6 @@ function TagFilter({
 }) {
   return (
     <label className="admin-filter">
-      <Filter size={16} aria-hidden="true" />
       <select
         value={value}
         onChange={(event) =>
@@ -342,48 +348,90 @@ function TagFilter({
   );
 }
 
+function SelectAllCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  return (
+    <input
+      ref={checkboxRef}
+      type="checkbox"
+      checked={checked}
+      onChange={(event) => onChange(event.target.checked)}
+      aria-label="Select all visible users"
+    />
+  );
+}
+
 function UserTagPopover({
   tags,
-  userTags,
+  assignedTagIds,
   draftName,
   isPending,
+  availableLabel = "Available tags",
   onSelectExisting,
+  onDeleteTag,
   onDraftNameChange,
   onCreateTag,
 }: {
   tags: AdminTag[];
-  userTags: AdminUser["tags"];
+  assignedTagIds: Set<number>;
   draftName: string;
   isPending: boolean;
+  availableLabel?: string;
   onSelectExisting: (tagId: number) => void;
+  onDeleteTag: (tagId: number) => void;
   onDraftNameChange: (value: string) => void;
   onCreateTag: () => void;
 }) {
+  const availableTags = tags.filter((tag) => !assignedTagIds.has(tag.id));
+
   return (
     <div className="lesson-picker-popover admin-tag-popover" role="dialog">
-      <div className="admin-tag-popover-list">
-        {tags.length ? (
-          tags.map((tag) => {
-            const isAssigned = userTags.some(
-              (assignedTag) => assignedTag.id === tag.id,
-            );
-
-            return (
-              <button
-                key={tag.id}
-                type="button"
-                className="admin-tag-choice"
-                disabled={isAssigned || isPending}
-                onClick={() => onSelectExisting(tag.id)}
-              >
-                {tag.name}
-                {isAssigned && <span>Added</span>}
-              </button>
-            );
-          })
-        ) : (
-          <span className="admin-muted">No saved tags</span>
-        )}
+      <div className="admin-tag-popover-section">
+        <div className="admin-tag-popover-heading">{availableLabel}</div>
+        <div className="admin-tag-popover-list">
+          {availableTags.length ? (
+            availableTags.map((tag) => (
+              <span key={tag.id} className="admin-tag-choice-wrap">
+                <button
+                  type="button"
+                  className="admin-tag-choice"
+                  disabled={isPending}
+                  onClick={() => onSelectExisting(tag.id)}
+                >
+                  {tag.name}
+                </button>
+                <button
+                  type="button"
+                  className="admin-tag-delete-button"
+                  onClick={() => onDeleteTag(tag.id)}
+                  disabled={isPending}
+                  aria-label={`Delete ${tag.name} tag from database`}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))
+          ) : tags.length ? (
+            <span className="admin-muted">All saved tags are added</span>
+          ) : (
+            <span className="admin-muted">No saved tags</span>
+          )}
+        </div>
       </div>
       <div className="admin-new-tag-row">
         <input
@@ -407,6 +455,7 @@ function UserTagPopover({
 function CompactTags({
   tags,
   canRemove = false,
+  showAll = false,
   expanded,
   onToggleExpanded,
   onRemove,
@@ -414,6 +463,7 @@ function CompactTags({
 }: {
   tags: UserTag[];
   canRemove?: boolean;
+  showAll?: boolean;
   expanded?: boolean;
   onToggleExpanded?: () => void;
   onRemove?: (tagId: number) => void;
@@ -428,20 +478,24 @@ function CompactTags({
     );
   }
 
-  const [firstTag, ...hiddenTags] = tags;
+  const visibleTags = showAll ? tags : tags.slice(0, 1);
+  const hiddenTags = showAll ? [] : tags.slice(1);
 
   const renderTag = (tag: UserTag) =>
     canRemove && onRemove ? (
-      <button
-        key={tag.id}
-        type="button"
-        className="admin-tag removable"
-        onClick={() => onRemove(tag.id)}
-        aria-label={`Remove ${tag.name}`}
-      >
-        {tag.name}
-        <X size={12} />
-      </button>
+      <span key={tag.id} className="admin-tag-choice-wrap">
+        <span className="admin-tag-choice admin-tag-choice-label">
+          {tag.name}
+        </span>
+        <button
+          type="button"
+          className="admin-tag-delete-button"
+          onClick={() => onRemove(tag.id)}
+          aria-label={`Remove ${tag.name}`}
+        >
+          <X size={12} />
+        </button>
+      </span>
     ) : (
       <span key={tag.id} className="admin-tag">
         {tag.name}
@@ -450,9 +504,10 @@ function CompactTags({
 
   return (
     <div className="admin-tags">
-      {renderTag(firstTag)}
+      {children}
+      {visibleTags.map((tag) => renderTag(tag))}
       {hiddenTags.length > 0 && (
-        <span className="admin-more-tags-anchor">
+        <span className="admin-more-tags-anchor admin-popover-boundary">
           <button
             type="button"
             className="admin-more-tags-button"
@@ -470,7 +525,6 @@ function CompactTags({
           )}
         </span>
       )}
-      {children}
     </div>
   );
 }
@@ -499,6 +553,11 @@ export default function AdminPage() {
     "",
   );
   const [tagDrafts, setTagDrafts] = useState<TagDraft>({});
+  const [bulkTagDraft, setBulkTagDraft] = useState({ tagId: "", name: "" });
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [isBulkTagPopoverOpen, setIsBulkTagPopoverOpen] = useState(false);
   const [openTagPopoverUserId, setOpenTagPopoverUserId] = useState<
     string | null
   >(null);
@@ -513,6 +572,14 @@ export default function AdminPage() {
   const [isDownloadingLessonChanges, setIsDownloadingLessonChanges] =
     useState(false);
 
+  const closePopovers = useCallback(() => {
+    setIsColorPickerOpen(false);
+    setIsIconPickerOpen(false);
+    setIsBulkTagPopoverOpen(false);
+    setOpenTagPopoverUserId(null);
+    setOpenMoreTagsKey(null);
+  }, []);
+
   useEffect(() => {
     if (!authLoading && user?.role !== "admin") {
       navigate("/");
@@ -521,6 +588,51 @@ export default function AdminPage() {
 
   useEffect(() => setUserPage(1), [userTagFilter]);
   useEffect(() => setSubmissionPage(1), [submissionTagFilter]);
+
+  useEffect(() => {
+    const hasOpenPopover =
+      isColorPickerOpen ||
+      isIconPickerOpen ||
+      isBulkTagPopoverOpen ||
+      openTagPopoverUserId !== null ||
+      openMoreTagsKey !== null;
+
+    if (!hasOpenPopover) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (
+        target instanceof Element &&
+        target.closest(POPOVER_BOUNDARY_SELECTOR)
+      ) {
+        return;
+      }
+
+      closePopovers();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closePopovers();
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [
+    closePopovers,
+    isBulkTagPopoverOpen,
+    isColorPickerOpen,
+    isIconPickerOpen,
+    openMoreTagsKey,
+    openTagPopoverUserId,
+  ]);
 
   const lessons = useMemo(() => getAllLessons(), [lessonsVersion]);
   const defaultLessons = useMemo(() => getDefaultLessons(), []);
@@ -563,7 +675,8 @@ export default function AdminPage() {
 
   const titleValidationError = useMemo(() => {
     if (!formData.title.trim()) return "Title is required.";
-    if (!generatedSlug) return "Title must contain at least one letter or number.";
+    if (!generatedSlug)
+      return "Title must contain at least one letter or number.";
 
     const slugExists = lessons.some(
       (lesson) =>
@@ -625,6 +738,49 @@ export default function AdminPage() {
     enabled: isOnlineMode && user?.role === "admin",
   });
 
+  const visibleUsers = usersData?.items ?? [];
+  const visibleUserIds = useMemo(
+    () => visibleUsers.map((visibleUser) => visibleUser.id),
+    [visibleUsers],
+  );
+  const selectedVisibleUsers = useMemo(
+    () =>
+      visibleUsers.filter((visibleUser) => selectedUserIds.has(visibleUser.id)),
+    [selectedUserIds, visibleUsers],
+  );
+  const selectedVisibleUserIds = useMemo(
+    () => selectedVisibleUsers.map((selectedUser) => selectedUser.id),
+    [selectedVisibleUsers],
+  );
+  const selectedVisibleCount = selectedVisibleUserIds.length;
+  const isAllVisibleUsersSelected =
+    visibleUserIds.length > 0 &&
+    visibleUserIds.every((visibleUserId) => selectedUserIds.has(visibleUserId));
+  const isSomeVisibleUsersSelected =
+    selectedVisibleCount > 0 && !isAllVisibleUsersSelected;
+  const commonSelectedTags = useMemo(() => {
+    if (!selectedVisibleUsers.length) return [];
+
+    const commonTagIds = selectedVisibleUsers.reduce<Set<number> | null>(
+      (commonIds, selectedUser) => {
+        const userTagIds = new Set(selectedUser.tags.map((tag) => tag.id));
+
+        if (!commonIds) return userTagIds;
+
+        return new Set([...commonIds].filter((tagId) => userTagIds.has(tagId)));
+      },
+      null,
+    );
+
+    if (!commonTagIds) return [];
+
+    return tags.filter((tag) => commonTagIds.has(tag.id));
+  }, [selectedVisibleUsers, tags]);
+  const commonSelectedTagIds = useMemo(
+    () => new Set(commonSelectedTags.map((tag) => tag.id)),
+    [commonSelectedTags],
+  );
+
   const addTagMutation = useMutation({
     mutationFn: ({
       userId,
@@ -657,6 +813,43 @@ export default function AdminPage() {
     },
   });
 
+  const bulkAddTagMutation = useMutation({
+    mutationFn: ({
+      userIds,
+      tagId,
+      name,
+    }: {
+      userIds: string[];
+      tagId?: number | "";
+      name?: string;
+    }) => addTagToUsers(userIds, { tagId, name }),
+    onSuccess: () => {
+      setBulkTagDraft({ tagId: "", name: "" });
+      queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    },
+  });
+
+  const bulkRemoveTagMutation = useMutation({
+    mutationFn: ({ userIds, tagId }: { userIds: string[]; tagId: number }) =>
+      removeTagFromUsers(userIds, tagId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    },
+  });
+
+  const deleteTagMutation = useMutation({
+    mutationFn: (tagId: number) => deleteTag(tagId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    },
+  });
+
   const openCreateModal = () => {
     setLessonModalMode("create");
     setEditingLesson(null);
@@ -665,6 +858,53 @@ export default function AdminPage() {
     setIsColorPickerOpen(false);
     setIsIconPickerOpen(false);
     setIsModalOpen(true);
+  };
+
+  useEffect(() => {
+    setSelectedUserIds((current) => {
+      const visibleUserIdSet = new Set(visibleUserIds);
+      const next = new Set(
+        [...current].filter((userId) => visibleUserIdSet.has(userId)),
+      );
+
+      return next.size === current.size ? current : next;
+    });
+  }, [visibleUserIds]);
+
+  useEffect(() => {
+    if (!selectedVisibleCount) {
+      setIsBulkTagPopoverOpen(false);
+    }
+  }, [selectedVisibleCount]);
+
+  const setVisibleUsersSelected = (checked: boolean) => {
+    setSelectedUserIds((current) => {
+      const next = new Set(current);
+
+      visibleUserIds.forEach((userId) => {
+        if (checked) {
+          next.add(userId);
+        } else {
+          next.delete(userId);
+        }
+      });
+
+      return next;
+    });
+  };
+
+  const setUserSelected = (userId: string, checked: boolean) => {
+    setSelectedUserIds((current) => {
+      const next = new Set(current);
+
+      if (checked) {
+        next.add(userId);
+      } else {
+        next.delete(userId);
+      }
+
+      return next;
+    });
   };
 
   const openEditModal = (lesson: LessonMeta) => {
@@ -837,6 +1077,28 @@ export default function AdminPage() {
     });
   };
 
+  const submitBulkTag = () => {
+    const tagId = bulkTagDraft.tagId ? Number(bulkTagDraft.tagId) : "";
+    const name = bulkTagDraft.name.trim();
+
+    if ((!tagId && !name) || !selectedVisibleUserIds.length) return;
+
+    bulkAddTagMutation.mutate({
+      userIds: selectedVisibleUserIds,
+      tagId,
+      name,
+    });
+  };
+
+  const removeCommonTagFromSelectedUsers = (tagId: number) => {
+    if (!selectedVisibleUserIds.length) return;
+
+    bulkRemoveTagMutation.mutate({
+      userIds: selectedVisibleUserIds,
+      tagId,
+    });
+  };
+
   const error = tagsError || usersError || submissionsError;
 
   if (authLoading) return <LoadingSpinner />;
@@ -951,11 +1213,76 @@ export default function AdminPage() {
                 <h1>Users</h1>
                 <p>Admins and signed-in students</p>
               </div>
-              <TagFilter
-                value={userTagFilter}
-                onChange={setUserTagFilter}
-                tags={tags}
-              />
+              <div className="admin-table-toolbar">
+                {selectedVisibleCount > 0 && (
+                  <span className="admin-selection-count">
+                    {selectedVisibleCount} selected
+                  </span>
+                )}
+                <span className="admin-tag-add-anchor admin-popover-boundary">
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => {
+                      if (!selectedVisibleCount) return;
+                      setIsBulkTagPopoverOpen((current) => !current);
+                      setOpenTagPopoverUserId(null);
+                      setOpenMoreTagsKey(null);
+                    }}
+                    disabled={!selectedVisibleCount}
+                    aria-label="Edit tags for selected users"
+                    aria-expanded={isBulkTagPopoverOpen}
+                    title="Edit tags for selected users"
+                  >
+                    <Tags size={18} />
+                  </button>
+                  {isBulkTagPopoverOpen && (
+                    <div className="lesson-picker-popover admin-tag-popover admin-bulk-tag-popover">
+                      <div className="admin-tag-popover-section">
+                        <div className="admin-tag-popover-heading">
+                          Common tags
+                        </div>
+                        <CompactTags
+                          tags={commonSelectedTags}
+                          canRemove
+                          showAll
+                          onRemove={removeCommonTagFromSelectedUsers}
+                        />
+                      </div>
+                      <UserTagPopover
+                        tags={tags}
+                        assignedTagIds={commonSelectedTagIds}
+                        availableLabel="Addable saved tags"
+                        draftName={bulkTagDraft.name}
+                        isPending={
+                          bulkAddTagMutation.isPending ||
+                          bulkRemoveTagMutation.isPending ||
+                          deleteTagMutation.isPending
+                        }
+                        onSelectExisting={(tagId) =>
+                          bulkAddTagMutation.mutate({
+                            userIds: selectedVisibleUserIds,
+                            tagId,
+                          })
+                        }
+                        onDeleteTag={(tagId) => deleteTagMutation.mutate(tagId)}
+                        onDraftNameChange={(value) =>
+                          setBulkTagDraft((current) => ({
+                            ...current,
+                            name: value,
+                          }))
+                        }
+                        onCreateTag={submitBulkTag}
+                      />
+                    </div>
+                  )}
+                </span>
+                <TagFilter
+                  value={userTagFilter}
+                  onChange={setUserTagFilter}
+                  tags={tags}
+                />
+              </div>
             </div>
 
             {usersLoading ? (
@@ -963,9 +1290,16 @@ export default function AdminPage() {
             ) : (
               <>
                 <div className="admin-table-scroll">
-                  <table className="admin-table">
+                  <table className="admin-table admin-users-table">
                     <thead>
                       <tr>
+                        <th>
+                          <SelectAllCheckbox
+                            checked={isAllVisibleUsersSelected}
+                            indeterminate={isSomeVisibleUsersSelected}
+                            onChange={setVisibleUsersSelected}
+                          />
+                        </th>
                         <th>User</th>
                         <th>Role</th>
                         <th>Tags</th>
@@ -982,27 +1316,42 @@ export default function AdminPage() {
                         return (
                           <tr key={row.id}>
                             <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedUserIds.has(row.id)}
+                                onChange={(event) =>
+                                  setUserSelected(row.id, event.target.checked)
+                                }
+                                aria-label={`Select ${row.name || row.email}`}
+                              />
+                            </td>
+                            <td>
                               <strong>{row.name || "Unnamed user"}</strong>
                               <span className="admin-cell-subtitle">
                                 {row.email}
                               </span>
                             </td>
                             <td>
-                              <span className="admin-role-pill">{row.role}</span>
+                              <span className="admin-role-pill">
+                                {row.role}
+                              </span>
                             </td>
                             <td>
                               <div className="admin-tags-cell">
                                 <CompactTags
                                   tags={row.tags}
                                   canRemove
-                                  expanded={openMoreTagsKey === `user-${row.id}`}
-                                  onToggleExpanded={() =>
+                                  expanded={
+                                    openMoreTagsKey === `user-${row.id}`
+                                  }
+                                  onToggleExpanded={() => {
+                                    setOpenTagPopoverUserId(null);
                                     setOpenMoreTagsKey((current) =>
                                       current === `user-${row.id}`
                                         ? null
                                         : `user-${row.id}`,
-                                    )
-                                  }
+                                    );
+                                  }}
                                   onRemove={(tagId) =>
                                     removeTagMutation.mutate({
                                       userId: row.id,
@@ -1010,15 +1359,16 @@ export default function AdminPage() {
                                     })
                                   }
                                 >
-                                  <span className="admin-tag-add-anchor">
+                                  <span className="admin-tag-add-anchor admin-popover-boundary">
                                     <button
                                       type="button"
                                       className="admin-tag-add-button"
-                                      onClick={() =>
+                                      onClick={() => {
+                                        setOpenMoreTagsKey(null);
                                         setOpenTagPopoverUserId((current) =>
                                           current === row.id ? null : row.id,
-                                        )
-                                      }
+                                        );
+                                      }}
                                       aria-label={`Add tag to ${
                                         row.name || row.email
                                       }`}
@@ -1031,14 +1381,22 @@ export default function AdminPage() {
                                     {openTagPopoverUserId === row.id && (
                                       <UserTagPopover
                                         tags={tags}
-                                        userTags={row.tags}
+                                        assignedTagIds={
+                                          new Set(row.tags.map((tag) => tag.id))
+                                        }
                                         draftName={draft.name}
-                                        isPending={addTagMutation.isPending}
+                                        isPending={
+                                          addTagMutation.isPending ||
+                                          deleteTagMutation.isPending
+                                        }
                                         onSelectExisting={(tagId) =>
                                           addTagMutation.mutate({
                                             userId: row.id,
                                             tagId,
                                           })
+                                        }
+                                        onDeleteTag={(tagId) =>
+                                          deleteTagMutation.mutate(tagId)
                                         }
                                         onDraftNameChange={(value) =>
                                           updateTagDraft(row.id, "name", value)
@@ -1087,7 +1445,7 @@ export default function AdminPage() {
             ) : (
               <>
                 <div className="admin-table-scroll">
-                  <table className="admin-table">
+                  <table className="admin-table admin-submissions-table">
                     <thead>
                       <tr>
                         <th>ID</th>
@@ -1112,14 +1470,17 @@ export default function AdminPage() {
                           <td>
                             <CompactTags
                               tags={sub.user_tags ?? []}
-                              expanded={openMoreTagsKey === `submission-${sub.id}`}
-                              onToggleExpanded={() =>
+                              expanded={
+                                openMoreTagsKey === `submission-${sub.id}`
+                              }
+                              onToggleExpanded={() => {
+                                setOpenTagPopoverUserId(null);
                                 setOpenMoreTagsKey((current) =>
                                   current === `submission-${sub.id}`
                                     ? null
                                     : `submission-${sub.id}`,
-                                )
-                              }
+                                );
+                              }}
                             />
                           </td>
                           <td>
@@ -1160,12 +1521,18 @@ export default function AdminPage() {
               : "Edit lesson metadata"
           }
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            closePopovers();
+            setIsModalOpen(false);
+          }}
           actions={
             <div className="admin-modal-actions">
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  closePopovers();
+                  setIsModalOpen(false);
+                }}
                 className="btn-ghost"
               >
                 Cancel
@@ -1227,13 +1594,15 @@ export default function AdminPage() {
             <div className="lesson-picker-row">
               <div className="form-group lesson-color-field">
                 <label>Color</label>
-                <div className="lesson-picker">
+                <div className="lesson-picker admin-popover-boundary">
                   <button
                     type="button"
                     className="lesson-picker-button"
                     onClick={() => {
                       setIsColorPickerOpen((prev) => !prev);
                       setIsIconPickerOpen(false);
+                      setOpenTagPopoverUserId(null);
+                      setOpenMoreTagsKey(null);
                     }}
                     aria-expanded={isColorPickerOpen}
                   >
@@ -1276,7 +1645,9 @@ export default function AdminPage() {
                         <span>
                           L {formatNumber(currentOklchColor.lightness, 1)}%
                         </span>
-                        <span>C {formatNumber(currentOklchColor.chroma, 3)}</span>
+                        <span>
+                          C {formatNumber(currentOklchColor.chroma, 3)}
+                        </span>
                         <span>H {formatNumber(currentOklchColor.hue, 1)}</span>
                       </div>
                       <input
@@ -1297,13 +1668,15 @@ export default function AdminPage() {
               </div>
               <div className="form-group lesson-icon-field">
                 <label>Icon</label>
-                <div className="lesson-picker lesson-picker-right">
+                <div className="lesson-picker lesson-picker-right admin-popover-boundary">
                   <button
                     type="button"
                     className="lesson-picker-button"
                     onClick={() => {
                       setIsIconPickerOpen((prev) => !prev);
                       setIsColorPickerOpen(false);
+                      setOpenTagPopoverUserId(null);
+                      setOpenMoreTagsKey(null);
                     }}
                     aria-expanded={isIconPickerOpen}
                   >
@@ -1321,7 +1694,9 @@ export default function AdminPage() {
                         <input
                           type="search"
                           value={iconSearch}
-                          onChange={(event) => setIconSearch(event.target.value)}
+                          onChange={(event) =>
+                            setIconSearch(event.target.value)
+                          }
                           placeholder="Search Lucide icons"
                           autoFocus
                         />

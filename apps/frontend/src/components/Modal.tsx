@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "@/styles/modal.css";
 
 interface ModalProps {
@@ -16,11 +16,27 @@ export default function Modal({
   children,
   actions,
 }: ModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-content"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="modal-header">
           <h2>{title}</h2>
           <button onClick={onClose} className="modal-close">
