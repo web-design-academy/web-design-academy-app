@@ -1,4 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import { MDXProvider } from "@mdx-js/react";
@@ -28,6 +35,10 @@ import {
   isAddedLessonDraft,
   saveLessonTasksDraft,
 } from "@/lib/helpers/lessonDrafts";
+import {
+  getStudentLessonDraft,
+  saveStudentLessonDraft,
+} from "@/lib/helpers/studentDrafts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   fetchLatestLessonSubmissions,
@@ -39,6 +50,27 @@ import { useAuth } from "@/lib/ctx/useAuth";
 import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
 import { isOnlineMode } from "@/lib/config/appMode";
 import { API_BASE } from "@/lib/api/client";
+
+type EditableTaskState = Pick<
+  Partial<TaskCode>,
+  "editableHtml" | "editableCss" | "editableJs"
+>;
+
+const normalizeCode = (value?: string) => (value ?? "").replace(/\r\n/g, "\n");
+
+const getEditableTaskState = (task?: Partial<TaskCode>): EditableTaskState => ({
+  editableHtml: task?.editableHtml,
+  editableCss: task?.editableCss,
+  editableJs: task?.editableJs,
+});
+
+const areEditableTaskStatesEqual = (
+  left?: EditableTaskState,
+  right?: EditableTaskState,
+) =>
+  normalizeCode(left?.editableHtml) === normalizeCode(right?.editableHtml) &&
+  normalizeCode(left?.editableCss) === normalizeCode(right?.editableCss) &&
+  normalizeCode(left?.editableJs) === normalizeCode(right?.editableJs);
 
 export default function Lesson() {
   const { slug } = useParams<{ slug: string }>();
@@ -93,6 +125,13 @@ export default function Lesson() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetTaskIndex, setResetTaskIndex] = useState(0);
+  const [autosaveStatus, setAutosaveStatus] = useState<
+    "saved" | "saving" | "pending" | "error"
+  >("saved");
+  const [autosaveRevision, setAutosaveRevision] = useState(0);
+  const [submissionBaselines, setSubmissionBaselines] = useState<
+    Record<string, EditableTaskState>
+  >({});
 
   const [LessonContent, setLessonContent] =
     useState<React.LazyExoticComponent<MDXContent> | null>(null);
@@ -101,7 +140,73 @@ export default function Lesson() {
     undefined,
   );
   const lastAutoFocusKeyRef = useRef("");
+  const tasksRef = useRef<Partial<TaskCode>[]>([]);
+  const taskStatesRef = useRef<Partial<TaskCode>[]>([]);
+  const persistAutosaveDraftRef = useRef<() => void>(() => {});
+  const autosaveRevisionRef = useRef(0);
+  const autosaveStatusRef = useRef<"saved" | "saving" | "pending" | "error">(
+    "saved",
+  );
   const lessonMeta = slug ? getLessonMeta(slug) : undefined;
+
+  const persistAutosaveDraft = useCallback(() => {
+    if (!slug || loadedSubmission) return;
+
+    if (isAdmin) {
+      const persisted = taskStatesRef.current.map((state, idx) => ({
+        ...tasksRef.current[idx],
+        ...state,
+      }));
+      saveLessonTasksDraft(slug, persisted);
+      return;
+    }
+
+    saveStudentLessonDraft(slug, taskStatesRef.current, user?.userId);
+  }, [isAdmin, loadedSubmission, slug, user?.userId]);
+
+  useEffect(() => {
+    persistAutosaveDraftRef.current = persistAutosaveDraft;
+  }, [persistAutosaveDraft]);
+
+  const setTasksSnapshot = (nextTasks: Partial<TaskCode>[]) => {
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+  };
+
+  const setTaskStatesSnapshot = (nextTaskStates: Partial<TaskCode>[]) => {
+    taskStatesRef.current = nextTaskStates;
+    setTaskStates(nextTaskStates);
+  };
+
+  const updateTaskStatesSnapshot = (
+    updater: (prev: Partial<TaskCode>[]) => Partial<TaskCode>[],
+  ) => {
+    setTaskStates((prev) => {
+      const updated = updater(prev);
+      taskStatesRef.current = updated;
+      return updated;
+    });
+  };
+
+  const setAutosaveStatusSnapshot = useCallback(
+    (nextStatus: "saved" | "saving" | "pending" | "error") => {
+      autosaveStatusRef.current = nextStatus;
+      setAutosaveStatus(nextStatus);
+    },
+    [],
+  );
+
+  const markAutosaveChanged = useCallback(() => {
+    autosaveRevisionRef.current += 1;
+    setAutosaveRevision(autosaveRevisionRef.current);
+    setAutosaveStatusSnapshot("pending");
+  }, [setAutosaveStatusSnapshot]);
+
+  const markAutosaveSaved = useCallback(() => {
+    autosaveRevisionRef.current = 0;
+    setAutosaveRevision(0);
+    setAutosaveStatusSnapshot("saved");
+  }, [setAutosaveStatusSnapshot]);
 
   useEffect(() => {
     if (!slug) return;
@@ -121,19 +226,35 @@ export default function Lesson() {
     const localTasks = getLessonTasksSync(slug).filter(
       (task) => isAdmin || !task.deleted,
     );
-    setTasks(localTasks);
-    setTaskStates(
-      localTasks.map((task) =>
-        isAdmin
-          ? { ...task }
-          : {
-              editableHtml: task.editableHtml,
-              editableCss: task.editableCss,
-              editableJs: task.editableJs,
-            },
-      ),
-    );
-  }, [isAdmin, lessonMeta?.sourceFolder, slug]);
+    const studentDraft =
+      !isAdmin && !submissionId
+        ? getStudentLessonDraft(slug, user?.userId)
+        : null;
+    const nextTaskStates = localTasks.map((task, index) => {
+      if (isAdmin) {
+        return { ...task };
+      }
+
+      const draftTask = studentDraft?.tasks[index];
+      return {
+        editableHtml: draftTask?.editableHtml ?? task.editableHtml,
+        editableCss: draftTask?.editableCss ?? task.editableCss,
+        editableJs: draftTask?.editableJs ?? task.editableJs,
+      };
+    });
+
+    setTasksSnapshot(localTasks);
+    setTaskStatesSnapshot(nextTaskStates);
+    setSubmissionBaselines({});
+    markAutosaveSaved();
+  }, [
+    isAdmin,
+    lessonMeta?.sourceFolder,
+    markAutosaveSaved,
+    slug,
+    submissionId,
+    user?.userId,
+  ]);
 
   useEffect(() => {
     setVisualEditorEnabled(false);
@@ -167,8 +288,15 @@ export default function Lesson() {
         targetTaskIndex < tasks.length
       ) {
         setCurrentTaskIndex(targetTaskIndex);
+        setSubmissionBaselines({
+          [loadedSubmission.task_id]: {
+            editableHtml: loadedSubmission.html,
+            editableCss: loadedSubmission.css,
+            editableJs: loadedSubmission.js,
+          },
+        });
 
-        setTaskStates((prev) =>
+        updateTaskStatesSnapshot((prev) =>
           prev.map((s, idx) => {
             if (idx === targetTaskIndex) {
               return {
@@ -192,21 +320,42 @@ export default function Lesson() {
       return;
     }
 
-    setTaskStates((prev) =>
+    setSubmissionBaselines(
+      Object.fromEntries(
+        submissions.map((submission) => [
+          submission.task_id,
+          {
+            editableHtml: submission.html,
+            editableCss: submission.css,
+            editableJs: submission.js,
+          },
+        ]),
+      ),
+    );
+
+    updateTaskStatesSnapshot((prev) =>
       prev.map((state, index) => {
         const savedSubmission = submissions.find(
           (submission) => submission.task_id === String(index + 1),
         );
+        const draftTask = slug
+          ? getStudentLessonDraft(slug, user?.userId)?.tasks[index]
+          : undefined;
 
-        if (!savedSubmission) {
+        if (!savedSubmission && !draftTask) {
           return state;
         }
 
         return {
           ...state,
-          editableHtml: savedSubmission.html,
-          editableCss: savedSubmission.css,
-          editableJs: savedSubmission.js,
+          editableHtml:
+            draftTask?.editableHtml ??
+            savedSubmission?.html ??
+            state.editableHtml,
+          editableCss:
+            draftTask?.editableCss ?? savedSubmission?.css ?? state.editableCss,
+          editableJs:
+            draftTask?.editableJs ?? savedSubmission?.js ?? state.editableJs,
         };
       }),
     );
@@ -220,7 +369,81 @@ export default function Lesson() {
     ) {
       setCurrentTaskIndex(latestTaskIndex);
     }
-  }, [latestLessonSubmissions, submissionId, tasks.length]);
+  }, [latestLessonSubmissions, slug, submissionId, tasks.length, user?.userId]);
+
+  useEffect(() => {
+    if (!slug || autosaveRevision === 0 || loadedSubmission) {
+      return;
+    }
+
+    setAutosaveStatusSnapshot("pending");
+
+    const timeout = window.setTimeout(() => {
+      try {
+        setAutosaveStatusSnapshot("saving");
+        persistAutosaveDraft();
+        markAutosaveSaved();
+      } catch (error) {
+        console.error("Failed to autosave editor draft:", error);
+        setAutosaveStatusSnapshot("error");
+      }
+    }, 1500);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    autosaveRevision,
+    loadedSubmission,
+    markAutosaveSaved,
+    persistAutosaveDraft,
+    setAutosaveStatusSnapshot,
+    slug,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveRevisionRef.current === 0) return;
+
+      try {
+        persistAutosaveDraftRef.current();
+      } catch (error) {
+        console.error("Failed to save editor draft before leaving:", error);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (autosaveRevision === 0 || autosaveStatus === "saved") {
+      return;
+    }
+
+    const flushDraft = () => {
+      try {
+        persistAutosaveDraft();
+      } catch (error) {
+        console.error("Failed to flush editor draft:", error);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushDraft();
+      }
+    };
+
+    window.addEventListener("pagehide", flushDraft);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (
+        autosaveRevisionRef.current > 0 &&
+        autosaveStatusRef.current !== "saved"
+      ) {
+        flushDraft();
+      }
+      window.removeEventListener("pagehide", flushDraft);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [autosaveRevision, autosaveStatus, persistAutosaveDraft]);
 
   useEffect(() => {
     if (slug && isOnlineMode && isAuthenticated) {
@@ -355,6 +578,16 @@ export default function Lesson() {
     !previewTask?.hiddenJs &&
     !previewTask?.readonlyJs &&
     !previewTask?.editableJs;
+  const currentStudentBaseline =
+    submissionBaselines[currentTaskId] ?? getEditableTaskState(currentTask);
+  const hasStudentTaskChanges = !areEditableTaskStatesEqual(
+    getEditableTaskState(currentTaskState),
+    currentStudentBaseline,
+  );
+  const isSubmitDisabled = !isAdmin && !hasStudentTaskChanges;
+  const submitDisabledTitle = completedTasks.has(currentTaskId)
+    ? "Make a change before resubmitting."
+    : "Make a change before submitting.";
   const srcDoc = `
   <!DOCTYPE html>
   <html>
@@ -409,23 +642,16 @@ export default function Lesson() {
   };
 
   const updateTask = (field: keyof Partial<TaskCode>, value: string) => {
-    setTaskStates((prev) => {
-      const updated = prev.map((s, idx) =>
+    updateTaskStatesSnapshot((prev) =>
+      prev.map((s, idx) =>
         idx === currentTaskIndex ? { ...s, [field]: value } : s,
-      );
-      if (isAdmin && slug && !loadedSubmission) {
-        const persisted = updated.map((state, idx) => ({
-          ...tasks[idx],
-          ...state,
-        }));
-        saveLessonTasksDraft(slug, persisted);
-      }
-      return updated;
-    });
+      ),
+    );
+    markAutosaveChanged();
   };
 
   const applyResetTask = (taskIndex = currentTaskIndex) => {
-    setTaskStates((prev) => {
+    updateTaskStatesSnapshot((prev) => {
       const updated = prev.map((s, idx) => {
         if (idx !== taskIndex) {
           return s;
@@ -451,7 +677,10 @@ export default function Lesson() {
           ...state,
         }));
         saveLessonTasksDraft(slug, persisted);
+      } else if (!isAdmin && slug && !loadedSubmission) {
+        saveStudentLessonDraft(slug, updated, user?.userId);
       }
+      setAutosaveStatusSnapshot("saved");
       return updated;
     });
   };
@@ -472,11 +701,12 @@ export default function Lesson() {
     };
     const updatedTasks = [...tasks, newTask];
     const updatedTaskStates = [...taskStates, newTask];
-    setTasks(updatedTasks);
-    setTaskStates(updatedTaskStates);
+    setTasksSnapshot(updatedTasks);
+    setTaskStatesSnapshot(updatedTaskStates);
     setCurrentTaskIndex(updatedTasks.length - 1);
 
     saveLessonTasksDraft(slug, updatedTaskStates);
+    setAutosaveStatusSnapshot("saved");
   };
 
   const deleteTask = (taskIndex = currentTaskIndex) => {
@@ -487,8 +717,9 @@ export default function Lesson() {
     );
 
     setCurrentTaskIndex(taskIndex);
-    setTaskStates(updatedTaskStates);
+    setTaskStatesSnapshot(updatedTaskStates);
     saveLessonTasksDraft(slug, updatedTaskStates);
+    setAutosaveStatusSnapshot("saved");
   };
 
   const handleSubmit = async (cssOverride?: string) => {
@@ -512,6 +743,14 @@ export default function Lesson() {
     });
 
     setCompletedTasks((prev) => new Set(prev).add(currentTaskId));
+    setSubmissionBaselines((prev) => ({
+      ...prev,
+      [currentTaskId]: {
+        editableHtml: currentTaskState.editableHtml || "",
+        editableCss: (cssOverride ?? currentTaskState.editableCss) || "",
+        editableJs: currentTaskState.editableJs || "",
+      },
+    }));
     return true;
   };
 
@@ -655,6 +894,10 @@ export default function Lesson() {
                     readonlyJs={effectiveTask?.readonlyJs}
                     onSubmit={handleSubmit}
                     isSubmitted={completedTasks.has(currentTaskId)}
+                    isSubmitDisabled={isSubmitDisabled}
+                    submitDisabledTitle={submitDisabledTitle}
+                    autosaveStatus={autosaveStatus}
+                    autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
                   />
                 </section>
 
@@ -718,6 +961,10 @@ export default function Lesson() {
                       readonlyJs={effectiveTask?.readonlyJs}
                       onSubmit={handleSubmit}
                       isSubmitted={completedTasks.has(currentTaskId)}
+                      isSubmitDisabled={isSubmitDisabled}
+                      submitDisabledTitle={submitDisabledTitle}
+                      autosaveStatus={autosaveStatus}
+                      autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
                     />
                   </Resizable>
 

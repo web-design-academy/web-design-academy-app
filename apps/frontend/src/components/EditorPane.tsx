@@ -8,6 +8,12 @@ import {
   type ComponentType,
 } from "react";
 import { useAuth } from "@/lib/ctx/useAuth";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  LoaderCircle,
+} from "lucide-react";
 import SubmitButton from "./SubmitButton";
 import LoadingSpinner from "./LoadingSpinner";
 import "@/styles/editor.css";
@@ -33,6 +39,10 @@ export interface EditorPaneProps {
   readonlyJs?: string;
   onSubmit: () => Promise<boolean>;
   isSubmitted?: boolean;
+  isSubmitDisabled?: boolean;
+  submitDisabledTitle?: string;
+  autosaveStatus?: "saved" | "saving" | "pending" | "error";
+  autosaveLabelPrefix?: string;
 }
 
 type Tab = "html" | "css" | "js";
@@ -90,6 +100,10 @@ export default function EditorPane({
   readonlyJs,
   onSubmit,
   isSubmitted = false,
+  isSubmitDisabled = false,
+  submitDisabledTitle,
+  autosaveStatus = "saved",
+  autosaveLabelPrefix = "Work",
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<Tab>(() =>
     getFirstPreferredTab(task),
@@ -148,6 +162,25 @@ export default function EditorPane({
     visualEditorAvailable &&
     (!isAdmin || activeAdminTab.language !== "js") &&
     activeTab !== "js";
+  const autosaveMeta = {
+    saved: {
+      label: `${autosaveLabelPrefix} saved`,
+      Icon: CheckCircle2,
+    },
+    saving: {
+      label: "Saving...",
+      Icon: LoaderCircle,
+    },
+    pending: {
+      label: "Autosave queued",
+      Icon: Clock3,
+    },
+    error: {
+      label: "Autosave failed",
+      Icon: AlertTriangle,
+    },
+  }[autosaveStatus];
+  const AutosaveIcon = autosaveMeta.Icon;
 
   useEffect(() => {
     setVisualEditorAvailable(visualEditorAvailable);
@@ -439,7 +472,12 @@ export default function EditorPane({
         </div>
         <div className="editor-tab-controls">
           {showSubmitButton && (
-            <SubmitButton onClick={onSubmit} isSubmitted={isSubmitted} />
+            <SubmitButton
+              onClick={onSubmit}
+              isSubmitted={isSubmitted}
+              disabled={isSubmitDisabled}
+              disabledTitle={submitDisabledTitle}
+            />
           )}
         </div>
       </div>
@@ -527,6 +565,20 @@ export default function EditorPane({
             }}
           />
         )}
+        <div
+          className={`editor-autosave-status is-${autosaveStatus}`}
+          role="status"
+          aria-live="polite"
+        >
+          <AutosaveIcon
+            size={14}
+            aria-hidden="true"
+            className={
+              autosaveStatus === "saving" ? "autosave-spin-icon" : undefined
+            }
+          />
+          <span>{autosaveMeta.label}</span>
+        </div>
       </div>
     </div>
   );

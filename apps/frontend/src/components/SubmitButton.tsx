@@ -6,16 +6,20 @@ type SubmitState = "idle" | "loading" | "success" | "error";
 interface SubmitButtonProps {
   onClick: () => Promise<boolean>;
   isSubmitted?: boolean;
+  disabled?: boolean;
+  disabledTitle?: string;
 }
 
 export default function SubmitButton({
   onClick,
   isSubmitted = false,
+  disabled = false,
+  disabledTitle,
 }: SubmitButtonProps) {
   const [status, setStatus] = useState<SubmitState>("idle");
 
   const handleClick = async () => {
-    if (status === "loading") return;
+    if (status === "loading" || disabled) return;
 
     setStatus("loading");
     try {
@@ -38,7 +42,8 @@ export default function SubmitButton({
     <button
       className="btn-primary"
       onClick={handleClick}
-      disabled={status === "loading"}
+      disabled={status === "loading" || disabled}
+      title={disabled ? disabledTitle : undefined}
       style={{
         display: "flex",
         alignItems: "center",
@@ -52,7 +57,9 @@ export default function SubmitButton({
               : isSubmitted
                 ? "#10b981"
                 : "var(--color-primary)",
-        cursor: status === "loading" ? "wait" : "pointer",
+        cursor:
+          status === "loading" ? "wait" : disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.55 : 1,
       }}
     >
       {status === "idle" && isSubmitted && (
