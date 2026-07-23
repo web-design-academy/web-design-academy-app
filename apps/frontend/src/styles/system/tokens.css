@@ -6,8 +6,8 @@
   --color-primary: oklch(0.71 0.13 215);
 
   --font-family: "Geist", system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
+  --font-family-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-size-base: 1rem;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;

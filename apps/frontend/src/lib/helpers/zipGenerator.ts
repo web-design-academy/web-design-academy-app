@@ -27,27 +27,32 @@ hidden: ${course.hidden ?? false}
   const tasksFolder = courseFolder.folder("tasks");
   if (!tasksFolder) throw new Error("Failed to create tasks folder");
 
-  tasks.forEach((task, index) => {
-    const taskId = (index + 1).toString();
-    const taskFolder = tasksFolder.folder(taskId);
-    if (!taskFolder) return;
+  tasks
+    .filter((task) => !task.deleted)
+    .forEach((task, index) => {
+      const taskId = (index + 1).toString();
+      const taskFolder = tasksFolder.folder(taskId);
+      if (!taskFolder) return;
 
-    const addFile = (name: string, content?: string) => {
-      if (content !== undefined) {
-        taskFolder.file(name, content);
-      }
-    };
+      const addFile = (name: string, content?: string) => {
+        if (content !== undefined && content.trim() !== "") {
+          taskFolder.file(name, content);
+        }
+      };
 
-    addFile("editable.html", task.editableHtml);
-    addFile("editable.css", task.editableCss);
-    addFile("editable.js", task.editableJs);
-    addFile("readonly.html", task.readonlyHtml);
-    addFile("readonly.css", task.readonlyCss);
-    addFile("readonly.js", task.readonlyJs);
-    addFile("hidden.html", task.hiddenHtml);
-    addFile("hidden.css", task.hiddenCss);
-    addFile("hidden.js", task.hiddenJs);
-  });
+      addFile("editable.html", task.editableHtml);
+      addFile("editable.css", task.editableCss);
+      addFile("editable.js", task.editableJs);
+      addFile("readonly.html", task.readonlyHtml);
+      addFile("readonly.css", task.readonlyCss);
+      addFile("readonly.js", task.readonlyJs);
+      addFile("hidden.html", task.hiddenHtml);
+      addFile("hidden.css", task.hiddenCss);
+      addFile("hidden.js", task.hiddenJs);
+      addFile("solution.html", task.solutionHtml);
+      addFile("solution.css", task.solutionCss);
+      addFile("solution.js", task.solutionJs);
+    });
 }
 
 async function downloadZip(zip: JSZip, suggestedName: string) {

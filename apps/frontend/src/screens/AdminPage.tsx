@@ -25,11 +25,15 @@ import {
   BookOpen,
   Download,
   Edit3,
+  ExternalLink,
   GripVertical,
   Plus,
+  RotateCcw,
   Search,
   Send,
   Tags,
+  Trash2,
+  Undo2,
   Users,
   X,
 } from "lucide-react";
@@ -58,21 +62,18 @@ import {
   type PaginatedResponse,
   type SubmissionRecord,
 } from "@/lib/api/submissions";
+import { addCustomTask, clearAllCustomData } from "@/lib/helpers/adminStorage";
 import {
-  addCustomTask,
-  clearAllCustomData,
-  saveCustomCourse,
-} from "@/lib/helpers/adminStorage";
-import {
-  getAllLessons,
-  getDefaultLessons,
-  type LessonMeta,
-} from "@/lib/helpers/getLessons";
+  deleteLessonDraft,
+  getLessonDraftSummaries,
+  hasAnyLessonDraftChanges,
+  restoreLessonDraft,
+  saveLessonMetadataDraft,
+  type LessonDraftSummary,
+} from "@/lib/helpers/lessonDrafts";
+import { getAllLessons, type LessonMeta } from "@/lib/helpers/getLessons";
 import { getLessonTasksSync } from "@/lib/helpers/getTasks";
-import {
-  generateCourseZip,
-  generateCoursesZip,
-} from "@/lib/helpers/zipGenerator";
+import { generateCoursesZip } from "@/lib/helpers/zipGenerator";
 import { isOnlineMode } from "@/lib/config/appMode";
 import "@/styles/admin.css";
 
@@ -189,37 +190,18 @@ function emptyForm(): LessonForm {
   };
 }
 
-function haveLessonsChangedFromDefault(
-  lessons: LessonMeta[],
-  defaultLessons: LessonMeta[],
-) {
-  if (lessons.length !== defaultLessons.length) return true;
-
-  const defaultLessonsBySlug = new Map(
-    defaultLessons.map((lesson) => [lesson.slug, lesson]),
-  );
-
-  return lessons.some((lesson) => {
-    const defaultLesson = defaultLessonsBySlug.get(lesson.slug);
-
-    return (
-      !defaultLesson ||
-      lesson.title !== defaultLesson.title ||
-      lesson.description !== defaultLesson.description ||
-      lesson.color !== defaultLesson.color ||
-      lesson.order !== defaultLesson.order ||
-      lesson.icon !== defaultLesson.icon ||
-      (lesson.hidden ?? false) !== (defaultLesson.hidden ?? false)
-    );
-  });
-}
-
 function SortableLessonCard({
   lesson,
+  summary,
   onEdit,
+  onDelete,
+  onRestore,
 }: {
   lesson: LessonMeta;
+  summary: LessonDraftSummary;
   onEdit: (lesson: LessonMeta) => void;
+  onDelete: (lesson: LessonMeta) => void;
+  onRestore: (lesson: LessonMeta) => void;
 }) {
   const {
     attributes,
@@ -265,17 +247,63 @@ function SortableLessonCard({
         <div className="admin-lesson-title-row">
           <h2>{lesson.title}</h2>
           {lesson.hidden && <span className="admin-tag">Hidden</span>}
+          {summary.status !== "unchanged" && (
+            <span className={`admin-change-tag is-${summary.status}`}>
+              {summary.status === "added"
+                ? "Added"
+                : summary.status === "deleted"
+                  ? "Deleted"
+                  : "Changed"}
+            </span>
+          )}
         </div>
         <p className="admin-lesson-description">{lesson.description}</p>
+        {summary.changes.length > 0 && (
+          <p className="admin-lesson-change-line">
+            {summary.changes.join(", ")}
+          </p>
+        )}
       </div>
-      <button
-        type="button"
-        className="admin-row-button"
-        onClick={() => onEdit(lesson)}
-      >
-        <Edit3 size={16} />
-        Edit metadata
-      </button>
+      <div className="admin-lesson-card-actions">
+        <button
+          type="button"
+          className="admin-icon-button"
+          onClick={() => onEdit(lesson)}
+          aria-label={`Edit metadata for ${lesson.title}`}
+          title="Edit metadata"
+        >
+          <Edit3 size={16} />
+        </button>
+        {summary.status === "deleted" ? (
+          <button
+            type="button"
+            className="admin-icon-button"
+            onClick={() => onRestore(lesson)}
+            aria-label={`Restore ${lesson.title}`}
+            title="Restore"
+          >
+            <Undo2 size={16} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="admin-icon-button"
+            onClick={() => onDelete(lesson)}
+            aria-label={`Delete ${lesson.title}`}
+            title="Delete"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+        <Link
+          to={`/lessons/${lesson.slug}`}
+          className="admin-icon-button"
+          aria-label={`Open ${lesson.title}`}
+          title="Open lesson"
+        >
+          <ExternalLink size={16} />
+        </Link>
+      </div>
     </article>
   );
 }
@@ -312,10 +340,17 @@ function LessonDragOverlayCard({
         </div>
         <p className="admin-lesson-description">{lesson.description}</p>
       </div>
-      <button type="button" className="admin-row-button" tabIndex={-1}>
-        <Edit3 size={16} />
-        Edit metadata
-      </button>
+      <div className="admin-lesson-card-actions" aria-hidden="true">
+        <span className="admin-icon-button">
+          <Edit3 size={16} />
+        </span>
+        <span className="admin-icon-button">
+          <Trash2 size={16} />
+        </span>
+        <span className="admin-icon-button">
+          <ExternalLink size={16} />
+        </span>
+      </div>
     </article>
   );
 }
@@ -535,7 +570,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<AdminSection>("lessons");
-  const [lessonsVersion, setLessonsVersion] = useState(0);
+  const [lessons, setLessons] = useState<LessonMeta[]>(() => getAllLessons());
   const [lessonModalMode, setLessonModalMode] = useState<"create" | "edit">(
     "create",
   );
@@ -586,6 +621,21 @@ export default function AdminPage() {
     }
   }, [user, authLoading, navigate]);
 
+  useEffect(() => {
+    const refreshLessonDrafts = () => setLessons(getAllLessons());
+
+    window.addEventListener("adminLessonDraftsChanged", refreshLessonDrafts);
+    window.addEventListener("storage", refreshLessonDrafts);
+
+    return () => {
+      window.removeEventListener(
+        "adminLessonDraftsChanged",
+        refreshLessonDrafts,
+      );
+      window.removeEventListener("storage", refreshLessonDrafts);
+    };
+  }, []);
+
   useEffect(() => setUserPage(1), [userTagFilter]);
   useEffect(() => setSubmissionPage(1), [submissionTagFilter]);
 
@@ -634,20 +684,11 @@ export default function AdminPage() {
     openTagPopoverUserId,
   ]);
 
-  const lessons = useMemo(() => getAllLessons(), [lessonsVersion]);
-  const defaultLessons = useMemo(() => getDefaultLessons(), []);
   useEffect(() => {
     setOrderedLessons(lessons);
   }, [lessons]);
 
-  const displayedLessons = useMemo(
-    () =>
-      orderedLessons.map((lesson, index) => ({
-        ...lesson,
-        order: index + 1,
-      })),
-    [orderedLessons],
-  );
+  const displayedLessons = orderedLessons;
   const lessonIds = useMemo(
     () => displayedLessons.map((lesson) => lesson.slug),
     [displayedLessons],
@@ -664,9 +705,25 @@ export default function AdminPage() {
       null,
     [activeLessonSlug, displayedLessons],
   );
+  const lessonDraftSummaries = useMemo(
+    () => getLessonDraftSummaries(displayedLessons),
+    [displayedLessons],
+  );
+  const lessonDraftSummariesBySlug = useMemo(
+    () =>
+      new Map(
+        lessonDraftSummaries.map((summary) => [summary.lesson.slug, summary]),
+      ),
+    [lessonDraftSummaries],
+  );
+  const changedLessonSummaries = useMemo(
+    () =>
+      lessonDraftSummaries.filter((summary) => summary.status !== "unchanged"),
+    [lessonDraftSummaries],
+  );
   const hasLessonChanges = useMemo(
-    () => haveLessonsChangedFromDefault(displayedLessons, defaultLessons),
-    [defaultLessons, displayedLessons],
+    () => hasAnyLessonDraftChanges(displayedLessons),
+    [displayedLessons],
   );
   const generatedSlug = useMemo(
     () => slugifyTitle(formData.title),
@@ -675,6 +732,9 @@ export default function AdminPage() {
 
   const titleValidationError = useMemo(() => {
     if (!formData.title.trim()) return "Title is required.";
+
+    if (lessonModalMode === "edit") return "";
+
     if (!generatedSlug)
       return "Title must contain at least one letter or number.";
 
@@ -683,7 +743,13 @@ export default function AdminPage() {
         lesson.slug === generatedSlug && lesson.slug !== editingLesson?.slug,
     );
     return slugExists ? "A lesson with this title already exists." : "";
-  }, [editingLesson?.slug, formData.title, generatedSlug, lessons]);
+  }, [
+    editingLesson?.slug,
+    formData.title,
+    generatedSlug,
+    lessonModalMode,
+    lessons,
+  ]);
 
   const currentOklchColor = useMemo(
     () => parseOklchColor(formData.color),
@@ -738,7 +804,10 @@ export default function AdminPage() {
     enabled: isOnlineMode && user?.role === "admin",
   });
 
-  const visibleUsers = usersData?.items ?? [];
+  const visibleUsers = useMemo(
+    () => usersData?.items ?? [],
+    [usersData?.items],
+  );
   const visibleUserIds = useMemo(
     () => visibleUsers.map((visibleUser) => visibleUser.id),
     [visibleUsers],
@@ -923,6 +992,16 @@ export default function AdminPage() {
     setIsModalOpen(true);
   };
 
+  const handleDeleteLessonDraft = (lesson: LessonMeta) => {
+    deleteLessonDraft(lesson.slug);
+    setLessons(getAllLessons());
+  };
+
+  const handleRestoreLessonDraft = (lesson: LessonMeta) => {
+    restoreLessonDraft(lesson.slug);
+    setLessons(getAllLessons());
+  };
+
   const handleCreateCourse = () => {
     if (titleValidationError) {
       setHasTouchedTitle(true);
@@ -931,7 +1010,7 @@ export default function AdminPage() {
 
     const nextOrder = Math.max(0, ...lessons.map((lesson) => lesson.order)) + 1;
 
-    saveCustomCourse({
+    saveLessonMetadataDraft({
       ...formData,
       slug: generatedSlug,
       order: nextOrder,
@@ -943,7 +1022,7 @@ export default function AdminPage() {
       editableJs: 'console.log("Hello World");',
     });
 
-    setLessonsVersion((version) => version + 1);
+    setLessons(getAllLessons());
     setIsModalOpen(false);
     navigate(`/lessons/${generatedSlug}`);
   };
@@ -993,13 +1072,9 @@ export default function AdminPage() {
       order: index + 1,
     }));
 
-    if (haveLessonsChangedFromDefault(nextLessons, defaultLessons)) {
-      nextLessons.forEach((lesson) => saveCustomCourse(lesson));
-    } else {
-      clearAllCustomData();
-    }
+    nextLessons.forEach((lesson) => saveLessonMetadataDraft(lesson));
 
-    setLessonsVersion((version) => version + 1);
+    setLessons(getAllLessons());
   };
 
   const handleLessonDragCancel = () => {
@@ -1015,36 +1090,42 @@ export default function AdminPage() {
 
     try {
       await generateCoursesZip(
-        displayedLessons.map((lesson) => ({
-          course: lesson,
-          tasks: getLessonTasksSync(lesson.slug),
-        })),
+        displayedLessons
+          .filter((lesson) => !lesson.deleted)
+          .map((lesson) => ({
+            course: lesson,
+            tasks: getLessonTasksSync(lesson.slug),
+          })),
         "lessons.zip",
       );
       clearAllCustomData();
-      setLessonsVersion((version) => version + 1);
+      setLessons(getAllLessons());
     } finally {
       setIsDownloadingLessonChanges(false);
     }
   };
 
-  const handleDownloadEditedLesson = async () => {
+  const handleDiscardLessonChanges = () => {
+    if (!hasLessonChanges || isDownloadingLessonChanges) return;
+
+    clearAllCustomData();
+    setLessons(getAllLessons());
+  };
+
+  const handleSaveEditedLessonMetadata = () => {
     if (!editingLesson) return;
     if (titleValidationError) {
       setHasTouchedTitle(true);
       return;
     }
 
-    await generateCourseZip(
-      {
-        ...editingLesson,
-        ...formData,
-        slug: generatedSlug,
-        order: editingLesson.order,
-      },
-      getLessonTasksSync(editingLesson.slug),
-    );
-
+    saveLessonMetadataDraft({
+      ...editingLesson,
+      ...formData,
+      slug: editingLesson.slug,
+      order: editingLesson.order,
+    });
+    setLessons(getAllLessons());
     setIsModalOpen(false);
   };
 
@@ -1145,9 +1226,23 @@ export default function AdminPage() {
             <div className="admin-panel-header">
               <div>
                 <h1>Lessons</h1>
-                <p>{displayedLessons.length} lessons available</p>
+                <p>
+                  {displayedLessons.length} lessons available
+                  {changedLessonSummaries.length > 0
+                    ? `, ${changedLessonSummaries.length} with draft changes`
+                    : ""}
+                </p>
               </div>
               <div className="admin-panel-header-actions">
+                <button
+                  type="button"
+                  onClick={handleDiscardLessonChanges}
+                  className="admin-row-button"
+                  disabled={!hasLessonChanges || isDownloadingLessonChanges}
+                >
+                  <RotateCcw size={16} />
+                  Discard drafts
+                </button>
                 <button
                   type="button"
                   onClick={handleDownloadLessonChanges}
@@ -1155,7 +1250,7 @@ export default function AdminPage() {
                   disabled={!hasLessonChanges || isDownloadingLessonChanges}
                 >
                   <Download size={16} />
-                  Download
+                  Download drafts
                 </button>
                 <button
                   type="button"
@@ -1189,7 +1284,16 @@ export default function AdminPage() {
                     <SortableLessonCard
                       key={lesson.slug}
                       lesson={lesson}
+                      summary={
+                        lessonDraftSummariesBySlug.get(lesson.slug) ?? {
+                          lesson,
+                          status: "unchanged",
+                          changes: [],
+                        }
+                      }
                       onEdit={openEditModal}
+                      onDelete={handleDeleteLessonDraft}
+                      onRestore={handleRestoreLessonDraft}
                     />
                   ))}
                 </div>
@@ -1203,6 +1307,31 @@ export default function AdminPage() {
                 ) : null}
               </DragOverlay>
             </DndContext>
+
+            <section className="admin-lesson-changelog">
+              <div className="admin-lesson-changelog-heading">
+                Draft changelog
+              </div>
+              {changedLessonSummaries.length > 0 ? (
+                <ul>
+                  {changedLessonSummaries.map((summary) => (
+                    <li key={summary.lesson.slug}>
+                      <span className={`admin-change-tag is-${summary.status}`}>
+                        {summary.status === "added" ? "Added" : "Changed"}
+                      </span>
+                      <strong>{summary.lesson.title}</strong>
+                      <span className="admin-muted">
+                        {summary.changes.join(", ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="admin-muted">
+                  No local lesson drafts. Built assets are unchanged.
+                </p>
+              )}
+            </section>
           </section>
         )}
 
@@ -1542,7 +1671,7 @@ export default function AdminPage() {
                 onClick={
                   lessonModalMode === "create"
                     ? handleCreateCourse
-                    : handleDownloadEditedLesson
+                    : handleSaveEditedLessonMetadata
                 }
                 className="btn-primary"
                 disabled={Boolean(titleValidationError)}
@@ -1554,8 +1683,8 @@ export default function AdminPage() {
                   </>
                 ) : (
                   <>
-                    <Download size={16} />
-                    Download
+                    <Edit3 size={16} />
+                    Save draft
                   </>
                 )}
               </button>

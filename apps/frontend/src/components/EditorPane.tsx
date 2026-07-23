@@ -1,13 +1,15 @@
 import { Editor, type OnMount } from "@monaco-editor/react";
 import { type TaskCode } from "@/lib/helpers/getTasks";
-import { useState, useMemo, useRef, useEffect, type ComponentType } from "react";
+import {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  type ComponentType,
+} from "react";
 import { useAuth } from "@/lib/ctx/useAuth";
-import { useNavigate } from "react-router";
 import SubmitButton from "./SubmitButton";
 import LoadingSpinner from "./LoadingSpinner";
-import { getCustomCourses, clearCustomData } from "@/lib/helpers/adminStorage";
-import { generateCourseZip } from "@/lib/helpers/zipGenerator";
-import { getLessonTasksSync } from "@/lib/helpers/getTasks";
 import "@/styles/editor.css";
 import "visualeditor-html-css/style.css";
 import * as monaco from "monaco-editor";
@@ -15,9 +17,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Download,
   Plus,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import { useTheme } from "@/lib/ctx/useTheme";
 import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
@@ -44,10 +46,43 @@ export interface EditorPaneProps {
   currentTaskId?: string;
   onAddTask?: () => void;
   onResetTask?: () => void;
-  lessonSlug?: string;
+  onDeleteTask?: () => void;
 }
 
 type Tab = "html" | "css" | "js";
+type AdminAssetField =
+  | "editableHtml"
+  | "editableCss"
+  | "editableJs"
+  | "readonlyHtml"
+  | "readonlyCss"
+  | "readonlyJs"
+  | "hiddenHtml"
+  | "hiddenCss"
+  | "hiddenJs"
+  | "solutionHtml"
+  | "solutionCss"
+  | "solutionJs";
+
+const ADMIN_ASSET_TABS: {
+  field: AdminAssetField;
+  label: string;
+  language: Tab;
+}[] = [
+  { field: "editableHtml", label: "editable.html", language: "html" },
+  { field: "editableCss", label: "editable.css", language: "css" },
+  { field: "editableJs", label: "editable.js", language: "js" },
+  { field: "readonlyHtml", label: "readonly.html", language: "html" },
+  { field: "readonlyCss", label: "readonly.css", language: "css" },
+  { field: "readonlyJs", label: "readonly.js", language: "js" },
+  { field: "hiddenHtml", label: "hidden.html", language: "html" },
+  { field: "hiddenCss", label: "hidden.css", language: "css" },
+  { field: "hiddenJs", label: "hidden.js", language: "js" },
+  { field: "solutionHtml", label: "solution.html", language: "html" },
+  { field: "solutionCss", label: "solution.css", language: "css" },
+  { field: "solutionJs", label: "solution.js", language: "js" },
+];
+
 const getFirstPreferredTab = (task: Partial<TaskCode>): Tab => {
   if (task.editableHtml !== undefined) return "html";
   if (task.editableCss !== undefined) return "css";
@@ -74,16 +109,22 @@ export default function EditorPane({
   currentTaskId,
   onAddTask,
   onResetTask,
-  lessonSlug,
+  onDeleteTask,
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<Tab>(() =>
     getFirstPreferredTab(task),
   );
+  const [activeAdminField, setActiveAdminField] = useState<AdminAssetField>(
+    () =>
+      ADMIN_ASSET_TABS.find((tab) => task[tab.field] !== undefined)?.field ??
+      "editableHtml",
+  );
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof monaco | null>(null);
   const lastValidValueRef = useRef("");
-  const [VisualEditorComponent, setVisualEditorComponent] = useState<ComponentType<VisualEditorProps> | null>(null);
-  const navigate = useNavigate();
+  const lastAdminTaskIndexRef = useRef(currentIndex);
+  const [VisualEditorComponent, setVisualEditorComponent] =
+    useState<ComponentType<VisualEditorProps> | null>(null);
   const { theme } = useTheme();
   const { visualEditorEnabled, setVisualEditorAvailable } = useUiPreferences();
 
@@ -100,7 +141,8 @@ export default function EditorPane({
     readonlyHtml !== undefined || task?.editableHtml !== undefined;
   const hasCssSource =
     readonlyCss !== undefined || task?.editableCss !== undefined;
-  const hasJsSource = readonlyJs !== undefined || task?.editableJs !== undefined;
+  const hasJsSource =
+    readonlyJs !== undefined || task?.editableJs !== undefined;
 
   const isHtmlTabDisabled = !hasHtmlSource;
   const isCssTabDisabled = !hasCssSource;
@@ -119,8 +161,15 @@ export default function EditorPane({
               ? "js"
               : "html";
   const visualEditorAvailable = hasEditableHtmlFile || hasEditableCssFile;
+  const activeAdminTab =
+    ADMIN_ASSET_TABS.find((tab) => tab.field === activeAdminField) ??
+    ADMIN_ASSET_TABS[0];
+  const editorLanguage = isAdmin ? activeAdminTab.language : activeTab;
   const showVisualEditor =
-    visualEditorEnabled && visualEditorAvailable && activeTab !== "js";
+    !isAdmin &&
+    visualEditorEnabled &&
+    visualEditorAvailable &&
+    activeTab !== "js";
 
   useEffect(() => {
     setVisualEditorAvailable(visualEditorAvailable);
@@ -155,35 +204,28 @@ export default function EditorPane({
   }, [currentIndex, preferredTab]);
 
   useEffect(() => {
+    if (!isAdmin) return;
+    if (lastAdminTaskIndexRef.current === currentIndex) return;
+
+    const firstExistingTab =
+      ADMIN_ASSET_TABS.find((tab) => task[tab.field] !== undefined) ??
+      ADMIN_ASSET_TABS[0];
+    lastAdminTaskIndexRef.current = currentIndex;
+    setActiveAdminField(firstExistingTab.field);
+  }, [currentIndex, isAdmin, task]);
+
+  useEffect(() => {
     if (activeTab === "html" && hasHtmlSource) return;
     if (activeTab === "css" && hasCssSource) return;
     if (activeTab === "js" && hasJsSource) return;
     setActiveTab(preferredTab);
   }, [activeTab, hasHtmlSource, hasCssSource, hasJsSource, preferredTab]);
 
-  const handleDownloadZip = async () => {
-    if (!lessonSlug) return;
-
-    const courses = getCustomCourses();
-    const course = courses.find((c) => c.slug === lessonSlug);
-    if (!course) {
-      return;
+  const content = useMemo(() => {
+    if (isAdmin) {
+      return task[activeAdminField] ?? "";
     }
 
-    const tasks = getLessonTasksSync(lessonSlug);
-    await generateCourseZip(course, tasks);
-
-    clearCustomData(lessonSlug);
-    navigate("/admin");
-  };
-
-  const handleDiscard = async () => {
-    if (!lessonSlug) return;
-    clearCustomData(lessonSlug);
-    navigate("/admin");
-  };
-
-  const content = useMemo(() => {
     const r =
       activeTab === "html"
         ? readonlyHtml
@@ -197,9 +239,19 @@ export default function EditorPane({
           ? task?.editableCss
           : task?.editableJs;
     return (r || "") + (e || "");
-  }, [activeTab, readonlyHtml, readonlyCss, readonlyJs, task]);
+  }, [
+    activeAdminField,
+    activeTab,
+    isAdmin,
+    readonlyHtml,
+    readonlyCss,
+    readonlyJs,
+    task,
+  ]);
 
   const readonlyLinesCount = useMemo(() => {
+    if (isAdmin) return 0;
+
     const r =
       activeTab === "html"
         ? readonlyHtml
@@ -208,7 +260,7 @@ export default function EditorPane({
           : readonlyJs;
     if (!r) return 0;
     return r.split("\n").length;
-  }, [activeTab, readonlyHtml, readonlyCss, readonlyJs]);
+  }, [activeTab, isAdmin, readonlyHtml, readonlyCss, readonlyJs]);
 
   const editableSource =
     activeTab === "html"
@@ -217,7 +269,9 @@ export default function EditorPane({
         ? task?.editableCss
         : task?.editableJs;
 
-  const isFileFullyReadonly = editableSource === undefined;
+  const isTaskDeleted = Boolean(task.deleted);
+  const isFileFullyReadonly =
+    isTaskDeleted || (!isAdmin && editableSource === undefined);
 
   useEffect(() => {
     lastValidValueRef.current = content.replace(/\r\n/g, "\n");
@@ -241,8 +295,10 @@ export default function EditorPane({
     updateDecorations(editor, monacoInstance, readonlyLinesCount);
   }, [content, readonlyLinesCount, showVisualEditor]);
 
-  const mergeReadonlyWithEditable = (readonlyPart?: string, editablePart?: string) =>
-    `${readonlyPart || ""}${editablePart || ""}`;
+  const mergeReadonlyWithEditable = (
+    readonlyPart?: string,
+    editablePart?: string,
+  ) => `${readonlyPart || ""}${editablePart || ""}`;
 
   const splitReadonlyFromEditable = (
     nextValue: string,
@@ -303,6 +359,12 @@ export default function EditorPane({
     const val = value || "";
     const normalizedVal = val.replace(/\r\n/g, "\n");
 
+    if (isAdmin && !isTaskDeleted) {
+      onTaskChange(activeAdminField, normalizedVal);
+      lastValidValueRef.current = normalizedVal;
+      return;
+    }
+
     const r =
       activeTab === "html"
         ? readonlyHtml
@@ -355,39 +417,57 @@ export default function EditorPane({
   const isCompleted = currentTaskId && completedTasks?.has(currentTaskId);
 
   return (
-    <div className="editor-pane">
+    <div className={`editor-pane ${isTaskDeleted ? "is-task-deleted" : ""}`}>
       <div className="editor-tabs editor-tabs-row">
         <div className="editor-tab-list">
-          <button
-            className={`tab ${activeTab === "html" ? "active" : ""}`}
-            onClick={() => setActiveTab("html")}
-            disabled={isHtmlTabDisabled}
-            style={
-              isHtmlTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
-          >
-            index.html
-          </button>
-          <button
-            className={`tab ${activeTab === "css" ? "active" : ""}`}
-            onClick={() => setActiveTab("css")}
-            disabled={isCssTabDisabled}
-            style={
-              isCssTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
-          >
-            styles.css
-          </button>
-          <button
-            className={`tab ${activeTab === "js" ? "active" : ""}`}
-            onClick={() => setActiveTab("js")}
-            disabled={isJsTabDisabled}
-            style={
-              isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
-          >
-            script.js
-          </button>
+          {isAdmin ? (
+            ADMIN_ASSET_TABS.map((tab) => (
+              <button
+                key={tab.field}
+                className={`tab ${activeAdminField === tab.field ? "active" : ""}`}
+                onClick={() => setActiveAdminField(tab.field)}
+              >
+                {tab.label}
+              </button>
+            ))
+          ) : (
+            <>
+              <button
+                className={`tab ${activeTab === "html" ? "active" : ""}`}
+                onClick={() => setActiveTab("html")}
+                disabled={isHtmlTabDisabled}
+                style={
+                  isHtmlTabDisabled
+                    ? { opacity: 0.3, cursor: "not-allowed" }
+                    : {}
+                }
+              >
+                index.html
+              </button>
+              <button
+                className={`tab ${activeTab === "css" ? "active" : ""}`}
+                onClick={() => setActiveTab("css")}
+                disabled={isCssTabDisabled}
+                style={
+                  isCssTabDisabled
+                    ? { opacity: 0.3, cursor: "not-allowed" }
+                    : {}
+                }
+              >
+                styles.css
+              </button>
+              <button
+                className={`tab ${activeTab === "js" ? "active" : ""}`}
+                onClick={() => setActiveTab("js")}
+                disabled={isJsTabDisabled}
+                style={
+                  isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+                }
+              >
+                script.js
+              </button>
+            </>
+          )}
         </div>
         <div className="editor-tab-controls">
           {showSubmitButton && <SubmitButton onClick={onSubmit} />}
@@ -398,7 +478,10 @@ export default function EditorPane({
         {showVisualEditor ? (
           VisualEditorComponent ? (
             <VisualEditorComponent
-              content={mergeReadonlyWithEditable(readonlyHtml, task.editableHtml)}
+              content={mergeReadonlyWithEditable(
+                readonlyHtml,
+                task.editableHtml,
+              )}
               setContent={(value) => {
                 const currentValue = mergeReadonlyWithEditable(
                   readonlyHtml,
@@ -408,10 +491,17 @@ export default function EditorPane({
                   typeof value === "function" ? value(currentValue) : value;
                 onTaskChange(
                   "editableHtml",
-                  splitReadonlyFromEditable(nextValue, readonlyHtml, task.editableHtml),
+                  splitReadonlyFromEditable(
+                    nextValue,
+                    readonlyHtml,
+                    task.editableHtml,
+                  ),
                 );
               }}
-              cssContent={mergeReadonlyWithEditable(readonlyCss, task.editableCss)}
+              cssContent={mergeReadonlyWithEditable(
+                readonlyCss,
+                task.editableCss,
+              )}
               setCssContent={(value) => {
                 const currentValue = mergeReadonlyWithEditable(
                   readonlyCss,
@@ -421,7 +511,11 @@ export default function EditorPane({
                   typeof value === "function" ? value(currentValue) : value;
                 onTaskChange(
                   "editableCss",
-                  splitReadonlyFromEditable(nextValue, readonlyCss, task.editableCss),
+                  splitReadonlyFromEditable(
+                    nextValue,
+                    readonlyCss,
+                    task.editableCss,
+                  ),
                 );
               }}
               isDark={theme === "dark"}
@@ -434,7 +528,8 @@ export default function EditorPane({
                 width: "100%",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: theme === "dark" ? "var(--color-bg)" : "var(--color-card)",
+                backgroundColor:
+                  theme === "dark" ? "var(--color-bg)" : "var(--color-card)",
               }}
             >
               <LoadingSpinner />
@@ -442,10 +537,12 @@ export default function EditorPane({
           )
         ) : (
           <Editor
-            key={`${activeTab}-${currentIndex}`}
+            key={`${isAdmin ? activeAdminField : activeTab}-${currentIndex}`}
             height="100%"
-            defaultLanguage={activeTab === "js" ? "javascript" : activeTab}
-            language={activeTab === "js" ? "javascript" : activeTab}
+            defaultLanguage={
+              editorLanguage === "js" ? "javascript" : editorLanguage
+            }
+            language={editorLanguage === "js" ? "javascript" : editorLanguage}
             value={content}
             onChange={handleEditorChange}
             onMount={handleEditorMount}
@@ -473,6 +570,7 @@ export default function EditorPane({
           </button>
           <span className="task-counter">
             Task {currentIndex + 1} of {totalTasks}
+            {isTaskDeleted && <span className="task-status-pill">Deleted</span>}
             {onResetTask && (
               <button
                 onClick={onResetTask}
@@ -481,6 +579,27 @@ export default function EditorPane({
                 aria-label="Reset task"
               >
                 <RotateCcw size={14} />
+              </button>
+            )}
+            {isAdmin && onAddTask && (
+              <button
+                onClick={onAddTask}
+                className="task-reset-icon"
+                title="Add task"
+                aria-label="Add task"
+              >
+                <Plus size={14} />
+              </button>
+            )}
+            {isAdmin && onDeleteTask && (
+              <button
+                onClick={onDeleteTask}
+                className="task-reset-icon"
+                title="Delete task"
+                aria-label="Delete task"
+                disabled={isTaskDeleted}
+              >
+                <Trash2 size={14} />
               </button>
             )}
             {isCompleted && (
@@ -495,24 +614,6 @@ export default function EditorPane({
             Next <ArrowRight size={20} style={{ marginLeft: 8 }} />
           </button>
         </div>
-      </div>
-
-      <div className="editor-footer">
-        {isAdmin && (
-          <div className="footer-admin-row">
-            <button onClick={onAddTask} className="btn-ghost">
-              <Plus size={20} style={{ marginRight: 8 }} /> Add task
-            </button>
-            <div className="admin-actions-group">
-              <button onClick={handleDiscard} className="btn-ghost">
-                Discard
-              </button>
-              <button onClick={handleDownloadZip} className="btn-primary">
-                <Download size={20} style={{ marginRight: 8 }} /> Download
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -284,6 +284,96 @@
   white-space: nowrap;
 }
 
+.admin-lesson-change-line {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-change-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.admin-change-tag.is-added {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-card));
+  color: var(--color-primary);
+}
+
+.admin-change-tag.is-changed {
+  border-color: color-mix(in srgb, var(--status-warning-text) 42%, transparent);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.admin-change-tag.is-deleted {
+  border-color: color-mix(in srgb, var(--status-error-text) 42%, transparent);
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+}
+
+.admin-lesson-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.admin-lesson-changelog {
+  flex: 0 0 auto;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+}
+
+.admin-lesson-changelog-heading {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-lesson-changelog ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-lesson-changelog li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--font-size-sm);
+}
+
+.admin-lesson-changelog li strong,
+.admin-lesson-changelog li .admin-muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-lesson-changelog p {
+  margin: 0;
+}
+
 .admin-row-button {
   min-height: 2.25rem;
   padding: 0 var(--space-3);

@@ -54,7 +54,11 @@ export default function ViewSettingsButton() {
       </button>
 
       {isOpen && (
-        <div className="settings-popover" role="dialog" aria-label="Visual tools settings">
+        <div
+          className="settings-popover"
+          role="dialog"
+          aria-label="Visual tools settings"
+        >
           <label className="settings-option">
             <span>Visual editor</span>
             <input
@@ -75,7 +79,9 @@ export default function ViewSettingsButton() {
             <input
               type="checkbox"
               checked={visualPreviewEnabled}
-              onChange={(event) => setVisualPreviewEnabled(event.target.checked)}
+              onChange={(event) =>
+                setVisualPreviewEnabled(event.target.checked)
+              }
             />
           </label>
         </div>

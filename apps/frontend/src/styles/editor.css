@@ -187,6 +187,26 @@
   background: var(--color-bg);
 }
 
+.task-reset-icon:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.task-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.375rem;
+  padding: 0 var(--space-2);
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--status-error-text) 42%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
 .monaco-editor .readonly-line {
   background: var(--editor-readonly-line-bg);
   pointer-events: none;

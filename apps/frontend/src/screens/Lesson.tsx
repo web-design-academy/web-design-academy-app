@@ -10,7 +10,15 @@ import PreviewPane from "@/components/PreviewPane";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
 import { getLessonMeta } from "@/lib/helpers/getLessons";
-import { getLessonTasksSync, type TaskCode } from "@/lib/helpers/getTasks";
+import {
+  getDefaultLessonTasksSync,
+  getLessonTasksSync,
+  type TaskCode,
+} from "@/lib/helpers/getTasks";
+import {
+  isAddedLessonDraft,
+  saveLessonTasksDraft,
+} from "@/lib/helpers/lessonDrafts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   submitSolution,
@@ -67,35 +75,34 @@ export default function Lesson() {
   useEffect(() => {
     if (!slug) return;
 
-    let cancelled = false;
+    const addedDraft = isAddedLessonDraft(slug);
+    setIsNew(addedDraft);
 
-    import("@/lib/helpers/adminStorage").then((m) => {
-      if (cancelled) return;
+    if (!addedDraft) {
+      const sourceFolder = lessonMeta?.sourceFolder ?? slug;
+      setLessonContent(
+        lazy(() => import(`../lessons/${sourceFolder}/index.mdx`)),
+      );
+    } else {
+      setLessonContent(null);
+    }
 
-      const customCourse = m.isCustomCourse(slug);
-      setIsNew(customCourse);
-
-      if (!customCourse) {
-        setLessonContent(lazy(() => import(`../lessons/${slug}/index.mdx`)));
-      } else {
-        setLessonContent(null);
-      }
-    });
-
-    const localTasks = getLessonTasksSync(slug);
+    const localTasks = getLessonTasksSync(slug).filter(
+      (task) => isAdmin || !task.deleted,
+    );
     setTasks(localTasks);
     setTaskStates(
-      localTasks.map((t) => ({
-        editableHtml: t.editableHtml,
-        editableCss: t.editableCss,
-        editableJs: t.editableJs,
-      })),
+      localTasks.map((task) =>
+        isAdmin
+          ? { ...task }
+          : {
+              editableHtml: task.editableHtml,
+              editableCss: task.editableCss,
+              editableJs: task.editableJs,
+            },
+      ),
     );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
+  }, [isAdmin, lessonMeta?.sourceFolder, slug]);
 
   useEffect(() => {
     const onResize = () => {
@@ -246,7 +253,8 @@ export default function Lesson() {
 
   if (isNew === null || isLoadingSubmission) return <LoadingSpinner />;
   if (!lessonMeta && !isNew) return <Navigate to="/" />;
-  if (lessonMeta?.hidden && !isNew) return <Navigate to="/" />;
+  if (lessonMeta?.hidden && !isAdmin && !isNew) return <Navigate to="/" />;
+  if (lessonMeta?.deleted && !isAdmin) return <Navigate to="/" />;
   if (!tasks.length) return <Navigate to={isNew ? "/admin" : "/"} />;
 
   const currentTask = tasks[currentTaskIndex];
@@ -254,6 +262,14 @@ export default function Lesson() {
   const currentTaskId = (currentTaskIndex + 1).toString();
 
   if (!currentTask) return <Navigate to={isNew ? "/admin" : "/"} />;
+
+  const effectiveTask = {
+    ...currentTask,
+    ...currentTaskState,
+  };
+  const previewTask: Partial<TaskCode> = effectiveTask.deleted
+    ? {}
+    : effectiveTask;
 
   const srcDoc = `
   <!DOCTYPE html>
@@ -265,19 +281,19 @@ export default function Lesson() {
       >
       <style>
         * {margin: 0; padding: 0;}
-        ${currentTask?.hiddenCss || ""}
-        ${currentTask?.readonlyCss || ""}
-        ${currentTaskState?.editableCss || ""}
+        ${previewTask?.hiddenCss || ""}
+        ${previewTask?.readonlyCss || ""}
+        ${previewTask?.editableCss || ""}
       </style>
     </head>
     <body>
-      ${currentTask?.hiddenHtml || ""}
-      ${currentTask?.readonlyHtml || ""}
-      ${currentTaskState?.editableHtml || ""}
+      ${previewTask?.hiddenHtml || ""}
+      ${previewTask?.readonlyHtml || ""}
+      ${previewTask?.editableHtml || ""}
       <script>
-        ${currentTask?.hiddenJs || ""}
-        ${currentTask?.readonlyJs || ""}
-        ${currentTaskState?.editableJs || ""}
+        ${previewTask?.hiddenJs || ""}
+        ${previewTask?.readonlyJs || ""}
+        ${previewTask?.editableJs || ""}
       </script>
     </body>
   </html>
@@ -303,9 +319,7 @@ export default function Lesson() {
           ...tasks[idx],
           ...state,
         }));
-        import("@/lib/helpers/adminStorage").then((m) => {
-          m.saveCustomTasks(slug, persisted);
-        });
+        saveLessonTasksDraft(slug, persisted);
       }
       return updated;
     });
@@ -318,12 +332,18 @@ export default function Lesson() {
           return s;
         }
 
-        return {
-          ...s,
-          editableHtml: tasks[idx].editableHtml,
-          editableCss: tasks[idx].editableCss,
-          editableJs: tasks[idx].editableJs,
-        };
+        const defaultTask = slug
+          ? getDefaultLessonTasksSync(slug)[idx]
+          : undefined;
+
+        return isAdmin
+          ? { ...(defaultTask ?? tasks[idx]) }
+          : {
+              ...s,
+              editableHtml: tasks[idx].editableHtml,
+              editableCss: tasks[idx].editableCss,
+              editableJs: tasks[idx].editableJs,
+            };
       });
 
       if (isAdmin && slug && !loadedSubmission) {
@@ -331,9 +351,7 @@ export default function Lesson() {
           ...tasks[idx],
           ...state,
         }));
-        import("@/lib/helpers/adminStorage").then((m) => {
-          m.saveCustomTasks(slug, persisted);
-        });
+        saveLessonTasksDraft(slug, persisted);
       }
       return updated;
     });
@@ -346,30 +364,29 @@ export default function Lesson() {
   const addTask = () => {
     if (!isAdmin || !slug) return;
 
-    import("@/lib/helpers/adminStorage").then((m) => {
-      if (!m.isCustomCourse(slug)) {
-        import("@/lib/helpers/getLessons").then((l) => {
-          const lessons = l.getLessons();
-          const currentMeta = lessons.find((c) => c.slug === slug);
-          if (currentMeta) {
-            m.saveCustomCourse(currentMeta);
-          }
-        });
-      }
+    const newTask: Partial<TaskCode> = {
+      editableHtml: "<h1>New Task</h1>\n<p>Start editing...</p>",
+      editableCss: "h1 { color: blue; }",
+      editableJs: 'console.log("Hello World");',
+    };
+    const updatedTasks = [...tasks, newTask];
+    const updatedTaskStates = [...taskStates, newTask];
+    setTasks(updatedTasks);
+    setTaskStates(updatedTaskStates);
+    setCurrentTaskIndex(updatedTasks.length - 1);
 
-      const newTask: Partial<TaskCode> = {
-        editableHtml: "<h1>New Task</h1>\n<p>Start editing...</p>",
-        editableCss: "h1 { color: blue; }",
-        editableJs: 'console.log("Hello World");',
-      };
-      const updatedTasks = [...tasks, newTask];
-      const updatedTaskStates = [...taskStates, newTask];
-      setTasks(updatedTasks);
-      setTaskStates(updatedTaskStates);
-      setCurrentTaskIndex(updatedTasks.length - 1);
+    saveLessonTasksDraft(slug, updatedTaskStates);
+  };
 
-      m.saveCustomTasks(slug, updatedTaskStates);
-    });
+  const deleteTask = () => {
+    if (!isAdmin || !slug) return;
+
+    const updatedTaskStates = taskStates.map((state, index) =>
+      index === currentTaskIndex ? { ...state, deleted: true } : state,
+    );
+
+    setTaskStates(updatedTaskStates);
+    saveLessonTasksDraft(slug, updatedTaskStates);
   };
 
   const handleSubmit = async (cssOverride?: string) => {
@@ -415,36 +432,36 @@ export default function Lesson() {
                   totalTasks={tasks.length}
                   onTaskChange={updateTask}
                   onChangeTask={(idx: number) => setCurrentTaskIndex(idx)}
-                  readonlyHtml={currentTask?.readonlyHtml}
-                  readonlyCss={currentTask?.readonlyCss}
-                  readonlyJs={currentTask?.readonlyJs}
+                  readonlyHtml={effectiveTask?.readonlyHtml}
+                  readonlyCss={effectiveTask?.readonlyCss}
+                  readonlyJs={effectiveTask?.readonlyJs}
                   onSubmit={handleSubmit}
                   completedTasks={completedTasks}
                   currentTaskId={currentTaskId}
                   onAddTask={addTask}
                   onResetTask={resetTask}
-                  lessonSlug={slug}
+                  onDeleteTask={deleteTask}
                 />
               </section>
 
               <section className="lesson-mobile-preview">
                 <PreviewPane
                   html={srcDoc}
-                  visualHtml={`${currentTask?.hiddenHtml || ""}${currentTask?.readonlyHtml || ""}${currentTaskState?.editableHtml || ""}`}
-                  visualCss={`${currentTask?.hiddenCss || ""}\n${currentTask?.readonlyCss || ""}\n${currentTaskState?.editableCss || ""}`}
-                  solutionCss={`${currentTask?.hiddenCss || ""}\n${currentTask?.readonlyCss || ""}\n${currentTask?.solutionCss || ""}`}
+                  visualHtml={`${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`}
+                  visualCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                  solutionCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.solutionCss || ""}`}
                   solutionHtml={
-                    currentTask?.solutionHtml !== undefined
-                      ? `${currentTask?.hiddenHtml || ""}${currentTask?.readonlyHtml || ""}${currentTask?.solutionHtml || ""}`
-                      : `${currentTask?.hiddenHtml || ""}${currentTask?.readonlyHtml || ""}${currentTask?.editableHtml || ""}`
+                    previewTask?.solutionHtml !== undefined
+                      ? `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.solutionHtml || ""}`
+                      : `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`
                   }
-                  initialCss={`${currentTask?.hiddenCss || ""}\n${currentTask?.readonlyCss || ""}\n${currentTask?.editableCss || ""}`}
-                  targetSelectors={currentTask?.targetSelectors}
-                  checks={currentTask?.checks}
+                  initialCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                  targetSelectors={previewTask?.targetSelectors}
+                  checks={previewTask?.checks}
                   visualPreviewSupported={
-                    !currentTask?.hiddenJs &&
-                    !currentTask?.readonlyJs &&
-                    !currentTaskState?.editableJs
+                    !previewTask?.hiddenJs &&
+                    !previewTask?.readonlyJs &&
+                    !previewTask?.editableJs
                   }
                 />
               </section>
@@ -483,15 +500,15 @@ export default function Lesson() {
                     totalTasks={tasks.length}
                     onTaskChange={updateTask}
                     onChangeTask={(idx: number) => setCurrentTaskIndex(idx)}
-                    readonlyHtml={currentTask?.readonlyHtml}
-                    readonlyCss={currentTask?.readonlyCss}
-                    readonlyJs={currentTask?.readonlyJs}
+                    readonlyHtml={effectiveTask?.readonlyHtml}
+                    readonlyCss={effectiveTask?.readonlyCss}
+                    readonlyJs={effectiveTask?.readonlyJs}
                     onSubmit={handleSubmit}
                     completedTasks={completedTasks}
                     currentTaskId={currentTaskId}
                     onAddTask={addTask}
                     onResetTask={resetTask}
-                    lessonSlug={slug}
+                    onDeleteTask={deleteTask}
                   />
                 </Resizable>
 
@@ -501,21 +518,21 @@ export default function Lesson() {
                 >
                   <PreviewPane
                     html={srcDoc}
-                    visualHtml={`${currentTask?.hiddenHtml || ""}${currentTask?.readonlyHtml || ""}${currentTaskState?.editableHtml || ""}`}
-                    visualCss={`${currentTask?.hiddenCss || ""}\n${currentTask?.readonlyCss || ""}\n${currentTaskState?.editableCss || ""}`}
-                    solutionCss={`${currentTask?.hiddenCss || ""}\n${currentTask?.readonlyCss || ""}\n${currentTask?.solutionCss || ""}`}
+                    visualHtml={`${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`}
+                    visualCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                    solutionCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.solutionCss || ""}`}
                     solutionHtml={
-                      currentTask?.solutionHtml !== undefined
-                        ? `${currentTask?.hiddenHtml || ""}${currentTask?.readonlyHtml || ""}${currentTask?.solutionHtml || ""}`
-                        : `${currentTask?.hiddenHtml || ""}${currentTask?.readonlyHtml || ""}${currentTask?.editableHtml || ""}`
+                      previewTask?.solutionHtml !== undefined
+                        ? `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.solutionHtml || ""}`
+                        : `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`
                     }
-                    initialCss={`${currentTask?.hiddenCss || ""}\n${currentTask?.readonlyCss || ""}\n${currentTask?.editableCss || ""}`}
-                    targetSelectors={currentTask?.targetSelectors}
-                    checks={currentTask?.checks}
+                    initialCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                    targetSelectors={previewTask?.targetSelectors}
+                    checks={previewTask?.checks}
                     visualPreviewSupported={
-                      !currentTask?.hiddenJs &&
-                      !currentTask?.readonlyJs &&
-                      !currentTaskState?.editableJs
+                      !previewTask?.hiddenJs &&
+                      !previewTask?.readonlyJs &&
+                      !previewTask?.editableJs
                     }
                   />
                 </div>

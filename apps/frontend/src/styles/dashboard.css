@@ -71,11 +71,36 @@
 }
 
 .course-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin: 0 0 var(--space-1);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   line-height: 1.3;
+}
+
+.course-hidden-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.course-hidden-pill.is-deleted {
+  border-color: color-mix(in srgb, var(--status-error-text) 42%, transparent);
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+  opacity: 1;
 }
 
 .course-description {

@@ -1,4 +1,5 @@
 import { getCustomTasks } from "./adminStorage";
+import { getLessonSourceFolder } from "./getLessons";
 
 export interface TaskCode {
   editableHtml: string;
@@ -14,7 +15,8 @@ export interface TaskCode {
   solutionCss?: string;
   solutionJs?: string;
   targetSelectors?: string[];
-  checks?: any[];
+  checks?: unknown[];
+  deleted?: boolean;
 }
 
 const allModules = import.meta.glob<string>(
@@ -22,13 +24,16 @@ const allModules = import.meta.glob<string>(
   { query: "raw", import: "default", eager: true },
 );
 
-export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
+export function getDefaultLessonTasksSync(
+  lessonSlug: string,
+): Partial<TaskCode>[] {
   const tasksMap: Record<string, Partial<TaskCode>> = {};
+  const sourceFolder = getLessonSourceFolder(lessonSlug) ?? lessonSlug;
 
   for (const path in allModules) {
     if (
-      !path.includes(`/lessons/${lessonSlug}/tasks/`) &&
-      !path.includes(`\\lessons\\${lessonSlug}\\tasks\\`)
+      !path.includes(`/lessons/${sourceFolder}/tasks/`) &&
+      !path.includes(`\\lessons\\${sourceFolder}\\tasks\\`)
     )
       continue;
 
@@ -67,9 +72,13 @@ export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
       tasksMap[taskId].solutionJs = content;
   }
 
-  const fileTasks = Object.keys(tasksMap)
+  return Object.keys(tasksMap)
     .sort((a, b) => parseInt(a) - parseInt(b))
     .map((id) => tasksMap[id]);
+}
+
+export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
+  const fileTasks = getDefaultLessonTasksSync(lessonSlug);
 
   const customTasks = getCustomTasks(lessonSlug);
 

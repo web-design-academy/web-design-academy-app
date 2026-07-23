@@ -227,7 +227,8 @@ function parseOptionalTagId(value) {
 }
 
 function normalizeTagName(value) {
-  const name = typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+  const name =
+    typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
 
   if (name.length > 32 || !tagNamePattern.test(name)) {
     return null;
@@ -270,7 +271,9 @@ function hydrateUserTags(users) {
 
 function hydrateSubmissionUserTags(submissions) {
   const userIds = Array.from(
-    new Set(submissions.map((submission) => submission.user_id).filter(Boolean)),
+    new Set(
+      submissions.map((submission) => submission.user_id).filter(Boolean),
+    ),
   );
 
   if (userIds.length === 0) {
@@ -502,7 +505,9 @@ app.get("/api/admin/tags", authenticateToken, requireAdmin, (_req, res) => {
 function parseUserIdList(value) {
   if (!Array.isArray(value)) return null;
 
-  const ids = [...new Set(value.map((id) => String(id).trim()).filter(Boolean))];
+  const ids = [
+    ...new Set(value.map((id) => String(id).trim()).filter(Boolean)),
+  ];
   return ids.length ? ids : null;
 }
 
@@ -550,39 +555,44 @@ app.delete(
   },
 );
 
-app.post("/api/admin/users/tags", authenticateToken, requireAdmin, (req, res) => {
-  const userIds = parseUserIdList(req.body.userIds);
+app.post(
+  "/api/admin/users/tags",
+  authenticateToken,
+  requireAdmin,
+  (req, res) => {
+    const userIds = parseUserIdList(req.body.userIds);
 
-  if (!userIds) {
-    return res.status(400).json({ error: "No users selected" });
-  }
+    if (!userIds) {
+      return res.status(400).json({ error: "No users selected" });
+    }
 
-  const resolved = resolveTagFromPayload(req.body);
-  if (resolved.error) {
-    return res.status(resolved.status || 400).json({ error: resolved.error });
-  }
+    const resolved = resolveTagFromPayload(req.body);
+    if (resolved.error) {
+      return res.status(resolved.status || 400).json({ error: resolved.error });
+    }
 
-  const existingUsers = db
-    .prepare(
-      `SELECT id FROM users WHERE id IN (${userIds.map(() => "?").join(",")})`,
-    )
-    .all(...userIds);
+    const existingUsers = db
+      .prepare(
+        `SELECT id FROM users WHERE id IN (${userIds.map(() => "?").join(",")})`,
+      )
+      .all(...userIds);
 
-  if (!existingUsers.length) {
-    return res.status(404).json({ error: "Users not found" });
-  }
+    if (!existingUsers.length) {
+      return res.status(404).json({ error: "Users not found" });
+    }
 
-  const insert = db.prepare(
-    "INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)",
-  );
+    const insert = db.prepare(
+      "INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)",
+    );
 
-  const assignTags = db.transaction((users) => {
-    users.forEach((user) => insert.run(user.id, resolved.tag.id));
-  });
+    const assignTags = db.transaction((users) => {
+      users.forEach((user) => insert.run(user.id, resolved.tag.id));
+    });
 
-  assignTags(existingUsers);
-  res.json({ success: true, tag: resolved.tag });
-});
+    assignTags(existingUsers);
+    res.json({ success: true, tag: resolved.tag });
+  },
+);
 
 app.delete(
   "/api/admin/users/tags/:tagId",
@@ -620,7 +630,9 @@ app.get("/api/admin/users", authenticateToken, requireAdmin, (req, res) => {
     return res.status(400).json({ error: "Invalid tagId" });
   }
 
-  const where = tagId ? "WHERE EXISTS (SELECT 1 FROM user_tags ut WHERE ut.user_id = u.id AND ut.tag_id = ?)" : "";
+  const where = tagId
+    ? "WHERE EXISTS (SELECT 1 FROM user_tags ut WHERE ut.user_id = u.id AND ut.tag_id = ?)"
+    : "";
   const params = tagId ? [tagId] : [];
 
   const total = db
@@ -679,10 +691,9 @@ app.post(
       return res.status(404).json({ error: "Tag not found" });
     }
 
-    db.prepare("INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)").run(
-      req.params.userId,
-      tag.id,
-    );
+    db.prepare(
+      "INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)",
+    ).run(req.params.userId, tag.id);
 
     res.json({ success: true, tag });
   },
@@ -740,7 +751,8 @@ app.post("/api/submissions", authenticateToken, (req, res) => {
 });
 
 app.get("/api/submissions", authenticateToken, requireAdmin, (req, res) => {
-  const hasPagination = req.query.page !== undefined || req.query.pageSize !== undefined;
+  const hasPagination =
+    req.query.page !== undefined || req.query.pageSize !== undefined;
   const page = parsePositiveInteger(req.query.page, 1, 100000);
   const pageSize = parsePositiveInteger(req.query.pageSize, 20, 100);
   const offset = (page - 1) * pageSize;

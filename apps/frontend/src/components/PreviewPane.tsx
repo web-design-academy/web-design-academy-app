@@ -14,7 +14,7 @@ interface VisualPreviewProps {
   solutionHtml?: string;
   initialCss?: string;
   targetSelectors?: string[];
-  checks?: any[];
+  checks?: unknown[];
   showControls?: boolean;
   hideProgress?: boolean;
 }
@@ -28,7 +28,7 @@ interface PreviewPaneProps {
   solutionHtml?: string;
   initialCss?: string;
   targetSelectors?: string[];
-  checks?: any[];
+  checks?: unknown[];
 }
 
 export default function PreviewPane({
@@ -50,7 +50,8 @@ export default function PreviewPane({
   const [showSize, setShowSize] = useState(false);
   const timeoutRef = useRef<number | null>(null);
   const { visualPreviewEnabled } = useUiPreferences();
-  const [VisualPreviewComponent, setVisualPreviewComponent] = useState<ComponentType<VisualPreviewProps> | null>(null);
+  const [VisualPreviewComponent, setVisualPreviewComponent] =
+    useState<ComponentType<VisualPreviewProps> | null>(null);
   const canUseVisualPreview =
     visualPreviewEnabled && visualPreviewSupported && Boolean(visualHtml);
 

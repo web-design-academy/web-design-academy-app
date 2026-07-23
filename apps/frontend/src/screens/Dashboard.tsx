@@ -3,7 +3,11 @@ import { Link } from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
-import { getLessons, type LessonMeta } from "@/lib/helpers/getLessons";
+import {
+  getAllLessons,
+  getLessons,
+  type LessonMeta,
+} from "@/lib/helpers/getLessons";
 import { getLessonTasksSync } from "@/lib/helpers/getTasks";
 import LessonIcon from "@/components/LessonIcon";
 import { useAuth } from "@/lib/ctx/useAuth";
@@ -28,14 +32,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchAllProgress = async () => {
-      const allLessons = getLessons();
+      const allLessons =
+        user?.role === "admin" ? getAllLessons() : getLessons();
 
       if (!isOnlineMode || !showProgress) {
         setLessons(
           allLessons.map((lesson) => ({
             ...lesson,
             progress: 0,
-            taskCount: getLessonTasksSync(lesson.slug).length,
+            taskCount: getLessonTasksSync(lesson.slug).filter(
+              (task) => !task.deleted,
+            ).length,
           })),
         );
         setLoading(false);
@@ -48,7 +55,9 @@ export default function Dashboard() {
             const res = await fetch(`${API_BASE}/progress/${lesson.slug}`);
             const data = await res.json();
             const completedCount = data.completedTaskIds?.length || 0;
-            const taskCount = getLessonTasksSync(lesson.slug).length;
+            const taskCount = getLessonTasksSync(lesson.slug).filter(
+              (task) => !task.deleted,
+            ).length;
 
             const progress =
               taskCount > 0
@@ -61,7 +70,9 @@ export default function Dashboard() {
             return {
               ...lesson,
               progress: 0,
-              taskCount: getLessonTasksSync(lesson.slug).length,
+              taskCount: getLessonTasksSync(lesson.slug).filter(
+                (task) => !task.deleted,
+              ).length,
             };
           }
         }),
@@ -72,7 +83,7 @@ export default function Dashboard() {
     };
 
     fetchAllProgress();
-  }, [isAuthenticated, showProgress]);
+  }, [isAuthenticated, showProgress, user?.role]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -85,7 +96,17 @@ export default function Dashboard() {
 
         <ul className="course-list">
           {pageLessons.map(
-            ({ slug, title, description, color, icon, progress, taskCount }) => (
+            ({
+              slug,
+              title,
+              description,
+              color,
+              icon,
+              hidden,
+              deleted,
+              progress,
+              taskCount,
+            }) => (
               <li key={slug} className="course-row">
                 <div
                   className="course-icon"
@@ -96,7 +117,17 @@ export default function Dashboard() {
                 </div>
 
                 <div className="course-info">
-                  <h2 className="course-name">{title}</h2>
+                  <h2 className="course-name">
+                    {title}
+                    {hidden && user?.role === "admin" && (
+                      <span className="course-hidden-pill">Hidden</span>
+                    )}
+                    {deleted && user?.role === "admin" && (
+                      <span className="course-hidden-pill is-deleted">
+                        Deleted
+                      </span>
+                    )}
+                  </h2>
                   <p className="course-description">{description}</p>
                 </div>
 
