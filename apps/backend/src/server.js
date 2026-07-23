@@ -805,6 +805,33 @@ app.get("/api/submissions", authenticateToken, requireAdmin, (req, res) => {
   });
 });
 
+app.get("/api/submissions/latest/:lessonSlug", authenticateToken, (req, res) => {
+  if (!lessonSlugPattern.test(req.params.lessonSlug)) {
+    return res.status(400).json({ error: "Invalid lesson slug" });
+  }
+
+  const rows = db
+    .prepare(
+      `
+      SELECT *
+      FROM submissions
+      WHERE user_id = ? AND lesson_slug = ?
+      ORDER BY timestamp DESC, id DESC
+    `,
+    )
+    .all(req.user.sub, req.params.lessonSlug);
+
+  const latestByTaskId = new Map();
+
+  rows.forEach((row) => {
+    if (!latestByTaskId.has(row.task_id)) {
+      latestByTaskId.set(row.task_id, row);
+    }
+  });
+
+  res.json({ items: Array.from(latestByTaskId.values()) });
+});
+
 app.get("/api/submissions/:id", authenticateToken, (req, res) => {
   if (!/^\d+$/.test(req.params.id)) {
     return res.status(400).json({ error: "Invalid submission id" });

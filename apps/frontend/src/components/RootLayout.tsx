@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Loader2, LogOut, Menu, X } from "lucide-react";
 import "@/styles/root.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import ViewSettingsButton from "@/components/ViewSettingsButton";
 import { useAuth } from "@/lib/ctx/useAuth";
 import Modal from "@/components/Modal";
 import { isGoogleAuthEnabled } from "@/lib/config/appMode";
@@ -192,6 +191,7 @@ export default function Root() {
               alt="Web Design Academy logo: Academic cap and letters WDA"
               className="logo-image"
             />
+            <span className="logo-text">Web Design Academy</span>
           </Link>
         </div>
 
@@ -221,7 +221,6 @@ export default function Root() {
             />
           ) : null}
 
-          <ViewSettingsButton />
           <ThemeSwitcher />
         </div>
       </header>
@@ -258,11 +257,6 @@ export default function Root() {
               />
             </div>
           ) : null}
-
-          <div className="mobile-row">
-            <span className="mobile-row-label">Visual tools</span>
-            <ViewSettingsButton />
-          </div>
 
           <div className="mobile-row">
             <span className="mobile-row-label">Dark mode</span>

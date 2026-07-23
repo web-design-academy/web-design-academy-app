@@ -100,3 +100,17 @@ export async function fetchSubmissionById(
 
   return response.json();
 }
+
+export async function fetchLatestLessonSubmissions(
+  lessonSlug: string,
+): Promise<{ items: SubmissionRecord[] }> {
+  requireOnlineMode("Submissions");
+
+  const response = await fetch(`${API_BASE}/submissions/latest/${lessonSlug}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch latest submissions");
+  }
+
+  return response.json();
+}

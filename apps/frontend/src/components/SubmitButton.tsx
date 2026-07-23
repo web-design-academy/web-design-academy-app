@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Loader2, Check, X, Send } from "lucide-react";
+import { Loader2, Check, X, Send, RotateCw } from "lucide-react";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 
 interface SubmitButtonProps {
-  onClick: () => Promise<void>;
+  onClick: () => Promise<boolean>;
+  isSubmitted?: boolean;
 }
 
-export default function SubmitButton({ onClick }: SubmitButtonProps) {
+export default function SubmitButton({
+  onClick,
+  isSubmitted = false,
+}: SubmitButtonProps) {
   const [status, setStatus] = useState<SubmitState>("idle");
 
   const handleClick = async () => {
@@ -15,7 +19,12 @@ export default function SubmitButton({ onClick }: SubmitButtonProps) {
 
     setStatus("loading");
     try {
-      await onClick();
+      const submitted = await onClick();
+      if (!submitted) {
+        setStatus("idle");
+        return;
+      }
+
       setStatus("success");
       setTimeout(() => setStatus("idle"), 2000);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -40,11 +49,18 @@ export default function SubmitButton({ onClick }: SubmitButtonProps) {
             ? "#10b981"
             : status === "error"
               ? "#ef4444"
-              : "var(--color-primary)",
+              : isSubmitted
+                ? "#10b981"
+                : "var(--color-primary)",
         cursor: status === "loading" ? "wait" : "pointer",
       }}
     >
-      {status === "idle" && (
+      {status === "idle" && isSubmitted && (
+        <>
+          <RotateCw size={16} /> Resubmit
+        </>
+      )}
+      {status === "idle" && !isSubmitted && (
         <>
           <Send size={16} /> Submit
         </>
@@ -52,7 +68,7 @@ export default function SubmitButton({ onClick }: SubmitButtonProps) {
       {status === "loading" && <Loader2 size={16} className="spin" />}
       {status === "success" && (
         <>
-          <Check size={16} /> Sent!
+          <Check size={16} /> Submitted
         </>
       )}
       {status === "error" && (

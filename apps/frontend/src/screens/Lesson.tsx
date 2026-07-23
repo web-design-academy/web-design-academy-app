@@ -3,12 +3,21 @@ import { Navigate, useParams, useSearchParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import { MDXProvider } from "@mdx-js/react";
 import type { MDXContent } from "mdx/types";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 
 import "@/styles/lesson.css";
 import EditorPane from "@/components/EditorPane";
 import PreviewPane from "@/components/PreviewPane";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
+import LessonIcon from "@/components/LessonIcon";
 import { getLessonMeta } from "@/lib/helpers/getLessons";
 import {
   getDefaultLessonTasksSync,
@@ -21,11 +30,13 @@ import {
 } from "@/lib/helpers/lessonDrafts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  fetchLatestLessonSubmissions,
   submitSolution,
   fetchSubmissionById,
   type SubmissionPayload,
 } from "@/lib/api/submissions";
 import { useAuth } from "@/lib/ctx/useAuth";
+import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
 import { isOnlineMode } from "@/lib/config/appMode";
 import { API_BASE } from "@/lib/api/client";
 
@@ -35,6 +46,12 @@ export default function Lesson() {
   const submissionId = searchParams.get("submissionId");
 
   const { isAuthenticated, user } = useAuth();
+  const {
+    visualEditorEnabled,
+    visualPreviewEnabled,
+    setVisualEditorEnabled,
+    setVisualPreviewEnabled,
+  } = useUiPreferences();
 
   const isAdmin = user?.role === "admin";
   const [isNew, setIsNew] = useState<boolean | null>(null);
@@ -53,11 +70,21 @@ export default function Lesson() {
     enabled: !!submissionId && isOnlineMode,
   });
 
+  const { data: latestLessonSubmissions } = useQuery({
+    queryKey: ["latest-lesson-submissions", slug],
+    queryFn: () => fetchLatestLessonSubmissions(slug!),
+    enabled:
+      !!slug && !submissionId && isOnlineMode && isAuthenticated && !isAdmin,
+  });
+
   const [tasks, setTasks] = useState<Partial<TaskCode>[]>([]);
   const [taskStates, setTaskStates] = useState<Partial<TaskCode>[]>([]);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [editorPercent, setEditorPercent] = useState(45);
   const [topRowPercent, setTopRowPercent] = useState(60);
+  const [isLessonContentHidden, setIsLessonContentHidden] = useState(false);
+  const [isLessonContentAnimating, setIsLessonContentAnimating] =
+    useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 900 : false,
   );
@@ -65,10 +92,14 @@ export default function Lesson() {
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [resetTaskIndex, setResetTaskIndex] = useState(0);
 
   const [LessonContent, setLessonContent] =
     useState<React.LazyExoticComponent<MDXContent> | null>(null);
   const lessonContentRef = useRef<HTMLDivElement | null>(null);
+  const lessonContentAnimationTimeoutRef = useRef<number | undefined>(
+    undefined,
+  );
   const lastAutoFocusKeyRef = useRef("");
   const lessonMeta = slug ? getLessonMeta(slug) : undefined;
 
@@ -105,12 +136,25 @@ export default function Lesson() {
   }, [isAdmin, lessonMeta?.sourceFolder, slug]);
 
   useEffect(() => {
+    setVisualEditorEnabled(false);
+    setVisualPreviewEnabled(false);
+  }, [setVisualEditorEnabled, setVisualPreviewEnabled, slug]);
+
+  useEffect(() => {
     const onResize = () => {
       setIsMobileLayout(window.innerWidth <= 900);
     };
 
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (lessonContentAnimationTimeoutRef.current) {
+        window.clearTimeout(lessonContentAnimationTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -140,6 +184,43 @@ export default function Lesson() {
       }
     }
   }, [loadedSubmission, tasks.length]);
+
+  useEffect(() => {
+    const submissions = latestLessonSubmissions?.items ?? [];
+
+    if (submissions.length === 0 || tasks.length === 0 || submissionId) {
+      return;
+    }
+
+    setTaskStates((prev) =>
+      prev.map((state, index) => {
+        const savedSubmission = submissions.find(
+          (submission) => submission.task_id === String(index + 1),
+        );
+
+        if (!savedSubmission) {
+          return state;
+        }
+
+        return {
+          ...state,
+          editableHtml: savedSubmission.html,
+          editableCss: savedSubmission.css,
+          editableJs: savedSubmission.js,
+        };
+      }),
+    );
+
+    const latestTaskIndex = parseInt(submissions[0].task_id, 10) - 1;
+
+    if (
+      !Number.isNaN(latestTaskIndex) &&
+      latestTaskIndex >= 0 &&
+      latestTaskIndex < tasks.length
+    ) {
+      setCurrentTaskIndex(latestTaskIndex);
+    }
+  }, [latestLessonSubmissions, submissionId, tasks.length]);
 
   useEffect(() => {
     if (slug && isOnlineMode && isAuthenticated) {
@@ -270,7 +351,10 @@ export default function Lesson() {
   const previewTask: Partial<TaskCode> = effectiveTask.deleted
     ? {}
     : effectiveTask;
-
+  const visualPreviewSupported =
+    !previewTask?.hiddenJs &&
+    !previewTask?.readonlyJs &&
+    !previewTask?.editableJs;
   const srcDoc = `
   <!DOCTYPE html>
   <html>
@@ -305,8 +389,23 @@ export default function Lesson() {
   };
 
   const handleTopRowResize: ResizeCallback = (_e, _dir, ref) => {
+    if (isLessonContentHidden) return;
+
     const containerHeight = ref.parentElement!.offsetHeight;
     setTopRowPercent((ref.offsetHeight / containerHeight) * 100);
+  };
+
+  const toggleLessonContent = () => {
+    setIsLessonContentAnimating(true);
+    setIsLessonContentHidden((prev) => !prev);
+
+    if (lessonContentAnimationTimeoutRef.current) {
+      window.clearTimeout(lessonContentAnimationTimeoutRef.current);
+    }
+
+    lessonContentAnimationTimeoutRef.current = window.setTimeout(() => {
+      setIsLessonContentAnimating(false);
+    }, 260);
   };
 
   const updateTask = (field: keyof Partial<TaskCode>, value: string) => {
@@ -325,10 +424,10 @@ export default function Lesson() {
     });
   };
 
-  const applyResetTask = () => {
+  const applyResetTask = (taskIndex = currentTaskIndex) => {
     setTaskStates((prev) => {
       const updated = prev.map((s, idx) => {
-        if (idx !== currentTaskIndex) {
+        if (idx !== taskIndex) {
           return s;
         }
 
@@ -357,7 +456,9 @@ export default function Lesson() {
     });
   };
 
-  const resetTask = () => {
+  const resetTask = (taskIndex = currentTaskIndex) => {
+    setCurrentTaskIndex(taskIndex);
+    setResetTaskIndex(taskIndex);
     setShowResetModal(true);
   };
 
@@ -378,43 +479,40 @@ export default function Lesson() {
     saveLessonTasksDraft(slug, updatedTaskStates);
   };
 
-  const deleteTask = () => {
+  const deleteTask = (taskIndex = currentTaskIndex) => {
     if (!isAdmin || !slug) return;
 
     const updatedTaskStates = taskStates.map((state, index) =>
-      index === currentTaskIndex ? { ...state, deleted: true } : state,
+      index === taskIndex ? { ...state, deleted: true } : state,
     );
 
+    setCurrentTaskIndex(taskIndex);
     setTaskStates(updatedTaskStates);
     saveLessonTasksDraft(slug, updatedTaskStates);
   };
 
   const handleSubmit = async (cssOverride?: string) => {
-    if (!currentTaskState) return;
+    if (!currentTaskState) return false;
     if (!isOnlineMode) {
       setShowLoginModal(true);
-      return;
+      return false;
     }
     if (!isAuthenticated) {
       setShowLoginModal(true);
-      return;
+      return false;
     }
-    if (isAdmin) return;
+    if (isAdmin) return false;
 
-    submitMutation.mutate(
-      {
-        lessonSlug: slug!,
-        taskId: currentTaskId,
-        html: currentTaskState.editableHtml || "",
-        css: (cssOverride ?? currentTaskState.editableCss) || "",
-        js: currentTaskState.editableJs || "",
-      },
-      {
-        onSuccess: () => {
-          setCompletedTasks((prev) => new Set(prev).add(currentTaskId));
-        },
-      },
-    );
+    await submitMutation.mutateAsync({
+      lessonSlug: slug!,
+      taskId: currentTaskId,
+      html: currentTaskState.editableHtml || "",
+      css: (cssOverride ?? currentTaskState.editableCss) || "",
+      js: currentTaskState.editableJs || "",
+    });
+
+    setCompletedTasks((prev) => new Set(prev).add(currentTaskId));
+    return true;
   };
 
   return (
@@ -422,100 +520,145 @@ export default function Lesson() {
       className={`lesson-container ${isMobileLayout ? "lesson-container-mobile" : ""}`}
     >
       <Suspense fallback={<LoadingSpinner />}>
-        <>
-          {isMobileLayout ? (
-            <>
-              <section className="lesson-mobile-editor">
-                <EditorPane
-                  task={currentTaskState}
-                  currentIndex={currentTaskIndex}
-                  totalTasks={tasks.length}
-                  onTaskChange={updateTask}
-                  onChangeTask={(idx: number) => setCurrentTaskIndex(idx)}
-                  readonlyHtml={effectiveTask?.readonlyHtml}
-                  readonlyCss={effectiveTask?.readonlyCss}
-                  readonlyJs={effectiveTask?.readonlyJs}
-                  onSubmit={handleSubmit}
-                  completedTasks={completedTasks}
-                  currentTaskId={currentTaskId}
-                  onAddTask={addTask}
-                  onResetTask={resetTask}
-                  onDeleteTask={deleteTask}
-                />
-              </section>
-
-              <section className="lesson-mobile-preview">
-                <PreviewPane
-                  html={srcDoc}
-                  visualHtml={`${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`}
-                  visualCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
-                  solutionCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.solutionCss || ""}`}
-                  solutionHtml={
-                    previewTask?.solutionHtml !== undefined
-                      ? `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.solutionHtml || ""}`
-                      : `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`
-                  }
-                  initialCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
-                  targetSelectors={previewTask?.targetSelectors}
-                  checks={previewTask?.checks}
-                  visualPreviewSupported={
-                    !previewTask?.hiddenJs &&
-                    !previewTask?.readonlyJs &&
-                    !previewTask?.editableJs
-                  }
-                />
-              </section>
-            </>
-          ) : (
-            <Resizable
-              className="lesson-top-row"
-              size={{ width: "100%", height: `${topRowPercent}%` }}
-              enable={{ bottom: true }}
-              minHeight={100}
-              maxHeight="90%"
-              onResize={handleTopRowResize}
-              onResizeStop={handleTopRowResize}
-              handleComponent={{
-                bottom: <div className="resize-handle-bottom" />,
-              }}
-              handleStyles={{ bottom: { height: 16 } }}
-            >
-              <div className="lesson-top-inner">
-                <Resizable
-                  className="lesson-editor"
-                  size={{ width: `${editorPercent}%`, height: "100%" }}
-                  enable={{ right: true }}
-                  minWidth="15%"
-                  maxWidth="85%"
-                  onResize={handleEditorResize}
-                  onResizeStop={handleEditorResize}
-                  handleComponent={{
-                    right: <div className="resize-handle-right" />,
-                  }}
-                  handleStyles={{ right: { width: 16 } }}
+        <div className="lesson-shell">
+          <aside className="lesson-sidebar">
+            <div className="lesson-sidebar-heading">
+              {lessonMeta?.icon ? (
+                <span
+                  className="lesson-sidebar-icon"
+                  style={{ background: lessonMeta.color }}
+                  aria-hidden="true"
                 >
+                  <LessonIcon name={lessonMeta.icon} size={20} />
+                </span>
+              ) : null}
+              <strong>{lessonMeta?.title ?? slug}</strong>
+            </div>
+
+            <div className="lesson-task-list">
+              <nav className="lesson-task-nav" aria-label="Lesson tasks">
+                {tasks.map((task, index) => {
+                  const taskId = (index + 1).toString();
+                  const isActive = index === currentTaskIndex;
+                  const isCompleted = completedTasks.has(taskId);
+                  const isDeleted = Boolean(
+                    taskStates[index]?.deleted ?? task.deleted,
+                  );
+
+                  return (
+                    <div
+                      key={taskId}
+                      className={`lesson-task-item ${isActive ? "is-active" : ""} ${isDeleted ? "is-deleted" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="lesson-task-link"
+                        onClick={() => setCurrentTaskIndex(index)}
+                      >
+                        <span>Task {index + 1}</span>
+                        {isCompleted && !isAdmin && (
+                          <span className="lesson-task-done">
+                            <CheckCircle2 size={14} />
+                            DONE
+                          </span>
+                        )}
+                        {isDeleted && isAdmin && (
+                          <span className="lesson-task-deleted">Deleted</span>
+                        )}
+                      </button>
+
+                      <div className="lesson-task-actions">
+                        <button
+                          type="button"
+                          className="lesson-task-icon-button"
+                          onClick={() => resetTask(index)}
+                          title="Discard task changes"
+                          aria-label={`Discard changes for task ${index + 1}`}
+                        >
+                          <RotateCcw size={14} />
+                        </button>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="lesson-task-icon-button is-danger"
+                            onClick={() => deleteTask(index)}
+                            title="Delete task"
+                            aria-label={`Delete task ${index + 1}`}
+                            disabled={isDeleted}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </nav>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="lesson-add-task-button"
+                  onClick={addTask}
+                >
+                  <Plus size={16} />
+                  Add new task
+                </button>
+              )}
+            </div>
+
+            <div className="lesson-sidebar-switches">
+              <div className="lesson-switch-row">
+                <span>
+                  <strong>Visual editor</strong>
+                  <small>Use direct HTML/CSS editing</small>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  className="lesson-switch"
+                  aria-checked={visualEditorEnabled}
+                  onClick={() => setVisualEditorEnabled(!visualEditorEnabled)}
+                >
+                  <span />
+                </button>
+              </div>
+
+              <div className="lesson-switch-row">
+                <span>
+                  <strong>Visual preview</strong>
+                  <small>Use guided visual checks</small>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  className="lesson-switch"
+                  aria-checked={visualPreviewEnabled}
+                  onClick={() => setVisualPreviewEnabled(!visualPreviewEnabled)}
+                >
+                  <span />
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <section className="lesson-workspace">
+            {isMobileLayout ? (
+              <>
+                <section className="lesson-mobile-editor">
                   <EditorPane
                     task={currentTaskState}
                     currentIndex={currentTaskIndex}
-                    totalTasks={tasks.length}
                     onTaskChange={updateTask}
-                    onChangeTask={(idx: number) => setCurrentTaskIndex(idx)}
                     readonlyHtml={effectiveTask?.readonlyHtml}
                     readonlyCss={effectiveTask?.readonlyCss}
                     readonlyJs={effectiveTask?.readonlyJs}
                     onSubmit={handleSubmit}
-                    completedTasks={completedTasks}
-                    currentTaskId={currentTaskId}
-                    onAddTask={addTask}
-                    onResetTask={resetTask}
-                    onDeleteTask={deleteTask}
+                    isSubmitted={completedTasks.has(currentTaskId)}
                   />
-                </Resizable>
+                </section>
 
-                <div
-                  className="lesson-preview"
-                  style={{ width: `${100 - editorPercent}%` }}
-                >
+                <section className="lesson-mobile-preview">
                   <PreviewPane
                     html={srcDoc}
                     visualHtml={`${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`}
@@ -529,37 +672,129 @@ export default function Lesson() {
                     initialCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
                     targetSelectors={previewTask?.targetSelectors}
                     checks={previewTask?.checks}
-                    visualPreviewSupported={
-                      !previewTask?.hiddenJs &&
-                      !previewTask?.readonlyJs &&
-                      !previewTask?.editableJs
-                    }
+                    visualPreviewSupported={visualPreviewSupported}
                   />
-                </div>
-              </div>
-            </Resizable>
-          )}
-
-          <div
-            ref={lessonContentRef}
-            className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""}`}
-            style={
-              isMobileLayout ? undefined : { height: `${100 - topRowPercent}%` }
-            }
-          >
-            {isNew ? (
-              <div
-                className="admin-new-lesson-placeholder"
-                style={{ padding: 40, textAlign: "center" }}
-              >
-                <h1>New Course: {slug}</h1>
-                <p>You are in creation mode. Add tasks and edit code above.</p>
-              </div>
+                </section>
+              </>
             ) : (
-              <MDXProvider>{LessonContent && <LessonContent />}</MDXProvider>
+              <Resizable
+                className={`lesson-top-row ${isLessonContentHidden ? "is-expanded" : ""} ${isLessonContentAnimating ? "is-animating" : ""}`}
+                size={{
+                  width: "100%",
+                  height: isLessonContentHidden
+                    ? "calc(100% - 2.25rem)"
+                    : `${topRowPercent}%`,
+                }}
+                enable={{ bottom: !isLessonContentHidden }}
+                minHeight={isLessonContentHidden ? 0 : 100}
+                maxHeight={isLessonContentHidden ? "100%" : "90%"}
+                onResize={handleTopRowResize}
+                onResizeStop={handleTopRowResize}
+                handleComponent={{
+                  bottom: <div className="resize-handle-bottom" />,
+                }}
+                handleStyles={{ bottom: { height: 16 } }}
+              >
+                <div className="lesson-top-inner">
+                  <Resizable
+                    className="lesson-editor"
+                    size={{ width: `${editorPercent}%`, height: "100%" }}
+                    enable={{ right: true }}
+                    minWidth="15%"
+                    maxWidth="85%"
+                    onResize={handleEditorResize}
+                    onResizeStop={handleEditorResize}
+                    handleComponent={{
+                      right: <div className="resize-handle-right" />,
+                    }}
+                    handleStyles={{ right: { width: 16 } }}
+                  >
+                    <EditorPane
+                      task={currentTaskState}
+                      currentIndex={currentTaskIndex}
+                      onTaskChange={updateTask}
+                      readonlyHtml={effectiveTask?.readonlyHtml}
+                      readonlyCss={effectiveTask?.readonlyCss}
+                      readonlyJs={effectiveTask?.readonlyJs}
+                      onSubmit={handleSubmit}
+                      isSubmitted={completedTasks.has(currentTaskId)}
+                    />
+                  </Resizable>
+
+                  <div
+                    className="lesson-preview"
+                    style={{ width: `${100 - editorPercent}%` }}
+                  >
+                    <PreviewPane
+                      html={srcDoc}
+                      visualHtml={`${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`}
+                      visualCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                      solutionCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.solutionCss || ""}`}
+                      solutionHtml={
+                        previewTask?.solutionHtml !== undefined
+                          ? `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.solutionHtml || ""}`
+                          : `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`
+                      }
+                      initialCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                      targetSelectors={previewTask?.targetSelectors}
+                      checks={previewTask?.checks}
+                      visualPreviewSupported={visualPreviewSupported}
+                    />
+                  </div>
+                </div>
+              </Resizable>
             )}
-          </div>
-        </>
+
+            <div className="lesson-content-toggle-row">
+              <button
+                type="button"
+                className="lesson-content-toggle"
+                onClick={toggleLessonContent}
+                aria-expanded={!isLessonContentHidden}
+              >
+                {isLessonContentHidden ? (
+                  <>
+                    <ChevronUp size={16} />
+                    Show lesson content
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={16} />
+                    Hide lesson content
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div
+              ref={lessonContentRef}
+              className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""} ${isLessonContentHidden ? "is-hidden" : ""} ${isLessonContentAnimating ? "is-animating" : ""}`}
+              style={
+                isMobileLayout
+                  ? undefined
+                  : {
+                      height: isLessonContentHidden
+                        ? "0%"
+                        : `${100 - topRowPercent}%`,
+                    }
+              }
+            >
+              {isNew ? (
+                <div
+                  className="admin-new-lesson-placeholder"
+                  style={{ padding: 40, textAlign: "center" }}
+                >
+                  <h1>New Course: {slug}</h1>
+                  <p>
+                    You are in creation mode. Add tasks and edit code above.
+                  </p>
+                </div>
+              ) : (
+                <MDXProvider>{LessonContent && <LessonContent />}</MDXProvider>
+              )}
+            </div>
+          </section>
+        </div>
 
         <Modal
           title="Authentication Required"
@@ -588,7 +823,7 @@ export default function Lesson() {
               <button
                 className="btn-primary"
                 onClick={() => {
-                  applyResetTask();
+                  applyResetTask(resetTaskIndex);
                   setShowResetModal(false);
                 }}
               >
@@ -598,8 +833,8 @@ export default function Lesson() {
           }
         >
           <p>
-            Are you sure you want to reset this task? All your changes will be
-            lost.
+            Are you sure you want to reset task {resetTaskIndex + 1}? All your
+            changes will be lost.
           </p>
         </Modal>
       </Suspense>

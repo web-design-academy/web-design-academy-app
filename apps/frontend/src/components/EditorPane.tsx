@@ -13,14 +13,6 @@ import LoadingSpinner from "./LoadingSpinner";
 import "@/styles/editor.css";
 import "visualeditor-html-css/style.css";
 import * as monaco from "monaco-editor";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Plus,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
 import { useTheme } from "@/lib/ctx/useTheme";
 import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
 
@@ -35,18 +27,12 @@ interface VisualEditorProps {
 export interface EditorPaneProps {
   task: Partial<TaskCode>;
   currentIndex: number;
-  totalTasks: number;
   onTaskChange: (field: keyof Partial<TaskCode>, value: string) => void;
-  onChangeTask: (index: number) => void;
   readonlyHtml?: string;
   readonlyCss?: string;
   readonlyJs?: string;
-  onSubmit: () => Promise<void>;
-  completedTasks?: Set<string>;
-  currentTaskId?: string;
-  onAddTask?: () => void;
-  onResetTask?: () => void;
-  onDeleteTask?: () => void;
+  onSubmit: () => Promise<boolean>;
+  isSubmitted?: boolean;
 }
 
 type Tab = "html" | "css" | "js";
@@ -98,18 +84,12 @@ const getFirstPreferredTab = (task: Partial<TaskCode>): Tab => {
 export default function EditorPane({
   task,
   currentIndex,
-  totalTasks,
   onTaskChange,
-  onChangeTask,
   readonlyHtml,
   readonlyCss,
   readonlyJs,
   onSubmit,
-  completedTasks,
-  currentTaskId,
-  onAddTask,
-  onResetTask,
-  onDeleteTask,
+  isSubmitted = false,
 }: EditorPaneProps) {
   const [activeTab, setActiveTab] = useState<Tab>(() =>
     getFirstPreferredTab(task),
@@ -132,8 +112,6 @@ export default function EditorPane({
   const isAdmin = user?.role === "admin";
   const showSubmitButton = user && user.role !== "admin";
 
-  const hasPrev = currentIndex > 0;
-  const hasNext = currentIndex < totalTasks - 1;
   const hasEditableHtmlFile = task.editableHtml !== undefined;
   const hasEditableCssFile = task.editableCss !== undefined;
   const hasEditableJsFile = task.editableJs !== undefined;
@@ -166,9 +144,9 @@ export default function EditorPane({
     ADMIN_ASSET_TABS[0];
   const editorLanguage = isAdmin ? activeAdminTab.language : activeTab;
   const showVisualEditor =
-    !isAdmin &&
     visualEditorEnabled &&
     visualEditorAvailable &&
+    (!isAdmin || activeAdminTab.language !== "js") &&
     activeTab !== "js";
 
   useEffect(() => {
@@ -190,14 +168,6 @@ export default function EditorPane({
         });
     }
   }, [showVisualEditor]);
-
-  const onPrev = () => {
-    if (hasPrev) onChangeTask(currentIndex - 1);
-  };
-
-  const onNext = () => {
-    if (hasNext) onChangeTask(currentIndex + 1);
-  };
 
   useEffect(() => {
     setActiveTab(preferredTab);
@@ -414,8 +384,6 @@ export default function EditorPane({
     lastValidValueRef.current = normalizedVal;
   };
 
-  const isCompleted = currentTaskId && completedTasks?.has(currentTaskId);
-
   return (
     <div className={`editor-pane ${isTaskDeleted ? "is-task-deleted" : ""}`}>
       <div className="editor-tabs editor-tabs-row">
@@ -470,7 +438,9 @@ export default function EditorPane({
           )}
         </div>
         <div className="editor-tab-controls">
-          {showSubmitButton && <SubmitButton onClick={onSubmit} />}
+          {showSubmitButton && (
+            <SubmitButton onClick={onSubmit} isSubmitted={isSubmitted} />
+          )}
         </div>
       </div>
 
@@ -557,63 +527,6 @@ export default function EditorPane({
             }}
           />
         )}
-      </div>
-
-      <div className="footer-nav-row">
-        <div className="nav-controls">
-          <button
-            onClick={hasPrev ? onPrev : undefined}
-            disabled={!hasPrev}
-            className="btn-ghost"
-          >
-            <ArrowLeft size={20} style={{ marginRight: 8 }} /> Previous
-          </button>
-          <span className="task-counter">
-            Task {currentIndex + 1} of {totalTasks}
-            {isTaskDeleted && <span className="task-status-pill">Deleted</span>}
-            {onResetTask && (
-              <button
-                onClick={onResetTask}
-                className="task-reset-icon"
-                title="Reset task"
-                aria-label="Reset task"
-              >
-                <RotateCcw size={14} />
-              </button>
-            )}
-            {isAdmin && onAddTask && (
-              <button
-                onClick={onAddTask}
-                className="task-reset-icon"
-                title="Add task"
-                aria-label="Add task"
-              >
-                <Plus size={14} />
-              </button>
-            )}
-            {isAdmin && onDeleteTask && (
-              <button
-                onClick={onDeleteTask}
-                className="task-reset-icon"
-                title="Delete task"
-                aria-label="Delete task"
-                disabled={isTaskDeleted}
-              >
-                <Trash2 size={14} />
-              </button>
-            )}
-            {isCompleted && (
-              <Check size={20} style={{ marginLeft: 8 }} color="green" />
-            )}
-          </span>
-          <button
-            onClick={hasNext ? onNext : undefined}
-            disabled={!hasNext}
-            className="btn-ghost"
-          >
-            Next <ArrowRight size={20} style={{ marginLeft: 8 }} />
-          </button>
-        </div>
       </div>
     </div>
   );

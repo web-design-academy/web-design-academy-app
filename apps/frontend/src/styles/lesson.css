@@ -1,7 +1,299 @@
 .lesson-container {
-  display: flex;
-  flex-direction: column;
   height: calc(100vh - var(--header-height) - 1px);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.lesson-shell {
+  display: grid;
+  grid-template-columns: 15.5rem minmax(0, 1fr);
+  gap: var(--space-5);
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow: hidden;
+}
+
+.lesson-sidebar {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.lesson-sidebar-heading {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.lesson-sidebar-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-xl);
+  line-height: 1.2;
+}
+
+.lesson-sidebar-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-control);
+  color: #fff;
+}
+
+.lesson-task-list {
+  display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lesson-task-nav {
+  display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.lesson-task-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-card);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.lesson-task-item:hover,
+.lesson-task-item.is-active {
+  border-color: var(--color-primary);
+  background: var(--table-row-hover-bg);
+}
+
+.lesson-task-item.is-active .lesson-task-link {
+  color: var(--color-primary);
+}
+
+.lesson-task-item.is-deleted {
+  opacity: 0.64;
+}
+
+.lesson-task-link {
+  display: flex;
+  min-width: 0;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 0 0 var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.lesson-task-link span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lesson-task-done,
+.lesson-task-deleted {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 1.375rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.lesson-task-done {
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--status-success-text) 42%, transparent);
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.lesson-task-deleted {
+  border: var(--border-width-thin) solid
+    color-mix(in srgb, var(--status-error-text) 42%, transparent);
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+}
+
+.lesson-task-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-right: var(--space-2);
+}
+
+.lesson-task-icon-button,
+.lesson-add-task-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-card);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.lesson-task-icon-button {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-primary);
+}
+
+.lesson-task-icon-button:hover:not(:disabled),
+.lesson-add-task-button:hover {
+  border-color: var(--color-primary);
+  background: var(--table-row-hover-bg);
+}
+
+.lesson-task-icon-button.is-danger {
+  color: var(--status-error-text);
+}
+
+.lesson-task-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.lesson-add-task-button {
+  flex: 0 0 auto;
+  width: calc(100% - var(--space-1));
+  min-height: 2.75rem;
+}
+
+.lesson-sidebar-switches {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.lesson-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.lesson-switch-row > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.lesson-switch-row strong {
+  font-size: var(--font-size-sm);
+  line-height: 1.2;
+}
+
+.lesson-switch-row small {
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  line-height: 1.25;
+  opacity: 0.62;
+}
+
+.lesson-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 1.5rem;
+  padding: 0;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.lesson-switch span {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  opacity: 0.56;
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.lesson-switch[aria-checked="true"] {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-card));
+}
+
+.lesson-switch[aria-checked="true"] span {
+  transform: translateX(1.25rem);
+  background: var(--color-primary);
+  opacity: 1;
+}
+
+.lesson-switch:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.lesson-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.lesson-workspace {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-card);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -61,6 +353,14 @@
   overflow: hidden;
 }
 
+.lesson-top-row.is-animating {
+  transition: height var(--transition-medium);
+}
+
+.lesson-top-row.is-expanded {
+  flex: 1 1 auto;
+}
+
 .lesson-top-inner {
   display: flex;
   height: 100%;
@@ -91,6 +391,59 @@
   line-height: 1.7;
   color: var(--color-text);
   scroll-behavior: smooth;
+}
+
+.lesson-content.is-animating {
+  transition:
+    height var(--transition-medium),
+    padding var(--transition-medium),
+    transform var(--transition-medium),
+    opacity var(--transition-medium),
+    border-color var(--transition-medium);
+}
+
+.lesson-content-toggle-row {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  border-top: var(--border-width-thin) solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.lesson-content-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  opacity: 0.72;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.lesson-content-toggle:hover {
+  color: var(--color-primary);
+  opacity: 1;
+}
+
+.lesson-content.is-hidden {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-color: transparent;
+  opacity: 0;
+  transform: translateY(100%);
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .lesson-content h1 {
@@ -251,6 +604,29 @@
     overflow-x: hidden;
   }
 
+  .lesson-shell {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - var(--header-height) - 1px);
+    padding: var(--space-4);
+    overflow: visible;
+  }
+
+  .lesson-sidebar {
+    min-height: auto;
+  }
+
+  .lesson-task-nav {
+    flex: none;
+    max-height: 18rem;
+  }
+
+  .lesson-workspace {
+    min-height: auto;
+    overflow: visible;
+  }
+
   .lesson-mobile-editor {
     height: 62vh;
     min-height: 26.25rem;
@@ -279,6 +655,11 @@
     border-top: none;
     position: relative;
     z-index: 1;
+  }
+
+  .lesson-content-mobile.is-hidden {
+    height: 0;
+    min-height: 0;
   }
 
   .lesson-content-mobile h1 {

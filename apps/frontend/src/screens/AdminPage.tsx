@@ -1858,16 +1858,22 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-            <label className="admin-checkbox-row">
-              <input
-                type="checkbox"
-                checked={formData.hidden}
-                onChange={(event) =>
-                  setFormData({ ...formData, hidden: event.target.checked })
+            <div className="admin-switch-row">
+              <span>
+                <strong>Hidden lesson</strong>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                className="admin-switch"
+                aria-checked={formData.hidden}
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, hidden: !prev.hidden }))
                 }
-              />
-              Hidden lesson
-            </label>
+              >
+                <span />
+              </button>
+            </div>
           </div>
         </Modal>
       </section>
