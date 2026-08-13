@@ -5,6 +5,41 @@ import {
   type TaskLanguage,
 } from "./readonlyBlocks";
 
+export type EvaluationLevel = "error" | "warning" | "recommendation";
+export type EvaluationCheckType =
+  | "forbidden-property"
+  | "required-property"
+  | "exists"
+  | "exact-match"
+  | "regex-match"
+  | "min-count"
+  | "max-count"
+  | "forbidden-value";
+
+export interface EvaluationCheck {
+  id: string;
+  type: EvaluationCheckType;
+  selector: string;
+  property: string;
+  value?: string | number;
+  media?: string;
+  level?: EvaluationLevel;
+  message?: string;
+  studentHint?: string;
+}
+
+export interface CssEvaluationConfig {
+  version: 1;
+  engine: "css";
+  targetSelectors: string[];
+  checks: EvaluationCheck[];
+  hintTimeoutSeconds?: number;
+  pass?: {
+    minimumScore?: number;
+    requireNoErrors?: boolean;
+  };
+}
+
 export interface TaskCode {
   html: string;
   css: string;
@@ -12,6 +47,7 @@ export interface TaskCode {
   solutionHtml?: string;
   solutionCss?: string;
   solutionJs?: string;
+  evaluation?: CssEvaluationConfig;
   deleted?: boolean;
 }
 
@@ -74,6 +110,7 @@ export function normalizeTaskCode(
     normalized.solutionHtml = task.solutionHtml;
   if (task.solutionCss !== undefined) normalized.solutionCss = task.solutionCss;
   if (task.solutionJs !== undefined) normalized.solutionJs = task.solutionJs;
+  if (task.evaluation !== undefined) normalized.evaluation = task.evaluation;
   if (task.deleted !== undefined) normalized.deleted = task.deleted;
 
   (["html", "css", "js"] as const).forEach((language) => {

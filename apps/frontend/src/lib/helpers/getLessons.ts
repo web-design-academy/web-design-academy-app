@@ -10,6 +10,8 @@ export type LessonMeta = {
   order: number;
   icon: string;
   hidden?: boolean;
+  visualEditor?: boolean;
+  visualPreview?: boolean;
   deleted?: boolean;
   taskCount?: number;
 };
@@ -20,6 +22,8 @@ const defaultLessonContent = new Map<string, string>();
 function normalizeLessonMeta(meta: LessonMeta): LessonMeta {
   return {
     hidden: false,
+    visualEditor: false,
+    visualPreview: false,
     ...meta,
   };
 }

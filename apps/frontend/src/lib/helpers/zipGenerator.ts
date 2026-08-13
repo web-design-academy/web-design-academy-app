@@ -20,6 +20,8 @@ color: ${JSON.stringify(course.color)}
 order: ${course.order}
 icon: ${JSON.stringify(course.icon)}
 hidden: ${course.hidden ?? false}
+visualEditor: ${course.visualEditor ?? false}
+visualPreview: ${course.visualPreview ?? false}
 ---
 
 ${content?.trim() || `# ${course.title}`}
@@ -60,6 +62,12 @@ ${content?.trim() || `# ${course.title}`}
       addFile("solution.html", task.solutionHtml);
       addFile("solution.css", task.solutionCss);
       addFile("solution.js", task.solutionJs);
+      if (task.evaluation) {
+        taskFolder.file(
+          "evaluation.json",
+          `${JSON.stringify(task.evaluation, null, 2)}\n`,
+        );
+      }
     });
 }
 

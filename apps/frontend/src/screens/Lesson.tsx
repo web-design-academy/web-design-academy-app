@@ -51,6 +51,9 @@ import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
 import { isOnlineMode } from "@/lib/config/appMode";
 import { API_BASE } from "@/lib/api/client";
 import { fetchLesson } from "@/lib/api/lessons";
+import EvaluationPanel from "@/features/challenge/EvaluationPanel";
+import { useTaskEvaluation } from "@/features/challenge/useTaskEvaluation";
+import type { AnalysisIssue } from "@wda/css-analysis";
 
 type TaskFileState = Pick<Partial<TaskCode>, "html" | "css" | "js">;
 
@@ -139,6 +142,10 @@ export default function Lesson() {
   const [submissionBaselines, setSubmissionBaselines] = useState<
     Record<string, TaskFileState>
   >({});
+  const [editorFocusRequest, setEditorFocusRequest] = useState<{
+    line: number;
+    nonce: number;
+  } | null>(null);
 
   const lessonContentRef = useRef<HTMLDivElement | null>(null);
   const lessonContentAnimationTimeoutRef = useRef<number | undefined>(
@@ -562,6 +569,41 @@ export default function Lesson() {
     };
   }, [currentTaskIndex, isNew, slug]);
 
+  const evaluationTask = tasks[currentTaskIndex]
+    ? {
+        ...tasks[currentTaskIndex],
+        ...taskStates[currentTaskIndex],
+      }
+    : undefined;
+  const lessonVisualPreviewEnabled = Boolean(lessonMeta?.visualPreview);
+  const lessonVisualEditorEnabled = Boolean(lessonMeta?.visualEditor);
+  const taskSupportsVisualPreview = !evaluationTask?.js;
+  const visualPreviewActive =
+    lessonVisualPreviewEnabled &&
+    taskSupportsVisualPreview &&
+    visualPreviewEnabled;
+  const taskEvaluation = useTaskEvaluation(
+    evaluationTask,
+    visualPreviewActive,
+    currentTaskIndex,
+  );
+  const [evaluationViewRequest, setEvaluationViewRequest] = useState(0);
+
+  useEffect(() => {
+    if (!lessonVisualPreviewEnabled || !taskSupportsVisualPreview) {
+      setVisualPreviewEnabled(false);
+    }
+    if (!lessonVisualEditorEnabled) {
+      setVisualEditorEnabled(false);
+    }
+  }, [
+    lessonVisualEditorEnabled,
+    lessonVisualPreviewEnabled,
+    setVisualEditorEnabled,
+    setVisualPreviewEnabled,
+    taskSupportsVisualPreview,
+  ]);
+
   if (submissionId && submissionError) {
     return (
       <main className="lesson-container">
@@ -602,17 +644,27 @@ export default function Lesson() {
   const previewTask: Partial<TaskCode> = effectiveTask.deleted
     ? {}
     : effectiveTask;
-  const visualPreviewSupported = !previewTask.js;
+  const visualPreviewSupported = lessonVisualPreviewEnabled && !previewTask.js;
   const currentStudentBaseline =
     submissionBaselines[currentTaskId] ?? getTaskFileState(currentTask);
   const hasStudentTaskChanges = !areTaskFileStatesEqual(
     getTaskFileState(currentTaskState),
     currentStudentBaseline,
   );
-  const isSubmitDisabled = !isAdmin && !hasStudentTaskChanges;
-  const submitDisabledTitle = completedTasks.has(currentTaskId)
-    ? "Make a change before resubmitting."
-    : "Make a change before submitting.";
+  const needsPassingEvaluation =
+    visualPreviewActive && Boolean(effectiveTask.evaluation);
+  const hasPassingEvaluation =
+    taskEvaluation.result?.passed === true && !taskEvaluation.isResultStale;
+  const isSubmitDisabled =
+    !isAdmin &&
+    (!hasStudentTaskChanges ||
+      (needsPassingEvaluation && !hasPassingEvaluation));
+  const submitDisabledTitle =
+    needsPassingEvaluation && !hasPassingEvaluation
+      ? "Evaluate the current solution successfully before submitting."
+      : completedTasks.has(currentTaskId)
+        ? "Make a change before resubmitting."
+        : "Make a change before submitting.";
   const srcDoc = `
   <!DOCTYPE html>
   <html>
@@ -669,6 +721,18 @@ export default function Lesson() {
     markAutosaveChanged();
   };
 
+  const updateTaskMetadata = <K extends keyof TaskCode>(
+    field: K,
+    value: TaskCode[K],
+  ) => {
+    updateTaskStatesSnapshot((prev) =>
+      prev.map((state, index) =>
+        index === currentTaskIndex ? { ...state, [field]: value } : state,
+      ),
+    );
+    markAutosaveChanged();
+  };
+
   const applyResetTask = (taskIndex = currentTaskIndex) => {
     updateTaskStatesSnapshot((prev) => {
       const updated = prev.map((s, idx) => {
@@ -716,7 +780,6 @@ export default function Lesson() {
     const newTask: Partial<TaskCode> = {
       html: "<h1>New Task</h1>\n<p>Start editing...</p>",
       css: "h1 { color: blue; }",
-      js: 'console.log("Hello World");',
     };
     const updatedTasks = [...tasks, newTask];
     const updatedTaskStates = [...taskStates, newTask];
@@ -753,12 +816,32 @@ export default function Lesson() {
     }
     if (isAdmin) return false;
 
+    const evaluationResult = taskEvaluation.result;
+    if (
+      visualPreviewActive &&
+      effectiveTask.evaluation &&
+      (!evaluationResult?.passed || taskEvaluation.isResultStale)
+    ) {
+      setIsLessonContentHidden(false);
+      return false;
+    }
+
     await submitMutation.mutateAsync({
       lessonSlug: slug!,
       taskId: currentTaskId,
       html: currentTaskState.html || "",
       css: (cssOverride ?? currentTaskState.css) || "",
       js: currentTaskState.js || "",
+      evaluation:
+        visualPreviewActive && evaluationResult
+          ? {
+              version: effectiveTask.evaluation?.version ?? 1,
+              status: evaluationResult.status,
+              score: evaluationResult.score,
+              passed: evaluationResult.passed,
+              issues: evaluationResult.results,
+            }
+          : undefined,
     });
 
     setCompletedTasks((prev) => new Set(prev).add(currentTaskId));
@@ -771,6 +854,27 @@ export default function Lesson() {
       },
     }));
     return true;
+  };
+
+  const evaluationResults =
+    visualPreviewActive && effectiveTask.evaluation ? (
+      <EvaluationPanel
+        config={effectiveTask.evaluation}
+        result={taskEvaluation.result}
+        liveIssues={taskEvaluation.liveIssues}
+        isEvaluating={taskEvaluation.isEvaluating}
+        isStale={taskEvaluation.isResultStale}
+        onIssueClick={(issue: AnalysisIssue) =>
+          setEditorFocusRequest({
+            line: issue.lineNumber,
+            nonce: Date.now(),
+          })
+        }
+      />
+    ) : null;
+  const handleEvaluate = async () => {
+    setEvaluationViewRequest((request) => request + 1);
+    return taskEvaluation.evaluate();
   };
 
   return (
@@ -875,6 +979,8 @@ export default function Lesson() {
                 role="switch"
                 className="lesson-switch"
                 aria-checked={visualEditorEnabled}
+                aria-disabled={!lessonVisualEditorEnabled}
+                disabled={!lessonVisualEditorEnabled}
                 onClick={() => setVisualEditorEnabled(!visualEditorEnabled)}
               >
                 <span />
@@ -891,6 +997,8 @@ export default function Lesson() {
                 role="switch"
                 className="lesson-switch"
                 aria-checked={visualPreviewEnabled}
+                aria-disabled={!visualPreviewSupported}
+                disabled={!visualPreviewSupported}
                 onClick={() => setVisualPreviewEnabled(!visualPreviewEnabled)}
               >
                 <span />
@@ -913,6 +1021,29 @@ export default function Lesson() {
                   submitDisabledTitle={submitDisabledTitle}
                   autosaveStatus={autosaveStatus}
                   autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
+                  diagnostics={
+                    taskEvaluation.result && !taskEvaluation.isResultStale
+                      ? taskEvaluation.result.results
+                      : taskEvaluation.liveIssues
+                  }
+                  focusRequest={editorFocusRequest}
+                  onEvaluationChange={(evaluation) =>
+                    updateTaskMetadata("evaluation", evaluation)
+                  }
+                  onEvaluate={handleEvaluate}
+                  isEvaluating={taskEvaluation.isEvaluating}
+                  evaluationEnabled={
+                    visualPreviewActive && Boolean(effectiveTask.evaluation)
+                  }
+                  visualEditorSupported={lessonVisualEditorEnabled}
+                  onGenerateEvaluation={async () => {
+                    const analyzer = await import("@wda/css-analysis");
+                    const evaluation = analyzer.generateEvaluationChecks(
+                      effectiveTask.solutionCss ?? "",
+                    );
+                    updateTaskMetadata("evaluation", evaluation);
+                    return evaluation;
+                  }}
                 />
               </section>
 
@@ -922,6 +1053,19 @@ export default function Lesson() {
                   visualHtml={previewTask.html}
                   visualCss={previewTask.css}
                   visualPreviewSupported={visualPreviewSupported}
+                  solutionHtml={previewTask.solutionHtml}
+                  solutionCss={previewTask.solutionCss}
+                  evaluationContent={evaluationResults}
+                  evaluationViewRequest={evaluationViewRequest}
+                  onSelectSelector={(selector) => {
+                    const line = (previewTask.css ?? "")
+                      .split("\n")
+                      .findIndex((sourceLine) => sourceLine.includes(selector));
+                    setEditorFocusRequest({
+                      line: line >= 0 ? line + 1 : 1,
+                      nonce: Date.now(),
+                    });
+                  }}
                 />
               </section>
             </>
@@ -968,6 +1112,29 @@ export default function Lesson() {
                     submitDisabledTitle={submitDisabledTitle}
                     autosaveStatus={autosaveStatus}
                     autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
+                    diagnostics={
+                      taskEvaluation.result && !taskEvaluation.isResultStale
+                        ? taskEvaluation.result.results
+                        : taskEvaluation.liveIssues
+                    }
+                    focusRequest={editorFocusRequest}
+                    onEvaluationChange={(evaluation) =>
+                      updateTaskMetadata("evaluation", evaluation)
+                    }
+                    onEvaluate={handleEvaluate}
+                    isEvaluating={taskEvaluation.isEvaluating}
+                    evaluationEnabled={
+                      visualPreviewActive && Boolean(effectiveTask.evaluation)
+                    }
+                    visualEditorSupported={lessonVisualEditorEnabled}
+                    onGenerateEvaluation={async () => {
+                      const analyzer = await import("@wda/css-analysis");
+                      const evaluation = analyzer.generateEvaluationChecks(
+                        effectiveTask.solutionCss ?? "",
+                      );
+                      updateTaskMetadata("evaluation", evaluation);
+                      return evaluation;
+                    }}
                   />
                 </Resizable>
 
@@ -980,6 +1147,21 @@ export default function Lesson() {
                     visualHtml={previewTask.html}
                     visualCss={previewTask.css}
                     visualPreviewSupported={visualPreviewSupported}
+                    solutionHtml={previewTask.solutionHtml}
+                    solutionCss={previewTask.solutionCss}
+                    evaluationContent={evaluationResults}
+                    evaluationViewRequest={evaluationViewRequest}
+                    onSelectSelector={(selector) => {
+                      const line = (previewTask.css ?? "")
+                        .split("\n")
+                        .findIndex((sourceLine) =>
+                          sourceLine.includes(selector),
+                        );
+                      setEditorFocusRequest({
+                        line: line >= 0 ? line + 1 : 1,
+                        nonce: Date.now(),
+                      });
+                    }}
                   />
                 </div>
               </div>
@@ -1028,9 +1210,11 @@ export default function Lesson() {
                 <h1>New Course: {slug}</h1>
                 <p>You are in creation mode. Add tasks and edit code above.</p>
               </div>
-            ) : lessonContent ? (
-              <RuntimeMdx source={lessonContent} />
-            ) : null}
+            ) : (
+              <>
+                {lessonContent ? <RuntimeMdx source={lessonContent} /> : null}
+              </>
+            )}
           </div>
         </section>
       </div>

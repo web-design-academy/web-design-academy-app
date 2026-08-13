@@ -208,6 +208,8 @@ function emptyForm(): LessonForm {
     color: LESSON_COLOR_OPTIONS[0],
     icon: DEFAULT_ICON,
     hidden: false,
+    visualEditor: false,
+    visualPreview: false,
   };
 }
 
@@ -1120,6 +1122,8 @@ export default function AdminPage() {
       color: lesson.color,
       icon: lesson.icon,
       hidden: lesson.hidden ?? false,
+      visualEditor: lesson.visualEditor ?? false,
+      visualPreview: lesson.visualPreview ?? false,
     });
     setHasTouchedTitle(false);
     setIsColorPickerOpen(false);
@@ -2064,6 +2068,44 @@ export default function AdminPage() {
                 aria-checked={formData.hidden}
                 onClick={() =>
                   setFormData((prev) => ({ ...prev, hidden: !prev.hidden }))
+                }
+              >
+                <span />
+              </button>
+            </div>
+            <div className="admin-switch-row">
+              <span>
+                <strong>Visual editor</strong>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                className="admin-switch"
+                aria-checked={formData.visualEditor}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    visualEditor: !prev.visualEditor,
+                  }))
+                }
+              >
+                <span />
+              </button>
+            </div>
+            <div className="admin-switch-row">
+              <span>
+                <strong>Visual preview and evaluation</strong>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                className="admin-switch"
+                aria-checked={formData.visualPreview}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    visualPreview: !prev.visualPreview,
+                  }))
                 }
               >
                 <span />

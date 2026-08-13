@@ -12,7 +12,11 @@ const taskFiles = {
   "solution.css": "solutionCss",
   "solution.js": "solutionJs",
 };
-const allowedTaskFileNames = new Set(Object.keys(taskFiles));
+const EVALUATION_FILE_NAME = "evaluation.json";
+const allowedTaskFileNames = new Set([
+  ...Object.keys(taskFiles),
+  EVALUATION_FILE_NAME,
+]);
 const activeTaskFileNames = new Set(["index.html", "styles.css", "script.js"]);
 
 const readonlyMarkers = {
@@ -20,6 +24,131 @@ const readonlyMarkers = {
   css: ["/* readonly:start */", "/* readonly:end */"],
   js: ["/* readonly:start */", "/* readonly:end */"],
 };
+
+const evaluationCheckTypes = new Set([
+  "forbidden-property",
+  "required-property",
+  "exists",
+  "exact-match",
+  "regex-match",
+  "min-count",
+  "max-count",
+  "forbidden-value",
+]);
+const evaluationLevels = new Set(["error", "warning", "recommendation"]);
+
+function validateEvaluationConfig(value, filePath) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid evaluation configuration in ${filePath}`);
+  }
+
+  if (value.version !== 1 || value.engine !== "css") {
+    throw new Error(`Unsupported evaluation configuration in ${filePath}`);
+  }
+
+  if (
+    !Array.isArray(value.targetSelectors) ||
+    value.targetSelectors.some(
+      (selector) =>
+        typeof selector !== "string" ||
+        selector.trim().length === 0 ||
+        selector.length > 200,
+    )
+  ) {
+    throw new Error(`Invalid targetSelectors in ${filePath}`);
+  }
+
+  if (!Array.isArray(value.checks)) {
+    throw new Error(`Invalid checks in ${filePath}`);
+  }
+
+  const checkIds = new Set();
+  value.checks.forEach((check) => {
+    const isCountCheck =
+      check?.type === "min-count" || check?.type === "max-count";
+    const needsValue = [
+      "exact-match",
+      "regex-match",
+      "min-count",
+      "max-count",
+      "forbidden-value",
+    ].includes(check?.type);
+
+    if (
+      !check ||
+      typeof check !== "object" ||
+      Array.isArray(check) ||
+      typeof check.id !== "string" ||
+      check.id.length === 0 ||
+      check.id.length > 100 ||
+      checkIds.has(check.id) ||
+      !evaluationCheckTypes.has(check.type) ||
+      typeof check.selector !== "string" ||
+      check.selector.length === 0 ||
+      check.selector.length > 200 ||
+      typeof check.property !== "string" ||
+      check.property.length === 0 ||
+      check.property.length > 100 ||
+      (check.level !== undefined && !evaluationLevels.has(check.level)) ||
+      (needsValue &&
+        (isCountCheck
+          ? !Number.isFinite(check.value) || check.value < 0
+          : typeof check.value !== "string")) ||
+      (check.media !== undefined && typeof check.media !== "string") ||
+      (check.message !== undefined && typeof check.message !== "string") ||
+      (check.studentHint !== undefined && typeof check.studentHint !== "string")
+    ) {
+      throw new Error(`Invalid evaluation check in ${filePath}`);
+    }
+
+    if (check.type === "regex-match") {
+      try {
+        new RegExp(check.value);
+      } catch {
+        throw new Error(`Invalid regular expression in ${filePath}`);
+      }
+    }
+
+    checkIds.add(check.id);
+  });
+
+  if (
+    value.hintTimeoutSeconds !== undefined &&
+    (!Number.isFinite(value.hintTimeoutSeconds) ||
+      value.hintTimeoutSeconds < 0 ||
+      value.hintTimeoutSeconds > 3600)
+  ) {
+    throw new Error(`Invalid hintTimeoutSeconds in ${filePath}`);
+  }
+
+  if (value.pass !== undefined) {
+    if (
+      !value.pass ||
+      typeof value.pass !== "object" ||
+      Array.isArray(value.pass) ||
+      (value.pass.minimumScore !== undefined &&
+        (!Number.isFinite(value.pass.minimumScore) ||
+          value.pass.minimumScore < 0 ||
+          value.pass.minimumScore > 100)) ||
+      (value.pass.requireNoErrors !== undefined &&
+        typeof value.pass.requireNoErrors !== "boolean")
+    ) {
+      throw new Error(`Invalid pass requirements in ${filePath}`);
+    }
+  }
+
+  return {
+    version: 1,
+    engine: "css",
+    targetSelectors: value.targetSelectors.map((selector) => selector.trim()),
+    checks: value.checks,
+    hintTimeoutSeconds: value.hintTimeoutSeconds ?? 60,
+    pass: {
+      minimumScore: value.pass?.minimumScore ?? 80,
+      requireNoErrors: value.pass?.requireNoErrors ?? true,
+    },
+  };
+}
 
 function validateReadonlyBlocks(source, language, filePath) {
   const [startMarker, endMarker] = readonlyMarkers[language];
@@ -126,6 +255,8 @@ function parseLessonMdx(source, filePath) {
     order: frontmatter.order,
     icon: frontmatter.icon,
     hidden: frontmatter.hidden ?? false,
+    visualEditor: frontmatter.visualEditor ?? false,
+    visualPreview: frontmatter.visualPreview ?? false,
   };
 
   if (
@@ -136,7 +267,9 @@ function parseLessonMdx(source, filePath) {
     typeof meta.color !== "string" ||
     !Number.isFinite(meta.order) ||
     typeof meta.icon !== "string" ||
-    typeof meta.hidden !== "boolean"
+    typeof meta.hidden !== "boolean" ||
+    typeof meta.visualEditor !== "boolean" ||
+    typeof meta.visualPreview !== "boolean"
   ) {
     throw new Error(`Invalid lesson metadata in ${filePath}`);
   }
@@ -229,6 +362,22 @@ async function readTasks(lessonDirectory) {
         }),
       );
 
+      const evaluationPath = path.join(taskPath, EVALUATION_FILE_NAME);
+      try {
+        const evaluationSource = await readRegularFile(evaluationPath);
+        let evaluation;
+
+        try {
+          evaluation = JSON.parse(evaluationSource);
+        } catch {
+          throw new Error(`Invalid JSON in ${evaluationPath}`);
+        }
+
+        task.evaluation = validateEvaluationConfig(evaluation, evaluationPath);
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+
       return task;
     }),
   );
@@ -304,4 +453,5 @@ module.exports = {
   parseLessonMdx,
   resolveLessonsPath,
   validateReadonlyBlocks,
+  validateEvaluationConfig,
 };

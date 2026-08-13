@@ -69,7 +69,14 @@ This starts:
 - Clone the repository before `docker compose up`; Compose fails if it is
   missing.
 - Each task may contain `index.html`, `styles.css`, and `script.js`, plus
-  optional `solution.html`, `solution.css`, and `solution.js` references.
+  optional `solution.html`, `solution.css`, `solution.js`, and
+  `evaluation.json`.
+- Lesson frontmatter uses `visualEditor` and `visualPreview` booleans to make
+  those optional features available; users still enable them with lesson
+  switches.
+- `evaluation.json` is edited by admins in Monaco and is applied only while
+  Visual preview is enabled. Evaluate checks the current code; Submit only
+  saves it to the backend.
 - Readonly blocks use `<!-- readonly:start -->` / `<!-- readonly:end -->` in
   HTML and `/* readonly:start */` / `/* readonly:end */` in CSS/JS, with an
   empty line on each side.

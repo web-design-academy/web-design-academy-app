@@ -20,12 +20,12 @@ apps/
   backend/    — Express server
   frontend/   — Vite/React app (name: web-design-academy)
 packages/
-  visual-preview/          — css-analyzer (workspace:*)
-  visual-editor/
-    VisualEditor/          — visualeditor-html-css (workspace:*)
+  visual-preview/          — @wda/css-analysis (workspace:*)
+  visual-editor/           — @wda/visual-editor (workspace:*)
+  ui-styles/               — @wda/ui-styles shared tokens and primitives
 ```
 
-Frontend závisí na `css-analyzer` a `visualeditor-html-css` — ty se buildí před samotným frontendem.
+Frontend závisí na `@wda/css-analysis` a `@wda/visual-editor` — ty se buildí před samotným frontendem.
 
 ## Deploy soubory
 
