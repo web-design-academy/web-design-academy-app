@@ -55,3 +55,35 @@ This starts:
 
 - backend: `http://localhost:3000`
 - frontend: `http://localhost:5173`
+
+## Work with lessons
+
+- Lessons live in a separate Git repository cloned to `./lessons`:
+
+  ```sh
+  git clone <LESSONS_REPOSITORY_URL> lessons
+  ```
+
+- Local pnpm development reads `./lessons` directly.
+- Docker mounts host `./lessons` read-only at `/app/lessons` in the backend.
+- Clone the repository before `docker compose up`; Compose fails if it is
+  missing.
+- Each task may contain `index.html`, `styles.css`, and `script.js`, plus
+  optional `solution.html`, `solution.css`, and `solution.js` references.
+- Readonly blocks use `<!-- readonly:start -->` / `<!-- readonly:end -->` in
+  HTML and `/* readonly:start */` / `/* readonly:end */` in CSS/JS, with an
+  empty line on each side.
+- **Download drafts** creates `lessons.zip`. Extract its contents into
+  `./lessons`, preserving `./lessons/.git`.
+- To include lesson deletions and commit the downloaded archive:
+
+  ```sh
+  git -C lessons rm -r -- .
+  unzip -o /path/to/lessons.zip -d lessons
+  git -C lessons add -A
+  git -C lessons commit -m "Update lessons"
+  git -C lessons push
+  ```
+
+- Host changes are available immediately; containers do not need rebuilding or
+  restarting.

@@ -1,80 +1,143 @@
 import { getCustomTasks } from "./adminStorage";
-import { getLessonSourceFolder } from "./getLessons";
+import {
+  ensureReadonlyBlockSpacing,
+  getReadonlyMarkers,
+  type TaskLanguage,
+} from "./readonlyBlocks";
 
 export interface TaskCode {
-  editableHtml: string;
-  editableCss: string;
-  editableJs: string;
-  readonlyHtml: string;
-  readonlyCss: string;
-  readonlyJs: string;
-  hiddenHtml: string;
-  hiddenCss: string;
-  hiddenJs: string;
+  html: string;
+  css: string;
+  js: string;
   solutionHtml?: string;
   solutionCss?: string;
   solutionJs?: string;
-  targetSelectors?: string[];
-  checks?: unknown[];
   deleted?: boolean;
 }
 
-const allModules = import.meta.glob<string>(
-  "../../lessons/*/tasks/*/*.{html,css,js}",
-  { query: "raw", import: "default", eager: true },
-);
+const defaultTasksByLesson = new Map<string, Partial<TaskCode>[]>();
+
+type LegacyTaskCode = Partial<TaskCode> &
+  Partial<
+    Record<
+      | "editableHtml"
+      | "editableCss"
+      | "editableJs"
+      | "readonlyHtml"
+      | "readonlyCss"
+      | "readonlyJs"
+      | "hiddenHtml"
+      | "hiddenCss"
+      | "hiddenJs",
+      string
+    >
+  >;
+
+const legacyFieldSuffix = {
+  html: "Html",
+  css: "Css",
+  js: "Js",
+} as const;
+
+export function mergeLegacyEditableSource(
+  defaultSource: string | undefined,
+  editableSource: string,
+  language: TaskLanguage,
+) {
+  if (!defaultSource) return editableSource;
+
+  const { start, end } = getReadonlyMarkers(language);
+  if (editableSource.includes(start)) return editableSource;
+
+  const lastEndIndex = defaultSource.lastIndexOf(end);
+  if (lastEndIndex < 0) return editableSource;
+
+  const protectedPrefix = defaultSource.slice(0, lastEndIndex + end.length);
+  const remainingDefault = defaultSource
+    .slice(lastEndIndex + end.length)
+    .trim();
+
+  const merged = remainingDefault
+    ? `${protectedPrefix}\n${editableSource.replace(/^\s+/, "")}`
+    : defaultSource;
+
+  return ensureReadonlyBlockSpacing(merged, language);
+}
+
+export function normalizeTaskCode(
+  task: LegacyTaskCode,
+  fallback: Partial<TaskCode> = {},
+): Partial<TaskCode> {
+  const normalized: Partial<TaskCode> = {};
+
+  if (task.solutionHtml !== undefined)
+    normalized.solutionHtml = task.solutionHtml;
+  if (task.solutionCss !== undefined) normalized.solutionCss = task.solutionCss;
+  if (task.solutionJs !== undefined) normalized.solutionJs = task.solutionJs;
+  if (task.deleted !== undefined) normalized.deleted = task.deleted;
+
+  (["html", "css", "js"] as const).forEach((language) => {
+    if (task[language] !== undefined) {
+      normalized[language] = ensureReadonlyBlockSpacing(
+        task[language],
+        language,
+      );
+      return;
+    }
+
+    const suffix = legacyFieldSuffix[language];
+    const hidden = task[`hidden${suffix}`];
+    const readonly = task[`readonly${suffix}`];
+    const editable = task[`editable${suffix}`];
+    const hasLegacySource =
+      hidden !== undefined || readonly !== undefined || editable !== undefined;
+
+    if (!hasLegacySource) return;
+
+    const protectedSource = [hidden, readonly]
+      .filter((source): source is string => Boolean(source?.trim()))
+      .join("\n");
+
+    if (protectedSource) {
+      const { start, end } = getReadonlyMarkers(language);
+      normalized[language] = ensureReadonlyBlockSpacing(
+        [
+          `${start}\n${protectedSource.replace(/\s+$/, "")}\n${end}`,
+          editable?.replace(/^\s+/, ""),
+        ]
+          .filter((source): source is string => source !== undefined)
+          .join("\n"),
+        language,
+      );
+      return;
+    }
+
+    normalized[language] = mergeLegacyEditableSource(
+      fallback[language],
+      editable ?? "",
+      language,
+    );
+  });
+
+  return normalized;
+}
+
+export function setDefaultLessonTasks(
+  lessonSlug: string,
+  tasks: Partial<TaskCode>[],
+) {
+  defaultTasksByLesson.set(
+    lessonSlug,
+    tasks.map((task) => normalizeTaskCode(task) as Partial<TaskCode>),
+  );
+}
 
 export function getDefaultLessonTasksSync(
   lessonSlug: string,
 ): Partial<TaskCode>[] {
-  const tasksMap: Record<string, Partial<TaskCode>> = {};
-  const sourceFolder = getLessonSourceFolder(lessonSlug) ?? lessonSlug;
-
-  for (const path in allModules) {
-    if (
-      !path.includes(`/lessons/${sourceFolder}/tasks/`) &&
-      !path.includes(`\\lessons\\${sourceFolder}\\tasks\\`)
-    )
-      continue;
-
-    const content = allModules[path] as string;
-    const match = path.match(
-      /tasks[\\/](\d+)[\\/](editable|hidden|readonly|solution)\.(html|css|js)$/,
-    );
-    if (!match) continue;
-
-    const [, taskId, fileName, ext] = match;
-    if (!tasksMap[taskId]) tasksMap[taskId] = {};
-
-    if (fileName === "editable" && ext === "html")
-      tasksMap[taskId].editableHtml = content;
-    else if (fileName === "editable" && ext === "css")
-      tasksMap[taskId].editableCss = content;
-    else if (fileName === "editable" && ext === "js")
-      tasksMap[taskId].editableJs = content;
-    else if (fileName === "readonly" && ext === "html")
-      tasksMap[taskId].readonlyHtml = content;
-    else if (fileName === "readonly" && ext === "css")
-      tasksMap[taskId].readonlyCss = content;
-    else if (fileName === "readonly" && ext === "js")
-      tasksMap[taskId].readonlyJs = content;
-    else if (fileName === "hidden" && ext === "html")
-      tasksMap[taskId].hiddenHtml = content;
-    else if (fileName === "hidden" && ext === "css")
-      tasksMap[taskId].hiddenCss = content;
-    else if (fileName === "hidden" && ext === "js")
-      tasksMap[taskId].hiddenJs = content;
-    else if (fileName === "solution" && ext === "html")
-      tasksMap[taskId].solutionHtml = content;
-    else if (fileName === "solution" && ext === "css")
-      tasksMap[taskId].solutionCss = content;
-    else if (fileName === "solution" && ext === "js")
-      tasksMap[taskId].solutionJs = content;
-  }
-
-  return Object.keys(tasksMap)
-    .sort((a, b) => parseInt(a) - parseInt(b))
-    .map((id) => tasksMap[id]);
+  return (defaultTasksByLesson.get(lessonSlug) ?? []).map((task) => ({
+    ...task,
+  }));
 }
 
 export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
@@ -85,7 +148,7 @@ export function getLessonTasksSync(lessonSlug: string): Partial<TaskCode>[] {
   if (customTasks.length > 0) {
     return customTasks.map((customTask, index) => ({
       ...fileTasks[index],
-      ...customTask,
+      ...normalizeTaskCode(customTask as LegacyTaskCode, fileTasks[index]),
     }));
   }
 

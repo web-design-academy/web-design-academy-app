@@ -62,7 +62,7 @@
   --table-header-bg: rgba(0, 0, 0, 0.02);
   --table-row-hover-bg: rgba(0, 0, 0, 0.01);
   --editor-tab-hover-bg: rgba(255, 255, 255, 0.05);
-  --editor-readonly-line-bg: rgba(200, 200, 200, 0.08);
+  --editor-readonly-line-bg: rgba(148, 163, 184, 0.16);
 
   --status-error-bg: #fee2e2;
   --status-error-text: #b91c1c;
@@ -100,6 +100,7 @@
     --color-card: oklch(1 0 0);
     --color-text: oklch(0.15 0 0);
     --color-border: oklch(0.88 0 0);
+    --editor-readonly-line-bg: rgba(241, 245, 249, 0.9);
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -123,6 +124,7 @@
   --color-card: oklch(1 0 0);
   --color-text: oklch(0.15 0 0);
   --color-border: oklch(0.88 0 0);
+  --editor-readonly-line-bg: rgba(241, 245, 249, 0.9);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);

@@ -9,6 +9,7 @@ const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const db = require("./db");
+const { createLessonStore } = require("./lessonStore");
 
 const app = express();
 
@@ -18,6 +19,7 @@ const IS_PRODUCTION = NODE_ENV === "production";
 const JWT_SECRET = process.env.JWT_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const COOKIE_NAME = "wa_session";
+const lessonStore = createLessonStore();
 
 function parseEmailList(value) {
   return (value || "")
@@ -502,6 +504,36 @@ app.post("/api/auth/logout", (_req, res) => {
     path: "/",
   });
   res.json({ success: true });
+});
+
+app.get("/api/lessons", async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ items: await lessonStore.listLessons() });
+  } catch (error) {
+    console.error("Failed to read lessons:", error);
+    res.status(503).json({ error: "Lesson storage is unavailable" });
+  }
+});
+
+app.get("/api/lessons/:lessonSlug", async (req, res) => {
+  if (!lessonSlugPattern.test(req.params.lessonSlug)) {
+    return res.status(400).json({ error: "Invalid lesson slug" });
+  }
+
+  try {
+    const lesson = await lessonStore.getLesson(req.params.lessonSlug);
+
+    if (!lesson) {
+      return res.status(404).json({ error: "Lesson not found" });
+    }
+
+    res.set("Cache-Control", "no-store");
+    res.json(lesson);
+  } catch (error) {
+    console.error("Failed to read lesson:", error);
+    res.status(503).json({ error: "Lesson storage is unavailable" });
+  }
 });
 
 app.get("/api/admin/tags", authenticateToken, requireAdmin, (_req, res) => {

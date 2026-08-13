@@ -1,26 +1,28 @@
 import JSZip from "jszip";
 import type { LessonMeta } from "./getLessons";
 import type { TaskCode } from "./getTasks";
+import { ensureReadonlyBlockSpacing } from "./readonlyBlocks";
 
 function addCourseToZip(
   zip: JSZip,
   course: LessonMeta,
   tasks: Partial<TaskCode>[],
+  content?: string,
 ) {
   const courseFolder = zip.folder(course.slug);
   if (!courseFolder) throw new Error("Failed to create zip folder");
 
   const mdxContent = `---
-title: "${course.title}"
-description: "${course.description}"
-slug: "${course.slug}"
-color: "${course.color}"
+title: ${JSON.stringify(course.title)}
+description: ${JSON.stringify(course.description)}
+slug: ${JSON.stringify(course.slug)}
+color: ${JSON.stringify(course.color)}
 order: ${course.order}
-icon: ${course.icon}
+icon: ${JSON.stringify(course.icon)}
 hidden: ${course.hidden ?? false}
 ---
 
-# ${course.title}
+${content?.trim() || `# ${course.title}`}
 `;
   courseFolder.file("index.mdx", mdxContent);
 
@@ -40,15 +42,21 @@ hidden: ${course.hidden ?? false}
         }
       };
 
-      addFile("editable.html", task.editableHtml);
-      addFile("editable.css", task.editableCss);
-      addFile("editable.js", task.editableJs);
-      addFile("readonly.html", task.readonlyHtml);
-      addFile("readonly.css", task.readonlyCss);
-      addFile("readonly.js", task.readonlyJs);
-      addFile("hidden.html", task.hiddenHtml);
-      addFile("hidden.css", task.hiddenCss);
-      addFile("hidden.js", task.hiddenJs);
+      if (task.html !== undefined) {
+        taskFolder.file(
+          "index.html",
+          ensureReadonlyBlockSpacing(task.html, "html"),
+        );
+      }
+      if (task.css !== undefined) {
+        taskFolder.file(
+          "styles.css",
+          ensureReadonlyBlockSpacing(task.css, "css"),
+        );
+      }
+      if (task.js !== undefined) {
+        taskFolder.file("script.js", ensureReadonlyBlockSpacing(task.js, "js"));
+      }
       addFile("solution.html", task.solutionHtml);
       addFile("solution.css", task.solutionCss);
       addFile("solution.js", task.solutionJs);
@@ -87,9 +95,10 @@ async function downloadZip(zip: JSZip, suggestedName: string) {
 export async function generateCourseZip(
   course: LessonMeta,
   tasks: Partial<TaskCode>[],
+  content?: string,
 ) {
   const zip = new JSZip();
-  addCourseToZip(zip, course, tasks);
+  addCourseToZip(zip, course, tasks, content);
   await downloadZip(zip, `${course.slug}.zip`);
 }
 
@@ -97,10 +106,13 @@ export async function generateCoursesZip(
   courses: {
     course: LessonMeta;
     tasks: Partial<TaskCode>[];
+    content?: string;
   }[],
   suggestedName = "lessons.zip",
 ) {
   const zip = new JSZip();
-  courses.forEach(({ course, tasks }) => addCourseToZip(zip, course, tasks));
+  courses.forEach(({ course, tasks, content }) =>
+    addCourseToZip(zip, course, tasks, content),
+  );
   await downloadZip(zip, suggestedName);
 }

@@ -25,15 +25,9 @@ export type LessonDraftSummary = {
 };
 
 const TASK_FIELDS = [
-  "editableHtml",
-  "editableCss",
-  "editableJs",
-  "readonlyHtml",
-  "readonlyCss",
-  "readonlyJs",
-  "hiddenHtml",
-  "hiddenCss",
-  "hiddenJs",
+  "html",
+  "css",
+  "js",
   "solutionHtml",
   "solutionCss",
   "solutionJs",

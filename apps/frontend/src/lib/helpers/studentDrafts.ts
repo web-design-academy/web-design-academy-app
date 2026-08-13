@@ -28,9 +28,9 @@ export function saveStudentLessonDraft(
   userId?: number | string,
 ) {
   const editableTasks = tasks.map((task) => ({
-    editableHtml: task.editableHtml,
-    editableCss: task.editableCss,
-    editableJs: task.editableJs,
+    html: task.html,
+    css: task.css,
+    js: task.js,
   }));
 
   localStorage.setItem(

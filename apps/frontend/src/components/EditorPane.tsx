@@ -18,9 +18,13 @@ import SubmitButton from "./SubmitButton";
 import LoadingSpinner from "./LoadingSpinner";
 import "@/styles/editor.css";
 import "visualeditor-html-css/style.css";
-import * as monaco from "monaco-editor";
 import { useTheme } from "@/lib/ctx/useTheme";
 import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
+import {
+  canApplyStudentEdit,
+  hasReadonlyBlocks,
+  parseReadonlyRanges,
+} from "@/lib/helpers/readonlyBlocks";
 
 interface VisualEditorProps {
   content: string;
@@ -34,9 +38,6 @@ export interface EditorPaneProps {
   task: Partial<TaskCode>;
   currentIndex: number;
   onTaskChange: (field: keyof Partial<TaskCode>, value: string) => void;
-  readonlyHtml?: string;
-  readonlyCss?: string;
-  readonlyJs?: string;
   onSubmit: () => Promise<boolean>;
   isSubmitted?: boolean;
   isSubmitDisabled?: boolean;
@@ -46,47 +47,19 @@ export interface EditorPaneProps {
 }
 
 type Tab = "html" | "css" | "js";
-type AdminAssetField =
-  | "editableHtml"
-  | "editableCss"
-  | "editableJs"
-  | "readonlyHtml"
-  | "readonlyCss"
-  | "readonlyJs"
-  | "hiddenHtml"
-  | "hiddenCss"
-  | "hiddenJs"
-  | "solutionHtml"
-  | "solutionCss"
-  | "solutionJs";
+type MountedEditor = Parameters<OnMount>[0];
+type MountedMonaco = Parameters<OnMount>[1];
 
-const ADMIN_ASSET_TABS: {
-  field: AdminAssetField;
-  label: string;
-  language: Tab;
-}[] = [
-  { field: "editableHtml", label: "editable.html", language: "html" },
-  { field: "editableCss", label: "editable.css", language: "css" },
-  { field: "editableJs", label: "editable.js", language: "js" },
-  { field: "readonlyHtml", label: "readonly.html", language: "html" },
-  { field: "readonlyCss", label: "readonly.css", language: "css" },
-  { field: "readonlyJs", label: "readonly.js", language: "js" },
-  { field: "hiddenHtml", label: "hidden.html", language: "html" },
-  { field: "hiddenCss", label: "hidden.css", language: "css" },
-  { field: "hiddenJs", label: "hidden.js", language: "js" },
-  { field: "solutionHtml", label: "solution.html", language: "html" },
-  { field: "solutionCss", label: "solution.css", language: "css" },
-  { field: "solutionJs", label: "solution.js", language: "js" },
-];
+const taskFieldByTab = {
+  html: "html",
+  css: "css",
+  js: "js",
+} as const satisfies Record<Tab, keyof TaskCode>;
 
 const getFirstPreferredTab = (task: Partial<TaskCode>): Tab => {
-  if (task.editableHtml !== undefined) return "html";
-  if (task.editableCss !== undefined) return "css";
-  if (task.editableJs !== undefined) return "js";
-
-  if (task.readonlyHtml !== undefined) return "html";
-  if (task.readonlyCss !== undefined) return "css";
-  if (task.readonlyJs !== undefined) return "js";
+  if (task.html !== undefined) return "html";
+  if (task.css !== undefined) return "css";
+  if (task.js !== undefined) return "js";
 
   return "html";
 };
@@ -95,9 +68,6 @@ export default function EditorPane({
   task,
   currentIndex,
   onTaskChange,
-  readonlyHtml,
-  readonlyCss,
-  readonlyJs,
   onSubmit,
   isSubmitted = false,
   isSubmitDisabled = false,
@@ -108,15 +78,22 @@ export default function EditorPane({
   const [activeTab, setActiveTab] = useState<Tab>(() =>
     getFirstPreferredTab(task),
   );
-  const [activeAdminField, setActiveAdminField] = useState<AdminAssetField>(
-    () =>
-      ADMIN_ASSET_TABS.find((tab) => task[tab.field] !== undefined)?.field ??
-      "editableHtml",
-  );
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<typeof monaco | null>(null);
+  const editorRef = useRef<MountedEditor | null>(null);
+  const monacoRef = useRef<MountedMonaco | null>(null);
+  const decorationsRef = useRef<ReturnType<
+    MountedEditor["createDecorationsCollection"]
+  > | null>(null);
   const lastValidValueRef = useRef("");
-  const lastAdminTaskIndexRef = useRef(currentIndex);
+  const isRestoringRef = useRef(false);
+  const readonlyRangesRef = useRef<{ startLine: number; endLine: number }[]>(
+    [],
+  );
+  const editorStateRef = useRef({
+    activeTab,
+    isAdmin: false,
+    isReadonly: false,
+    onTaskChange,
+  });
   const [VisualEditorComponent, setVisualEditorComponent] =
     useState<ComponentType<VisualEditorProps> | null>(null);
   const { theme } = useTheme();
@@ -126,42 +103,28 @@ export default function EditorPane({
   const isAdmin = user?.role === "admin";
   const showSubmitButton = user && user.role !== "admin";
 
-  const hasEditableHtmlFile = task.editableHtml !== undefined;
-  const hasEditableCssFile = task.editableCss !== undefined;
-  const hasEditableJsFile = task.editableJs !== undefined;
-  const hasHtmlSource =
-    readonlyHtml !== undefined || task?.editableHtml !== undefined;
-  const hasCssSource =
-    readonlyCss !== undefined || task?.editableCss !== undefined;
-  const hasJsSource =
-    readonlyJs !== undefined || task?.editableJs !== undefined;
+  const hasHtmlSource = task.html !== undefined;
+  const hasCssSource = task.css !== undefined;
+  const hasJsSource = task.js !== undefined;
 
   const isHtmlTabDisabled = !hasHtmlSource;
   const isCssTabDisabled = !hasCssSource;
   const isJsTabDisabled = !hasJsSource;
-  const preferredTab: Tab = hasEditableHtmlFile
+  const preferredTab: Tab = hasHtmlSource
     ? "html"
-    : hasEditableCssFile
+    : hasCssSource
       ? "css"
-      : hasEditableJsFile
+      : hasJsSource
         ? "js"
-        : hasHtmlSource
-          ? "html"
-          : hasCssSource
-            ? "css"
-            : hasJsSource
-              ? "js"
-              : "html";
-  const visualEditorAvailable = hasEditableHtmlFile || hasEditableCssFile;
-  const activeAdminTab =
-    ADMIN_ASSET_TABS.find((tab) => tab.field === activeAdminField) ??
-    ADMIN_ASSET_TABS[0];
-  const editorLanguage = isAdmin ? activeAdminTab.language : activeTab;
+        : "html";
+  const hasProtectedVisualSource =
+    hasReadonlyBlocks(task.html, "html") || hasReadonlyBlocks(task.css, "css");
+  const visualEditorAvailable =
+    (hasHtmlSource || hasCssSource) &&
+    (isAdmin || !hasProtectedVisualSource) &&
+    !hasJsSource;
   const showVisualEditor =
-    visualEditorEnabled &&
-    visualEditorAvailable &&
-    (!isAdmin || activeAdminTab.language !== "js") &&
-    activeTab !== "js";
+    visualEditorEnabled && visualEditorAvailable && activeTab !== "js";
   const autosaveMeta = {
     saved: {
       label: `${autosaveLabelPrefix} saved`,
@@ -207,17 +170,6 @@ export default function EditorPane({
   }, [currentIndex, preferredTab]);
 
   useEffect(() => {
-    if (!isAdmin) return;
-    if (lastAdminTaskIndexRef.current === currentIndex) return;
-
-    const firstExistingTab =
-      ADMIN_ASSET_TABS.find((tab) => task[tab.field] !== undefined) ??
-      ADMIN_ASSET_TABS[0];
-    lastAdminTaskIndexRef.current = currentIndex;
-    setActiveAdminField(firstExistingTab.field);
-  }, [currentIndex, isAdmin, task]);
-
-  useEffect(() => {
     if (activeTab === "html" && hasHtmlSource) return;
     if (activeTab === "css" && hasCssSource) return;
     if (activeTab === "js" && hasJsSource) return;
@@ -225,56 +177,38 @@ export default function EditorPane({
   }, [activeTab, hasHtmlSource, hasCssSource, hasJsSource, preferredTab]);
 
   const content = useMemo(() => {
-    if (isAdmin) {
-      return task[activeAdminField] ?? "";
+    return task[taskFieldByTab[activeTab]] ?? "";
+  }, [activeTab, task]);
+
+  const readonlyRanges = useMemo(() => {
+    try {
+      return parseReadonlyRanges(content, activeTab);
+    } catch {
+      return [];
     }
+  }, [activeTab, content]);
 
-    const r =
-      activeTab === "html"
-        ? readonlyHtml
-        : activeTab === "css"
-          ? readonlyCss
-          : readonlyJs;
-    const e =
-      activeTab === "html"
-        ? task?.editableHtml
-        : activeTab === "css"
-          ? task?.editableCss
-          : task?.editableJs;
-    return (r || "") + (e || "");
-  }, [
-    activeAdminField,
-    activeTab,
-    isAdmin,
-    readonlyHtml,
-    readonlyCss,
-    readonlyJs,
-    task,
-  ]);
+  const hasInvalidReadonlyMarkers = useMemo(() => {
+    if (isAdmin) return false;
 
-  const readonlyLinesCount = useMemo(() => {
-    if (isAdmin) return 0;
-
-    const r =
-      activeTab === "html"
-        ? readonlyHtml
-        : activeTab === "css"
-          ? readonlyCss
-          : readonlyJs;
-    if (!r) return 0;
-    return r.split("\n").length;
-  }, [activeTab, isAdmin, readonlyHtml, readonlyCss, readonlyJs]);
-
-  const editableSource =
-    activeTab === "html"
-      ? task?.editableHtml
-      : activeTab === "css"
-        ? task?.editableCss
-        : task?.editableJs;
+    try {
+      parseReadonlyRanges(content, activeTab);
+      return false;
+    } catch {
+      return true;
+    }
+  }, [activeTab, content, isAdmin]);
 
   const isTaskDeleted = Boolean(task.deleted);
-  const isFileFullyReadonly =
-    isTaskDeleted || (!isAdmin && editableSource === undefined);
+  const isEditorReadonly = isTaskDeleted || hasInvalidReadonlyMarkers;
+
+  readonlyRangesRef.current = readonlyRanges;
+  editorStateRef.current = {
+    activeTab,
+    isAdmin,
+    isReadonly: isEditorReadonly,
+    onTaskChange,
+  };
 
   useEffect(() => {
     lastValidValueRef.current = content.replace(/\r\n/g, "\n");
@@ -292,183 +226,133 @@ export default function EditorPane({
     const normalizedTarget = content.replace(/\r\n/g, "\n");
 
     if (normalizedCurrent !== normalizedTarget) {
+      isRestoringRef.current = true;
       editor.setValue(content);
+      isRestoringRef.current = false;
     }
 
-    updateDecorations(editor, monacoInstance, readonlyLinesCount);
-  }, [content, readonlyLinesCount, showVisualEditor]);
-
-  const mergeReadonlyWithEditable = (
-    readonlyPart?: string,
-    editablePart?: string,
-  ) => `${readonlyPart || ""}${editablePart || ""}`;
-
-  const splitReadonlyFromEditable = (
-    nextValue: string,
-    readonlyPart?: string,
-    previousEditablePart?: string,
-  ) => {
-    const normalizedNext = nextValue.replace(/\r\n/g, "\n");
-    const normalizedReadonly = (readonlyPart || "").replace(/\r\n/g, "\n");
-
-    if (!normalizedReadonly) {
-      return normalizedNext;
-    }
-
-    if (normalizedNext.startsWith(normalizedReadonly)) {
-      return normalizedNext.slice(normalizedReadonly.length);
-    }
-
-    return previousEditablePart || "";
-  };
+    updateDecorations(editor, monacoInstance, readonlyRanges);
+  }, [content, readonlyRanges, showVisualEditor]);
 
   const handleEditorMount: OnMount = (editor, monacoInstance) => {
     editorRef.current = editor;
     monacoRef.current = monacoInstance;
-    updateDecorations(editor, monacoInstance, readonlyLinesCount);
+    lastValidValueRef.current = editor.getValue().replace(/\r\n/g, "\n");
+    decorationsRef.current?.clear();
+    decorationsRef.current = editor.createDecorationsCollection();
+    updateDecorations(editor, monacoInstance, readonlyRanges);
+
+    editor.onDidChangeModelContent((event) => {
+      if (isRestoringRef.current) return;
+
+      const model = editor.getModel();
+      if (!model) return;
+
+      const nextValue = model.getValue().replace(/\r\n/g, "\n");
+      const {
+        activeTab: currentTab,
+        isAdmin: currentIsAdmin,
+        isReadonly,
+        onTaskChange: commitTaskChange,
+      } = editorStateRef.current;
+
+      const touchesReadonlyLine = event.changes.some((change) =>
+        readonlyRangesRef.current.some(
+          (range) =>
+            change.range.startLineNumber <= range.endLine &&
+            change.range.endLineNumber >= range.startLine,
+        ),
+      );
+      const editIsAllowed =
+        currentIsAdmin ||
+        (!isReadonly &&
+          !touchesReadonlyLine &&
+          canApplyStudentEdit(
+            lastValidValueRef.current,
+            nextValue,
+            currentTab,
+          ));
+
+      if (!editIsAllowed) {
+        const attemptedPosition = editor.getPosition();
+        isRestoringRef.current = true;
+        model.setValue(lastValidValueRef.current);
+        if (attemptedPosition) editor.setPosition(attemptedPosition);
+        isRestoringRef.current = false;
+        updateDecorations(editor, monacoInstance, readonlyRangesRef.current);
+        return;
+      }
+
+      lastValidValueRef.current = nextValue;
+      commitTaskChange(taskFieldByTab[currentTab], nextValue);
+    });
   };
 
   const updateDecorations = (
-    editor: monaco.editor.IStandaloneCodeEditor,
-    monaco: typeof import("monaco-editor"),
-    lines: number,
+    editor: MountedEditor,
+    monaco: MountedMonaco,
+    ranges: { startLine: number; endLine: number }[],
   ) => {
-    if (!editor) return;
     const model = editor.getModel();
-    if (!model || lines <= 0) {
-      editor.deltaDecorations([], []);
+    if (!model) {
+      decorationsRef.current?.clear();
       return;
     }
 
-    editor.deltaDecorations(
-      [],
-      [
-        {
-          range: new monaco.Range(1, 1, lines, 1),
-          options: {
-            isWholeLine: true,
-            className: "readonly-line",
-            glyphMarginClassName: "readonly-glyph",
-            hoverMessage: { value: "This section is read-only" },
-            stickiness:
-              monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-          },
+    if (!decorationsRef.current) {
+      decorationsRef.current = editor.createDecorationsCollection();
+    }
+
+    decorationsRef.current.set(
+      ranges.map((range) => ({
+        range: new monaco.Range(range.startLine, 1, range.endLine, 1),
+        options: {
+          isWholeLine: true,
+          className: "readonly-line-highlight",
+          glyphMarginClassName: "readonly-glyph",
+          inlineClassName: "locked-text-inline",
+          glyphMarginHoverMessage: { value: "This section is read-only" },
+          stickiness:
+            monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
         },
-      ],
+      })),
     );
-  };
-
-  const handleEditorChange = (value: string | undefined) => {
-    const val = value || "";
-    const normalizedVal = val.replace(/\r\n/g, "\n");
-
-    if (isAdmin && !isTaskDeleted) {
-      onTaskChange(activeAdminField, normalizedVal);
-      lastValidValueRef.current = normalizedVal;
-      return;
-    }
-
-    const r =
-      activeTab === "html"
-        ? readonlyHtml
-        : activeTab === "css"
-          ? readonlyCss
-          : readonlyJs;
-    const normalizedReadonly = (r || "").replace(/\r\n/g, "\n");
-
-    if (isFileFullyReadonly) {
-      const editor = editorRef.current;
-      if (
-        editor &&
-        editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current
-      ) {
-        editor.setValue(lastValidValueRef.current);
-        if (monacoRef.current) {
-          updateDecorations(editor, monacoRef.current, readonlyLinesCount);
-        }
-      }
-      return;
-    }
-
-    if (!normalizedVal.startsWith(normalizedReadonly)) {
-      const editor = editorRef.current;
-      if (
-        editor &&
-        editor.getValue().replace(/\r\n/g, "\n") !== lastValidValueRef.current
-      ) {
-        editor.setValue(lastValidValueRef.current);
-        if (monacoRef.current) {
-          updateDecorations(editor, monacoRef.current, readonlyLinesCount);
-        }
-      }
-      return;
-    }
-
-    const editablePart = normalizedVal.slice(normalizedReadonly.length);
-
-    const field =
-      activeTab === "html"
-        ? "editableHtml"
-        : activeTab === "css"
-          ? "editableCss"
-          : "editableJs";
-
-    onTaskChange(field, editablePart);
-    lastValidValueRef.current = normalizedVal;
   };
 
   return (
     <div className={`editor-pane ${isTaskDeleted ? "is-task-deleted" : ""}`}>
       <div className="editor-tabs editor-tabs-row">
         <div className="editor-tab-list">
-          {isAdmin ? (
-            ADMIN_ASSET_TABS.map((tab) => (
-              <button
-                key={tab.field}
-                className={`tab ${activeAdminField === tab.field ? "active" : ""}`}
-                onClick={() => setActiveAdminField(tab.field)}
-              >
-                {tab.label}
-              </button>
-            ))
-          ) : (
-            <>
-              <button
-                className={`tab ${activeTab === "html" ? "active" : ""}`}
-                onClick={() => setActiveTab("html")}
-                disabled={isHtmlTabDisabled}
-                style={
-                  isHtmlTabDisabled
-                    ? { opacity: 0.3, cursor: "not-allowed" }
-                    : {}
-                }
-              >
-                index.html
-              </button>
-              <button
-                className={`tab ${activeTab === "css" ? "active" : ""}`}
-                onClick={() => setActiveTab("css")}
-                disabled={isCssTabDisabled}
-                style={
-                  isCssTabDisabled
-                    ? { opacity: 0.3, cursor: "not-allowed" }
-                    : {}
-                }
-              >
-                styles.css
-              </button>
-              <button
-                className={`tab ${activeTab === "js" ? "active" : ""}`}
-                onClick={() => setActiveTab("js")}
-                disabled={isJsTabDisabled}
-                style={
-                  isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-                }
-              >
-                script.js
-              </button>
-            </>
-          )}
+          <button
+            className={`tab ${activeTab === "html" ? "active" : ""}`}
+            onClick={() => setActiveTab("html")}
+            disabled={isHtmlTabDisabled}
+            style={
+              isHtmlTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            index.html
+          </button>
+          <button
+            className={`tab ${activeTab === "css" ? "active" : ""}`}
+            onClick={() => setActiveTab("css")}
+            disabled={isCssTabDisabled}
+            style={
+              isCssTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            styles.css
+          </button>
+          <button
+            className={`tab ${activeTab === "js" ? "active" : ""}`}
+            onClick={() => setActiveTab("js")}
+            disabled={isJsTabDisabled}
+            style={
+              isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
+            }
+          >
+            script.js
+          </button>
         </div>
         <div className="editor-tab-controls">
           {showSubmitButton && (
@@ -486,45 +370,19 @@ export default function EditorPane({
         {showVisualEditor ? (
           VisualEditorComponent ? (
             <VisualEditorComponent
-              content={mergeReadonlyWithEditable(
-                readonlyHtml,
-                task.editableHtml,
-              )}
+              content={task.html ?? ""}
               setContent={(value) => {
-                const currentValue = mergeReadonlyWithEditable(
-                  readonlyHtml,
-                  task.editableHtml,
-                );
+                const currentValue = task.html ?? "";
                 const nextValue =
                   typeof value === "function" ? value(currentValue) : value;
-                onTaskChange(
-                  "editableHtml",
-                  splitReadonlyFromEditable(
-                    nextValue,
-                    readonlyHtml,
-                    task.editableHtml,
-                  ),
-                );
+                onTaskChange("html", nextValue);
               }}
-              cssContent={mergeReadonlyWithEditable(
-                readonlyCss,
-                task.editableCss,
-              )}
+              cssContent={task.css ?? ""}
               setCssContent={(value) => {
-                const currentValue = mergeReadonlyWithEditable(
-                  readonlyCss,
-                  task.editableCss,
-                );
+                const currentValue = task.css ?? "";
                 const nextValue =
                   typeof value === "function" ? value(currentValue) : value;
-                onTaskChange(
-                  "editableCss",
-                  splitReadonlyFromEditable(
-                    nextValue,
-                    readonlyCss,
-                    task.editableCss,
-                  ),
-                );
+                onTaskChange("css", nextValue);
               }}
               isDark={theme === "dark"}
             />
@@ -545,23 +403,21 @@ export default function EditorPane({
           )
         ) : (
           <Editor
-            key={`${isAdmin ? activeAdminField : activeTab}-${currentIndex}`}
+            key={`${activeTab}-${currentIndex}`}
             height="100%"
-            defaultLanguage={
-              editorLanguage === "js" ? "javascript" : editorLanguage
-            }
-            language={editorLanguage === "js" ? "javascript" : editorLanguage}
+            defaultLanguage={activeTab === "js" ? "javascript" : activeTab}
+            language={activeTab === "js" ? "javascript" : activeTab}
             value={content}
-            onChange={handleEditorChange}
             onMount={handleEditorMount}
             theme={theme === "dark" ? "vs-dark" : "vs-light"}
             options={{
               minimap: { enabled: false },
+              glyphMargin: true,
               fontSize: 14,
-              padding: { top: 16 },
+              padding: { top: 16, bottom: 16 },
               scrollBeyondLastLine: false,
-              readOnly: isFileFullyReadonly,
-              domReadOnly: isFileFullyReadonly,
+              readOnly: isEditorReadonly,
+              domReadOnly: isEditorReadonly,
             }}
           />
         )}

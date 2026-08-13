@@ -10,11 +10,6 @@ interface VisualPreviewProps {
   html: string;
   css?: string;
   locale?: "sk" | "en";
-  solutionCss?: string;
-  solutionHtml?: string;
-  initialCss?: string;
-  targetSelectors?: string[];
-  checks?: unknown[];
   showControls?: boolean;
   hideProgress?: boolean;
 }
@@ -24,11 +19,6 @@ interface PreviewPaneProps {
   visualHtml?: string;
   visualCss?: string;
   visualPreviewSupported?: boolean;
-  solutionCss?: string;
-  solutionHtml?: string;
-  initialCss?: string;
-  targetSelectors?: string[];
-  checks?: unknown[];
 }
 
 export default function PreviewPane({
@@ -36,11 +26,6 @@ export default function PreviewPane({
   visualHtml,
   visualCss,
   visualPreviewSupported = true,
-  solutionCss,
-  solutionHtml,
-  initialCss,
-  targetSelectors,
-  checks,
 }: PreviewPaneProps) {
   const [mode, setMode] = useState<"default" | "mobile">("default");
   const [size, setSize] = useState<{ width: number; height: number }>({
@@ -111,11 +96,6 @@ export default function PreviewPane({
         <VisualPreviewComponent
           html={visualHtml || ""}
           css={visualCss || ""}
-          solutionCss={solutionCss}
-          solutionHtml={solutionHtml}
-          initialCss={initialCss}
-          targetSelectors={targetSelectors}
-          checks={checks}
           locale="en"
         />
       </div>

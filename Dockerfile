@@ -27,7 +27,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN mkdir -p storage
+RUN mkdir -p storage lessons
 
 COPY apps/backend/package.json ./
 RUN npm install --omit=dev
