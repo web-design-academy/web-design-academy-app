@@ -12,7 +12,7 @@ services:
       - /app/node_modules
       - backend_storage:/app/storage
       - type: bind
-        source: ./lessons
+        source: ${LESSONS_HOST_PATH:-./lessons}
         target: /app/lessons
         read_only: true
         bind:
@@ -29,8 +29,11 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/frontend:/app/frontend
-      - /app/frontend/node_modules
+      - ./apps/frontend:/app/apps/frontend
+      - /app/apps/frontend/node_modules
+      - ./packages/visual-editor/src:/app/packages/visual-editor/src
+      - ./packages/visual-preview/src:/app/packages/visual-preview/src
+      - ./packages/ui-styles:/app/packages/ui-styles
 
 volumes:
   backend_storage:

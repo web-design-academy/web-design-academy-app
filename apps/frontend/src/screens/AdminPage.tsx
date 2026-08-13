@@ -1366,7 +1366,7 @@ export default function AdminPage() {
         )}
 
         {activeSection === "lessons" && (
-          <section className="admin-panel">
+          <section className="admin-panel admin-lessons-panel">
             <div className="admin-panel-header">
               <div>
                 <h1>Lessons</h1>

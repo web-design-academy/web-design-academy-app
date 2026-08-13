@@ -205,7 +205,7 @@ export default function EditorPane({
     setEvaluationDraft(
       JSON.stringify(task.evaluation ?? defaultEvaluation, null, 2),
     );
-  }, [currentIndex, preferredTab]);
+  }, [currentIndex, preferredTab, task.evaluation]);
 
   useEffect(() => {
     if (activeTab === "html" && (isAdmin || hasHtmlSource)) return;

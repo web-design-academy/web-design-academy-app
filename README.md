@@ -65,9 +65,12 @@ This starts:
   ```
 
 - Local pnpm development reads `./lessons` directly.
-- Docker mounts host `./lessons` read-only at `/app/lessons` in the backend.
-- Clone the repository before `docker compose up`; Compose fails if it is
-  missing.
+- Docker mounts `${LESSONS_HOST_PATH:-./lessons}` read-only at `/app/lessons`
+  in the backend. Set `LESSONS_HOST_PATH` in the root `.env` or shell to keep
+  the repository elsewhere, for example
+  `LESSONS_HOST_PATH=/srv/wda-lessons`.
+- Clone the repository at the selected host path before `docker compose up`;
+  Compose fails if it is missing.
 - Each task may contain `index.html`, `styles.css`, and `script.js`, plus
   optional `solution.html`, `solution.css`, `solution.js`, and
   `evaluation.json`.

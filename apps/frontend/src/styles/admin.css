@@ -1,10 +1,10 @@
 .admin-page {
   display: grid;
   grid-template-columns: 15.5rem minmax(0, 1fr);
-  gap: var(--space-5);
-  height: calc(100vh - var(--header-height));
+  gap: var(--workspace-shell-gap);
+  height: 100%;
   min-height: 0;
-  padding: var(--space-5);
+  padding: var(--workspace-shell-padding);
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-family);
@@ -12,13 +12,10 @@
 }
 
 .admin-sidebar {
-  position: sticky;
-  top: var(--space-5);
-  align-self: start;
   display: flex;
+  min-height: 0;
   flex-direction: column;
   gap: var(--space-5);
-  height: calc(100vh - var(--header-height) - var(--space-5) * 2);
   padding: var(--space-4);
   border: var(--border-width-thin) solid var(--color-border);
   border-radius: var(--radius-control);
@@ -140,6 +137,8 @@
 .admin-panel-header-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
@@ -1221,17 +1220,17 @@ button.admin-tag-choice:hover:not(:disabled) {
   line-height: 1.2;
 }
 
-@media (max-width: 64rem) {
+@media (max-width: 900px) {
   .admin-page {
     grid-template-columns: 1fr;
-    height: auto;
-    min-height: calc(100vh - var(--header-height));
-    overflow: visible;
+    height: 100%;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .admin-sidebar {
-    position: static;
-    height: auto;
+    min-height: auto;
   }
 
   .admin-sidebar-nav {
@@ -1242,13 +1241,22 @@ button.admin-tag-choice:hover:not(:disabled) {
   .admin-panel {
     min-height: 42rem;
   }
+
+  .admin-lessons-panel {
+    min-height: 0;
+    flex: none;
+    overflow: visible;
+  }
+
+  .admin-lessons-panel .admin-lesson-grid {
+    min-height: auto;
+    flex: none;
+    overflow: visible;
+    padding-right: 0;
+  }
 }
 
 @media (max-width: 46rem) {
-  .admin-page {
-    padding: var(--space-3);
-  }
-
   .admin-sidebar-nav,
   .lesson-picker-row {
     grid-template-columns: 1fr;
@@ -1260,8 +1268,43 @@ button.admin-tag-choice:hover:not(:disabled) {
     flex-direction: column;
   }
 
+  .admin-panel-header-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-panel-header-actions > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-panel-header-actions .btn-primary,
+  .admin-panel-header-actions .admin-row-button {
+    width: 100%;
+  }
+
   .admin-lesson-card {
-    grid-template-columns: 3.5rem 2.75rem 1fr;
+    grid-template-areas:
+      "drag icon main"
+      ". actions actions";
+    grid-template-columns: 3.5rem 2.75rem minmax(0, 1fr);
+  }
+
+  .admin-lesson-drag-handle {
+    grid-area: drag;
+  }
+
+  .admin-lesson-icon {
+    grid-area: icon;
+  }
+
+  .admin-lesson-main {
+    grid-area: main;
+  }
+
+  .admin-lesson-card-actions {
+    grid-area: actions;
+    flex-wrap: wrap;
   }
 
   .admin-lesson-card .admin-row-button {
@@ -1270,7 +1313,11 @@ button.admin-tag-choice:hover:not(:disabled) {
   }
 
   .admin-lesson-description {
-    white-space: normal;
+    white-space: nowrap;
+  }
+
+  .admin-lesson-change-line {
+    display: none;
   }
 
   .lesson-icon-field .lesson-picker-button {
@@ -1283,5 +1330,15 @@ button.admin-tag-choice:hover:not(:disabled) {
 
   .lesson-icon-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30rem) {
+  .admin-panel-header-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-panel-header-actions > :last-child {
+    grid-column: auto;
   }
 }
