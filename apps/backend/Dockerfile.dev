@@ -4,7 +4,7 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-RUN mkdir -p storage
+RUN mkdir -p storage lessons
 
 COPY package.json ./
 RUN pnpm install

@@ -43,6 +43,27 @@ const initDb = () => {
   `,
   ).run();
 
+  const submissionColumns = new Set(
+    db
+      .prepare("PRAGMA table_info(submissions)")
+      .all()
+      .map((column) => column.name),
+  );
+  const evaluationColumns = [
+    ["evaluation_status", "TEXT"],
+    ["evaluation_score", "INTEGER"],
+    ["evaluation_passed", "INTEGER"],
+    ["evaluation_issues", "TEXT"],
+    ["evaluation_version", "INTEGER"],
+    ["evaluation_config_hash", "TEXT"],
+  ];
+
+  evaluationColumns.forEach(([name, type]) => {
+    if (!submissionColumns.has(name)) {
+      db.prepare(`ALTER TABLE submissions ADD COLUMN ${name} ${type}`).run();
+    }
+  });
+
   db.prepare(
     `
     CREATE TABLE IF NOT EXISTS tags (

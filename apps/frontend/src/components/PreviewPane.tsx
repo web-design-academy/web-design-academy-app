@@ -1,22 +1,27 @@
 import { Resizable, type ResizeCallback } from "re-resizable";
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 
 import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
 
 import "@/styles/preview.css";
-import "css-analyzer/style.css";
 
 interface VisualPreviewProps {
   html: string;
   css?: string;
   locale?: "sk" | "en";
-  solutionCss?: string;
-  solutionHtml?: string;
-  initialCss?: string;
-  targetSelectors?: string[];
-  checks?: unknown[];
   showControls?: boolean;
-  hideProgress?: boolean;
+  solutionHtml?: string;
+  solutionCss?: string;
+  initialCss?: string;
+  evaluationContent?: ReactNode;
+  evaluationViewRequest?: number;
+  onSelectSelector?: (selector: string) => void;
 }
 
 interface PreviewPaneProps {
@@ -24,11 +29,11 @@ interface PreviewPaneProps {
   visualHtml?: string;
   visualCss?: string;
   visualPreviewSupported?: boolean;
-  solutionCss?: string;
   solutionHtml?: string;
-  initialCss?: string;
-  targetSelectors?: string[];
-  checks?: unknown[];
+  solutionCss?: string;
+  evaluationContent?: ReactNode;
+  evaluationViewRequest?: number;
+  onSelectSelector?: (selector: string) => void;
 }
 
 export default function PreviewPane({
@@ -36,11 +41,11 @@ export default function PreviewPane({
   visualHtml,
   visualCss,
   visualPreviewSupported = true,
-  solutionCss,
   solutionHtml,
-  initialCss,
-  targetSelectors,
-  checks,
+  solutionCss,
+  evaluationContent,
+  evaluationViewRequest,
+  onSelectSelector,
 }: PreviewPaneProps) {
   const [mode, setMode] = useState<"default" | "mobile">("default");
   const [size, setSize] = useState<{ width: number; height: number }>({
@@ -57,9 +62,12 @@ export default function PreviewPane({
 
   useEffect(() => {
     if (canUseVisualPreview) {
-      import("css-analyzer")
-        .then((module) => {
-          setVisualPreviewComponent(() => module.default);
+      Promise.all([
+        import("@wda/css-analysis"),
+        import("@wda/css-analysis/style.css"),
+      ])
+        .then(([module]) => {
+          setVisualPreviewComponent(() => module.PreviewPane);
         })
         .catch((err) => {
           console.error("Failed to load css analyzer:", err);
@@ -111,12 +119,12 @@ export default function PreviewPane({
         <VisualPreviewComponent
           html={visualHtml || ""}
           css={visualCss || ""}
-          solutionCss={solutionCss}
-          solutionHtml={solutionHtml}
-          initialCss={initialCss}
-          targetSelectors={targetSelectors}
-          checks={checks}
           locale="en"
+          solutionHtml={solutionHtml}
+          solutionCss={solutionCss}
+          evaluationContent={evaluationContent}
+          evaluationViewRequest={evaluationViewRequest}
+          onSelectSelector={onSelectSelector}
         />
       </div>
     );

@@ -25,24 +25,21 @@ export type LessonDraftSummary = {
 };
 
 const TASK_FIELDS = [
-  "editableHtml",
-  "editableCss",
-  "editableJs",
-  "readonlyHtml",
-  "readonlyCss",
-  "readonlyJs",
-  "hiddenHtml",
-  "hiddenCss",
-  "hiddenJs",
+  "html",
+  "css",
+  "js",
   "solutionHtml",
   "solutionCss",
   "solutionJs",
+  "evaluation",
 ] as const satisfies readonly (keyof TaskCode)[];
 
 function normalizeMeta(meta: LessonMeta): LessonMeta {
   return {
     ...meta,
     hidden: meta.hidden ?? false,
+    visualEditor: meta.visualEditor ?? false,
+    visualPreview: meta.visualPreview ?? false,
   };
 }
 
@@ -65,7 +62,9 @@ function areMetasEqual(left: LessonMeta, right: LessonMeta) {
     normalizedLeft.color === normalizedRight.color &&
     normalizedLeft.order === normalizedRight.order &&
     normalizedLeft.icon === normalizedRight.icon &&
-    normalizedLeft.hidden === normalizedRight.hidden
+    normalizedLeft.hidden === normalizedRight.hidden &&
+    normalizedLeft.visualEditor === normalizedRight.visualEditor &&
+    normalizedLeft.visualPreview === normalizedRight.visualPreview
   );
 }
 
@@ -91,7 +90,13 @@ function getChangedTaskFiles(
     }
 
     TASK_FIELDS.forEach((field) => {
-      if (currentTask[field] !== defaultTask[field]) {
+      const currentValue = currentTask[field];
+      const defaultValue = defaultTask[field];
+      const changed =
+        typeof currentValue === "object" || typeof defaultValue === "object"
+          ? JSON.stringify(currentValue) !== JSON.stringify(defaultValue)
+          : currentValue !== defaultValue;
+      if (changed) {
         changedFiles.push(`task ${taskIndex + 1}/${field}`);
       }
     });

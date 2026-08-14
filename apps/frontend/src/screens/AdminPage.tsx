@@ -74,10 +74,21 @@ import {
   saveLessonMetadataDraft,
   type LessonDraftSummary,
 } from "@/lib/helpers/lessonDrafts";
-import { getAllLessons, type LessonMeta } from "@/lib/helpers/getLessons";
-import { getLessonTasksSync } from "@/lib/helpers/getTasks";
+import {
+  getAllLessons,
+  getDefaultLessons,
+  getLessonContent,
+  loadLessons,
+  setDefaultLessonContent,
+  type LessonMeta,
+} from "@/lib/helpers/getLessons";
+import {
+  getLessonTasksSync,
+  setDefaultLessonTasks,
+} from "@/lib/helpers/getTasks";
 import { generateCoursesZip } from "@/lib/helpers/zipGenerator";
 import { isOnlineMode } from "@/lib/config/appMode";
+import { fetchLesson } from "@/lib/api/lessons";
 import "@/styles/admin.css";
 
 const PAGE_SIZE = 12;
@@ -197,6 +208,8 @@ function emptyForm(): LessonForm {
     color: LESSON_COLOR_OPTIONS[0],
     icon: DEFAULT_ICON,
     hidden: false,
+    visualEditor: false,
+    visualPreview: false,
   };
 }
 
@@ -624,7 +637,9 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<AdminSection>("lessons");
-  const [lessons, setLessons] = useState<LessonMeta[]>(() => getAllLessons());
+  const [lessons, setLessons] = useState<LessonMeta[]>([]);
+  const [isLoadingLessons, setIsLoadingLessons] = useState(true);
+  const [lessonLoadError, setLessonLoadError] = useState<string | null>(null);
   const [lessonModalMode, setLessonModalMode] = useState<"create" | "edit">(
     "create",
   );
@@ -661,9 +676,7 @@ export default function AdminPage() {
     string | null
   >(null);
   const [openMoreTagsKey, setOpenMoreTagsKey] = useState<string | null>(null);
-  const [orderedLessons, setOrderedLessons] = useState<LessonMeta[]>(() =>
-    getAllLessons(),
-  );
+  const [orderedLessons, setOrderedLessons] = useState<LessonMeta[]>([]);
   const [activeLessonSlug, setActiveLessonSlug] = useState<string | null>(null);
   const [activeLessonWidth, setActiveLessonWidth] = useState<number | null>(
     null,
@@ -684,6 +697,44 @@ export default function AdminPage() {
       navigate("/");
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (user?.role !== "admin") return;
+    let cancelled = false;
+
+    const loadLessonData = async () => {
+      setIsLoadingLessons(true);
+      setLessonLoadError(null);
+
+      try {
+        await loadLessons();
+        const details = await Promise.all(
+          getDefaultLessons().map((lesson) => fetchLesson(lesson.slug)),
+        );
+
+        details.forEach((detail) => {
+          setDefaultLessonTasks(detail.lesson.slug, detail.tasks);
+          setDefaultLessonContent(detail.lesson.slug, detail.content);
+        });
+
+        if (!cancelled) setLessons(getAllLessons());
+      } catch (error) {
+        if (!cancelled) {
+          setLessonLoadError(
+            error instanceof Error ? error.message : "Failed to load lessons",
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoadingLessons(false);
+      }
+    };
+
+    void loadLessonData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.role]);
 
   useEffect(() => {
     const refreshLessonDrafts = () => setLessons(getAllLessons());
@@ -1071,6 +1122,8 @@ export default function AdminPage() {
       color: lesson.color,
       icon: lesson.icon,
       hidden: lesson.hidden ?? false,
+      visualEditor: lesson.visualEditor ?? false,
+      visualPreview: lesson.visualPreview ?? false,
     });
     setHasTouchedTitle(false);
     setIsColorPickerOpen(false);
@@ -1103,9 +1156,9 @@ export default function AdminPage() {
     });
 
     addCustomTask(generatedSlug, {
-      editableHtml: "<h1>New Task</h1>\n<p>Start editing...</p>",
-      editableCss: "h1 { color: blue; }",
-      editableJs: 'console.log("Hello World");',
+      html: "<h1>New Task</h1>\n<p>Start editing...</p>",
+      css: "h1 { color: blue; }",
+      js: 'console.log("Hello World");',
     });
 
     setLessons(getAllLessons());
@@ -1181,6 +1234,7 @@ export default function AdminPage() {
           .map((lesson) => ({
             course: lesson,
             tasks: getLessonTasksSync(lesson.slug),
+            content: getLessonContent(lesson.slug),
           })),
         "lessons.zip",
       );
@@ -1266,7 +1320,7 @@ export default function AdminPage() {
     });
   };
 
-  const error = tagsError || usersError || submissionsError;
+  const error = lessonLoadError || tagsError || usersError || submissionsError;
 
   if (authLoading) return <LoadingSpinner />;
 
@@ -1303,12 +1357,16 @@ export default function AdminPage() {
       <section className="admin-workspace">
         {error && (
           <div className="admin-error">
-            {error instanceof Error ? error.message : "Error loading data"}
+            {error instanceof Error
+              ? error.message
+              : typeof error === "string"
+                ? error
+                : "Error loading data"}
           </div>
         )}
 
         {activeSection === "lessons" && (
-          <section className="admin-panel">
+          <section className="admin-panel admin-lessons-panel">
             <div className="admin-panel-header">
               <div>
                 <h1>Lessons</h1>
@@ -1349,74 +1407,81 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <DndContext
-              sensors={lessonDragSensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleLessonDragStart}
-              onDragOver={handleLessonDragOver}
-              onDragEnd={handleLessonDragEnd}
-              onDragCancel={handleLessonDragCancel}
-            >
-              <SortableContext
-                items={lessonIds}
-                strategy={verticalListSortingStrategy}
-              >
-                <div
-                  className={`admin-lesson-grid ${
-                    activeDraggedLesson ? "is-dragging" : ""
-                  }`}
+            {isLoadingLessons && <LoadingSpinner />}
+            {!isLoadingLessons && (
+              <>
+                <DndContext
+                  sensors={lessonDragSensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleLessonDragStart}
+                  onDragOver={handleLessonDragOver}
+                  onDragEnd={handleLessonDragEnd}
+                  onDragCancel={handleLessonDragCancel}
                 >
-                  {displayedLessons.map((lesson) => (
-                    <SortableLessonCard
-                      key={lesson.slug}
-                      lesson={lesson}
-                      summary={
-                        lessonDraftSummariesBySlug.get(lesson.slug) ?? {
-                          lesson,
-                          status: "unchanged",
-                          changes: [],
-                        }
-                      }
-                      onEdit={openEditModal}
-                      onDelete={handleDeleteLessonDraft}
-                      onRestore={handleRestoreLessonDraft}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-              <DragOverlay zIndex={10000}>
-                {activeDraggedLesson ? (
-                  <LessonDragOverlayCard
-                    lesson={activeDraggedLesson}
-                    width={activeLessonWidth}
-                  />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+                  <SortableContext
+                    items={lessonIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div
+                      className={`admin-lesson-grid ${
+                        activeDraggedLesson ? "is-dragging" : ""
+                      }`}
+                    >
+                      {displayedLessons.map((lesson) => (
+                        <SortableLessonCard
+                          key={lesson.slug}
+                          lesson={lesson}
+                          summary={
+                            lessonDraftSummariesBySlug.get(lesson.slug) ?? {
+                              lesson,
+                              status: "unchanged",
+                              changes: [],
+                            }
+                          }
+                          onEdit={openEditModal}
+                          onDelete={handleDeleteLessonDraft}
+                          onRestore={handleRestoreLessonDraft}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                  <DragOverlay zIndex={10000}>
+                    {activeDraggedLesson ? (
+                      <LessonDragOverlayCard
+                        lesson={activeDraggedLesson}
+                        width={activeLessonWidth}
+                      />
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
 
-            <section className="admin-lesson-changelog">
-              <div className="admin-lesson-changelog-heading">
-                Draft changelog
-              </div>
-              {changedLessonSummaries.length > 0 && (
-                <ul>
-                  {changedLessonSummaries.map((summary) => (
-                    <li key={summary.lesson.slug}>
-                      <span className={`admin-change-tag is-${summary.status}`}>
-                        {summary.status === "added" ? "Added" : "Changed"}
-                      </span>
-                      <strong>{summary.lesson.title}</strong>
-                      <span className="admin-muted">
-                        {summary.changes.join(", ")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {changedLessonSummaries.length === 0 && (
-                <p className="admin-muted">No draft changes</p>
-              )}
-            </section>
+                <section className="admin-lesson-changelog">
+                  <div className="admin-lesson-changelog-heading">
+                    Draft changelog
+                  </div>
+                  {changedLessonSummaries.length > 0 && (
+                    <ul>
+                      {changedLessonSummaries.map((summary) => (
+                        <li key={summary.lesson.slug}>
+                          <span
+                            className={`admin-change-tag is-${summary.status}`}
+                          >
+                            {summary.status === "added" ? "Added" : "Changed"}
+                          </span>
+                          <strong>{summary.lesson.title}</strong>
+                          <span className="admin-muted">
+                            {summary.changes.join(", ")}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {changedLessonSummaries.length === 0 && (
+                    <p className="admin-muted">No draft changes</p>
+                  )}
+                </section>
+              </>
+            )}
           </section>
         )}
 
@@ -2003,6 +2068,44 @@ export default function AdminPage() {
                 aria-checked={formData.hidden}
                 onClick={() =>
                   setFormData((prev) => ({ ...prev, hidden: !prev.hidden }))
+                }
+              >
+                <span />
+              </button>
+            </div>
+            <div className="admin-switch-row">
+              <span>
+                <strong>Visual editor</strong>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                className="admin-switch"
+                aria-checked={formData.visualEditor}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    visualEditor: !prev.visualEditor,
+                  }))
+                }
+              >
+                <span />
+              </button>
+            </div>
+            <div className="admin-switch-row">
+              <span>
+                <strong>Visual preview and evaluation</strong>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                className="admin-switch"
+                aria-checked={formData.visualPreview}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    visualPreview: !prev.visualPreview,
+                  }))
                 }
               >
                 <span />

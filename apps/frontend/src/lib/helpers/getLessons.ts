@@ -1,4 +1,5 @@
 import { getCustomCourses, getDeletedCourseSlugs } from "./adminStorage";
+import { fetchLessons } from "@/lib/api/lessons";
 
 export type LessonMeta = {
   title: string;
@@ -9,25 +10,39 @@ export type LessonMeta = {
   order: number;
   icon: string;
   hidden?: boolean;
+  visualEditor?: boolean;
+  visualPreview?: boolean;
   deleted?: boolean;
+  taskCount?: number;
 };
 
-const modules = import.meta.glob<{ frontmatter: LessonMeta }>(
-  "../../lessons/**/*.mdx",
-  {
-    eager: true,
-  },
-);
+let defaultLessons: LessonMeta[] = [];
+const defaultLessonContent = new Map<string, string>();
 
 function normalizeLessonMeta(meta: LessonMeta): LessonMeta {
   return {
     hidden: false,
+    visualEditor: false,
+    visualPreview: false,
     ...meta,
   };
 }
 
-function getSourceFolderFromPath(path: string) {
-  return path.match(/lessons[\\/]([^\\/]+)[\\/]index\.mdx$/)?.[1];
+export function setDefaultLessons(lessons: LessonMeta[]) {
+  defaultLessons = lessons.map(normalizeLessonMeta);
+}
+
+export async function loadLessons() {
+  setDefaultLessons(await fetchLessons());
+  return getAllLessons();
+}
+
+export function setDefaultLessonContent(slug: string, content: string) {
+  defaultLessonContent.set(slug, content);
+}
+
+export function getLessonContent(slug: string) {
+  return defaultLessonContent.get(slug);
 }
 
 export function getAllLessons(): LessonMeta[] {
@@ -56,14 +71,7 @@ export function getAllLessons(): LessonMeta[] {
 }
 
 export function getDefaultLessons(): LessonMeta[] {
-  return Object.entries(modules)
-    .map(([path, mod]) =>
-      normalizeLessonMeta({
-        ...mod.frontmatter,
-        sourceFolder: getSourceFolderFromPath(path),
-      }),
-    )
-    .sort((a, b) => a.order - b.order);
+  return defaultLessons.map((lesson) => ({ ...lesson }));
 }
 
 export function getLessons(): LessonMeta[] {
@@ -72,9 +80,4 @@ export function getLessons(): LessonMeta[] {
 
 export function getLessonMeta(slug: string): LessonMeta | undefined {
   return getAllLessons().find((lesson) => lesson.slug === slug);
-}
-
-export function getLessonSourceFolder(slug: string) {
-  return getDefaultLessons().find((lesson) => lesson.slug === slug)
-    ?.sourceFolder;
 }

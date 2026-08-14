@@ -1,0 +1,14 @@
+{
+  "name": "@wda/ui-styles",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./primitives.css": "./primitives.css"
+  },
+  "files": [
+    "tokens.css",
+    "primitives.css"
+  ]
+}
