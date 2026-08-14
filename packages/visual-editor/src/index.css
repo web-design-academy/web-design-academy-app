@@ -1,0 +1,533 @@
+@import "@wda/ui-styles/primitives.css";
+
+.visual-editor-root,
+.visual-editor-root *,
+.visual-editor-root *::before,
+.visual-editor-root *::after {
+  box-sizing: border-box;
+}
+
+@keyframes ve-slide-down {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.visual-editor-root .animate-slide-down {
+  animation: ve-slide-down 0.25s ease-out forwards;
+}
+
+.visual-editor-root {
+  --ve-bg: var(--wda-bg);
+  --ve-card: var(--wda-card);
+  --ve-text: var(--wda-text);
+  --ve-muted: var(--wda-muted);
+  --ve-border: var(--wda-border);
+  --ve-primary: var(--wda-primary);
+  --ve-danger: var(--wda-danger);
+  --ve-success: var(--wda-success);
+  --ve-warning: var(--wda-warning);
+  --ve-radius: var(--wda-radius);
+  --ve-shadow: var(--wda-shadow);
+  --ve-transition: var(--wda-transition);
+
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ve-card);
+  color: var(--ve-text);
+  font-size: var(--font-size-sm);
+}
+
+.visual-editor-root.is-dark {
+  color-scheme: dark;
+}
+
+.visual-editor-root .ve-node-row {
+  min-height: 2.25rem;
+  border-color: var(--ve-border);
+  background: var(--ve-card);
+  color: var(--ve-text);
+  transition:
+    background-color var(--ve-transition),
+    border-color var(--ve-transition);
+}
+
+.visual-editor-root .ve-node-row:hover,
+.visual-editor-root .ve-node-row.is-selected {
+  background: color-mix(in srgb, var(--ve-primary) 9%, var(--ve-card));
+}
+
+.visual-editor-root .ve-node-row.is-selected {
+  border-left: 3px solid var(--ve-primary);
+}
+
+.visual-editor-root .ve-node-row.is-readonly {
+  border-left: 3px solid var(--ve-muted);
+  background: color-mix(in srgb, var(--ve-muted) 8%, var(--ve-card));
+  opacity: 0.74;
+}
+
+.visual-editor-root .ve-node-tag {
+  color: var(--ve-primary);
+}
+
+.visual-editor-root .ve-node-attributes {
+  color: var(--ve-warning);
+}
+
+.visual-editor-root .ve-icon-button,
+.visual-editor-root .ve-inline-action {
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--ve-muted);
+  cursor: pointer;
+  transition:
+    color var(--ve-transition),
+    background-color var(--ve-transition);
+}
+
+.visual-editor-root .ve-icon-button:hover,
+.visual-editor-root .ve-inline-action:hover {
+  background: color-mix(in srgb, var(--ve-primary) 10%, transparent);
+  color: var(--ve-text);
+}
+
+.visual-editor-root :is(.ve-icon-button, .ve-inline-action).is-accent:hover {
+  color: var(--ve-primary);
+}
+
+.visual-editor-root :is(.ve-icon-button, .ve-inline-action).is-positive:hover {
+  color: var(--ve-success);
+}
+
+.visual-editor-root :is(.ve-icon-button, .ve-inline-action).is-danger:hover {
+  color: var(--ve-danger);
+}
+
+.visual-editor-root .ve-panel {
+  width: min(25rem, calc(100vw - 3rem));
+  overflow: hidden;
+  border: 1px solid var(--ve-border);
+  border-radius: var(--ve-radius);
+  background: var(--ve-card);
+  color: var(--ve-text);
+  box-shadow: var(--ve-shadow);
+}
+
+.visual-editor-root.ve-popover-portal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  background: transparent;
+  pointer-events: none;
+}
+
+.visual-editor-root .ve-popover {
+  position: fixed;
+  pointer-events: auto;
+}
+
+.visual-editor-root .ve-popover::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: var(--ve-anchor-x);
+  width: 0.75rem;
+  height: 0.75rem;
+  border: solid var(--ve-border);
+  background: var(--ve-bg);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.visual-editor-root .ve-popover.is-bottom::before {
+  top: -0.4rem;
+  border-width: 1px 0 0 1px;
+}
+
+.visual-editor-root .ve-popover.is-top::before {
+  bottom: -0.4rem;
+  border-width: 0 1px 1px 0;
+}
+
+.visual-editor-root .ve-panel-heading {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid var(--ve-border);
+  background: var(--ve-bg);
+}
+
+.visual-editor-root .ve-panel-heading strong {
+  font-size: 0.85rem;
+}
+
+.visual-editor-root .ve-panel-tabs {
+  padding: 0.35rem;
+  border-bottom: 1px solid var(--ve-border);
+  background: var(--ve-bg);
+}
+
+.visual-editor-root .ve-panel-tab,
+.visual-editor-root .ve-button {
+  border: 1px solid transparent;
+  border-radius: var(--ve-radius);
+  background: transparent;
+  color: var(--ve-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.visual-editor-root .ve-panel-tab {
+  flex: 1;
+  min-height: 2rem;
+}
+
+.visual-editor-root .ve-panel-tab:hover,
+.visual-editor-root .ve-panel-tab.is-active {
+  background: var(--ve-card);
+  color: var(--ve-primary);
+}
+
+.visual-editor-root .ve-panel-tab.is-active {
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 10%));
+}
+
+.visual-editor-root .ve-panel-body,
+.visual-editor-root .ve-form {
+  background: var(--ve-card);
+  color: var(--ve-text);
+}
+
+.visual-editor-root .ve-panel-body {
+  max-height: min(28rem, calc(100vh - 10rem));
+  overflow-y: auto;
+}
+
+.visual-editor-root .ve-form-card {
+  border-color: var(--ve-border);
+  background: var(--ve-bg);
+  color: var(--ve-text);
+}
+
+.visual-editor-root .ve-chip {
+  background: color-mix(in srgb, var(--ve-primary) 10%, transparent);
+  color: var(--ve-text);
+}
+
+.visual-editor-root .ve-input {
+  min-height: 2rem;
+  border: 1px solid var(--ve-border);
+  border-radius: var(--ve-radius);
+  outline: none;
+  background: var(--ve-card);
+  color: var(--ve-text);
+  font: inherit;
+}
+
+.visual-editor-root .ve-input:focus {
+  border-color: var(--ve-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ve-primary) 18%, transparent);
+}
+
+.visual-editor-root input[type="color"] {
+  width: 2rem;
+  min-height: 2rem;
+  padding: 0.15rem;
+  border: 1px solid var(--ve-border);
+  border-radius: var(--ve-radius);
+  background: var(--ve-card);
+}
+
+.visual-editor-root .ve-option-list {
+  background: var(--ve-card);
+}
+
+.visual-editor-root .ve-list-option {
+  border: 0;
+  background: transparent;
+  color: var(--ve-text);
+  cursor: pointer;
+}
+
+.visual-editor-root .ve-list-option:hover {
+  background: color-mix(in srgb, var(--ve-primary) 10%, transparent);
+  color: var(--ve-primary);
+}
+
+.visual-editor-root .ve-button {
+  padding: 0.35rem 0.7rem;
+  border-color: var(--ve-border);
+  background: var(--ve-card);
+  color: var(--ve-text);
+}
+
+.visual-editor-root .ve-button:hover {
+  border-color: var(--ve-primary);
+  color: var(--ve-primary);
+}
+
+.visual-editor-root .ve-button.is-primary {
+  border-color: var(--ve-primary);
+  background: var(--ve-primary);
+  color: var(--surface-preview, #fff);
+}
+
+/* Component layout is intentionally plain CSS so the package has no Tailwind
+   runtime or build-time dependency. */
+.visual-editor-root .ve-tree-node {
+  width: 100%;
+}
+
+.visual-editor-root .ve-node-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid transparent;
+  cursor: grab;
+  user-select: none;
+}
+
+.visual-editor-root .ve-node-row:active {
+  cursor: grabbing;
+}
+
+.visual-editor-root .ve-node-row.is-selected {
+  border-left-color: var(--ve-primary);
+}
+
+.visual-editor-root .ve-node-row.is-readonly {
+  border-left-color: var(--ve-muted);
+}
+
+.visual-editor-root .ve-node-toggle-slot {
+  display: inline-grid;
+  flex: 0 0 var(--size-icon-small);
+  place-items: center;
+}
+
+.visual-editor-root .ve-node-toggle {
+  color: var(--ve-muted);
+  cursor: pointer;
+}
+
+.visual-editor-root .ve-node-tag,
+.visual-editor-root .ve-node-attributes {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visual-editor-root .ve-node-tag {
+  font-weight: var(--font-weight-semibold);
+}
+
+.visual-editor-root .ve-node-spacer {
+  flex: 1 1 auto;
+}
+
+.visual-editor-root .ve-node-actions,
+.visual-editor-root .ve-form-actions,
+.visual-editor-root .ve-inline-form,
+.visual-editor-root .ve-value-editor,
+.visual-editor-root .ve-panel-heading,
+.visual-editor-root .ve-panel-title {
+  display: flex;
+  align-items: center;
+}
+
+.visual-editor-root .ve-node-actions {
+  flex: 0 0 auto;
+  gap: 0.125rem;
+  opacity: 0.62;
+  transition: opacity var(--ve-transition);
+}
+
+.visual-editor-root .ve-node-row:hover .ve-node-actions,
+.visual-editor-root .ve-node-row:focus-within .ve-node-actions,
+.visual-editor-root .ve-node-row.is-selected .ve-node-actions {
+  opacity: 1;
+}
+
+.visual-editor-root .ve-panel-heading {
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.visual-editor-root .ve-panel-title {
+  gap: var(--space-2);
+}
+
+.visual-editor-root .ve-panel-title > svg {
+  color: var(--ve-primary);
+}
+
+.visual-editor-root .ve-panel-tabs {
+  border: 0;
+  border-radius: 0;
+}
+
+.visual-editor-root .ve-panel-body {
+  overscroll-behavior: contain;
+  padding: var(--space-3);
+}
+
+.visual-editor-root .ve-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.visual-editor-root .ve-form-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.visual-editor-root .ve-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.visual-editor-root .ve-chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--wda-radius-pill);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.visual-editor-root .ve-input.is-compact {
+  width: 8rem;
+  min-height: 1.75rem;
+  padding-inline: var(--space-2);
+  font-size: var(--font-size-xs);
+}
+
+.visual-editor-root .ve-search-input,
+.visual-editor-root .ve-property-value,
+.visual-editor-root .ve-inline-form .ve-input {
+  width: 100%;
+}
+
+.visual-editor-root .ve-text-editor {
+  width: calc(100% - var(--space-4));
+  min-height: 4rem;
+  margin: var(--space-2);
+  padding: var(--space-2);
+  resize: vertical;
+}
+
+.visual-editor-root .ve-option-list {
+  display: grid;
+  max-height: 13rem;
+  gap: 0.125rem;
+  overflow-y: auto;
+}
+
+.visual-editor-root .ve-option-list.is-compact {
+  max-height: 8rem;
+}
+
+.visual-editor-root .ve-list-option {
+  width: 100%;
+  min-height: 1.875rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: calc(var(--ve-radius) - 2px);
+  font: inherit;
+  text-align: left;
+}
+
+.visual-editor-root .ve-form-actions,
+.visual-editor-root .ve-inline-form {
+  gap: var(--space-2);
+}
+
+.visual-editor-root .ve-form-actions {
+  justify-content: flex-end;
+}
+
+.visual-editor-root .ve-inline-form {
+  align-items: stretch;
+}
+
+.visual-editor-root .ve-inline-action {
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.visual-editor-root .ve-form-intro {
+  margin: 0;
+  color: var(--ve-muted);
+  font-size: var(--font-size-xs);
+}
+
+.visual-editor-root .ve-form-intro b,
+.visual-editor-root .ve-property-label {
+  color: var(--ve-text);
+}
+
+.visual-editor-root .ve-property-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.visual-editor-root .ve-property-label {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.visual-editor-root .ve-value-editor {
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.visual-editor-root .ve-value-editor .ve-input:not(.is-unit) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.visual-editor-root .ve-input.is-number {
+  min-width: 0;
+}
+
+.visual-editor-root .ve-input.is-unit {
+  flex: 0 0 4.5rem;
+  padding-inline: var(--space-2);
+}
+
+@media (max-width: 42rem) {
+  .visual-editor-root .ve-node-attributes {
+    display: none;
+  }
+
+  .visual-editor-root .ve-node-actions {
+    opacity: 1;
+  }
+
+  .visual-editor-root .ve-panel {
+    width: min(23rem, calc(100vw - 1.5rem));
+  }
+}

@@ -1,5 +1,5 @@
 .lesson-container {
-  height: calc(100vh - var(--header-height) - 1px);
+  height: 100%;
   overflow: hidden;
   background: var(--color-bg);
 }
@@ -7,10 +7,10 @@
 .lesson-shell {
   display: grid;
   grid-template-columns: 15.5rem minmax(0, 1fr);
-  gap: var(--space-5);
+  gap: var(--workspace-shell-gap);
   height: 100%;
   min-height: 0;
-  padding: var(--space-5);
+  padding: var(--workspace-shell-padding);
   overflow: hidden;
 }
 
@@ -598,8 +598,8 @@
 
 @media (max-width: 900px) {
   .lesson-container-mobile {
-    height: auto;
-    min-height: calc(100vh - var(--header-height) - 1px);
+    height: 100%;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -608,8 +608,8 @@
     display: flex;
     flex-direction: column;
     height: auto;
-    min-height: calc(100vh - var(--header-height) - 1px);
-    padding: var(--space-4);
+    min-height: 100%;
+    padding: var(--workspace-shell-padding);
     overflow: visible;
   }
 
@@ -676,5 +676,259 @@
 
   .lesson-content-mobile p {
     font-size: var(--font-size-base);
+  }
+}
+.challenge-evaluation {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.challenge-evaluation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 6.5rem;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-card);
+}
+
+.challenge-evaluation-header > div:first-child {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.challenge-evaluation-header > div:first-child > strong {
+  font-size: var(--font-size-lg);
+}
+
+.challenge-evaluation-header span,
+.challenge-evaluation small {
+  color: color-mix(in srgb, var(--color-text) 64%, transparent);
+  font-size: var(--font-size-xs);
+}
+
+.challenge-evaluation-header .challenge-stale-result {
+  width: fit-content;
+  margin-top: 0.2rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.challenge-score {
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  flex: 0 0 4.25rem;
+  place-items: center;
+  border: 1px solid
+    color-mix(in srgb, var(--status-error-text) 25%, transparent);
+  border-radius: 50%;
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+}
+
+.challenge-score.is-pass {
+  border-color: color-mix(in srgb, var(--status-success-text) 25%, transparent);
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.challenge-score-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.challenge-score-details span {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  border-right: 1px solid var(--color-border);
+  color: color-mix(in srgb, var(--color-text) 64%, transparent);
+  font-size: var(--font-size-xs);
+}
+
+.challenge-score-details span:last-child {
+  border-right: 0;
+}
+
+.challenge-score-details strong {
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+}
+
+.challenge-evaluation-section {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.challenge-evaluation-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.challenge-evaluation-section-heading span {
+  display: inline-grid;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: color-mix(in srgb, var(--color-text) 64%, transparent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.challenge-checklist,
+.challenge-issues {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challenge-checklist li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2rem;
+  padding: 0.35rem var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-size: var(--font-size-sm);
+}
+
+.challenge-checklist li.is-pass {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.challenge-checklist li.is-fail {
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+}
+
+.challenge-pending-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin: 0 0.18rem;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.challenge-issues {
+  gap: var(--space-1);
+}
+
+.challenge-issues button {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.challenge-issues button:hover {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg));
+}
+
+.challenge-issues button > svg {
+  color: var(--status-warning-text);
+}
+
+.challenge-evaluation-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  font-size: var(--font-size-sm);
+}
+
+.challenge-hint {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  font-size: var(--font-size-sm);
+}
+
+.challenge-hint button {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.2rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.challenge-spin {
+  animation: challenge-spin 0.8s linear infinite;
+}
+
+@media (max-width: 36rem) {
+  .challenge-evaluation-header {
+    min-height: 5.5rem;
+    padding: var(--space-4);
+  }
+
+  .challenge-score {
+    width: 3.5rem;
+    height: 3.5rem;
+    flex-basis: 3.5rem;
+    font-size: var(--font-size-base);
+  }
+
+  .challenge-score-details span,
+  .challenge-evaluation-section,
+  .challenge-evaluation-empty {
+    padding: var(--space-3);
+  }
+
+  .challenge-issues button {
+    grid-template-columns: auto 1fr;
+  }
+
+  .challenge-issues button small {
+    grid-column: 2;
+  }
+}
+
+@keyframes challenge-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

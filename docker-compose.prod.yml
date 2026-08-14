@@ -7,6 +7,12 @@ services:
       - .env
     volumes:
       - ./storage:/app/storage
+      - type: bind
+        source: ${LESSONS_HOST_PATH:-./lessons}
+        target: /app/lessons
+        read_only: true
+        bind:
+          create_host_path: false
     networks:
       - webdesignacademyNetwork
 
@@ -36,4 +42,3 @@ networks:
     external: true
   webdesignacademyNetwork:
     name: webdesignacademyNetwork
-

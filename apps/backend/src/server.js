@@ -5,10 +5,12 @@ const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
+const crypto = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const db = require("./db");
+const { createLessonStore } = require("./lessonStore");
 
 const app = express();
 
@@ -18,6 +20,7 @@ const IS_PRODUCTION = NODE_ENV === "production";
 const JWT_SECRET = process.env.JWT_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const COOKIE_NAME = "wa_session";
+const lessonStore = createLessonStore();
 
 function parseEmailList(value) {
   return (value || "")
@@ -329,7 +332,7 @@ function validateSubmissionPayload(payload) {
     return "Missing payload";
   }
 
-  const { lessonSlug, taskId, html, css, js } = payload;
+  const { lessonSlug, taskId, html, css, js, evaluation } = payload;
 
   if (
     !lessonSlug ||
@@ -355,6 +358,25 @@ function validateSubmissionPayload(payload) {
 
     if (typeof value === "string" && value.length > 200000) {
       return `${fieldName} is too large`;
+    }
+  }
+
+  if (evaluation !== undefined) {
+    if (
+      !evaluation ||
+      typeof evaluation !== "object" ||
+      evaluation.version !== 1 ||
+      !["error", "success_with_warning", "success_perfect"].includes(
+        evaluation.status,
+      ) ||
+      !Number.isFinite(evaluation.score) ||
+      evaluation.score < 0 ||
+      evaluation.score > 100 ||
+      typeof evaluation.passed !== "boolean" ||
+      !Array.isArray(evaluation.issues) ||
+      evaluation.issues.length > 500
+    ) {
+      return "Invalid evaluation";
     }
   }
 
@@ -502,6 +524,36 @@ app.post("/api/auth/logout", (_req, res) => {
     path: "/",
   });
   res.json({ success: true });
+});
+
+app.get("/api/lessons", async (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ items: await lessonStore.listLessons() });
+  } catch (error) {
+    console.error("Failed to read lessons:", error);
+    res.status(503).json({ error: "Lesson storage is unavailable" });
+  }
+});
+
+app.get("/api/lessons/:lessonSlug", async (req, res) => {
+  if (!lessonSlugPattern.test(req.params.lessonSlug)) {
+    return res.status(400).json({ error: "Invalid lesson slug" });
+  }
+
+  try {
+    const lesson = await lessonStore.getLesson(req.params.lessonSlug);
+
+    if (!lesson) {
+      return res.status(404).json({ error: "Lesson not found" });
+    }
+
+    res.set("Cache-Control", "no-store");
+    res.json(lesson);
+  } catch (error) {
+    console.error("Failed to read lesson:", error);
+    res.status(503).json({ error: "Lesson storage is unavailable" });
+  }
 });
 
 app.get("/api/admin/tags", authenticateToken, requireAdmin, (_req, res) => {
@@ -744,20 +796,36 @@ app.delete(
   },
 );
 
-app.post("/api/submissions", authenticateToken, (req, res) => {
+app.post("/api/submissions", authenticateToken, async (req, res) => {
   const validationError = validateSubmissionPayload(req.body);
   if (validationError) {
     return res.status(400).json({ error: validationError });
   }
 
-  const { lessonSlug, taskId, html, css, js } = req.body;
+  const { lessonSlug, taskId, html, css, js, evaluation } = req.body;
 
   try {
+    const lesson = await lessonStore.getLesson(lessonSlug);
+    const task = lesson?.tasks[Number(taskId) - 1];
+    if (!task) {
+      return res.status(404).json({ error: "Lesson task not found" });
+    }
+
+    const evaluationConfigHash = task.evaluation
+      ? crypto
+          .createHash("sha256")
+          .update(JSON.stringify(task.evaluation))
+          .digest("hex")
+      : null;
     const result = db
       .prepare(
         `
-      INSERT INTO submissions (user_id, lesson_slug, task_id, html, css, js)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO submissions (
+        user_id, lesson_slug, task_id, html, css, js,
+        evaluation_status, evaluation_score, evaluation_passed,
+        evaluation_issues, evaluation_version, evaluation_config_hash
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       )
       .run(
@@ -767,10 +835,17 @@ app.post("/api/submissions", authenticateToken, (req, res) => {
         html || "",
         css || "",
         js || "",
+        evaluation?.status ?? null,
+        evaluation?.score ?? null,
+        evaluation ? Number(evaluation.passed) : null,
+        evaluation ? JSON.stringify(evaluation.issues) : null,
+        evaluation?.version ?? null,
+        evaluationConfigHash,
       );
 
     res.json({ success: true, id: result.lastInsertRowid });
   } catch (err) {
+    console.error("Failed to save submission:", err);
     res.status(500).json({ error: "Database error" });
   }
 });
