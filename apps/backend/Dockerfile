@@ -13,7 +13,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN mkdir -p storage lessons
+RUN mkdir -p storage
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY src/ ./src/

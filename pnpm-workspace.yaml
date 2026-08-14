@@ -1,6 +1,7 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
+  - 'packages/visual-editor/*'
 allowBuilds:
   better-sqlite3: true
   esbuild: true

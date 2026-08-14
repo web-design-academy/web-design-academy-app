@@ -1,0 +1,9 @@
+main {
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  background-color: #f7f9fc;
+  border: 1px solid #ccc;
+}

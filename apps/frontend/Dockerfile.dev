@@ -4,21 +4,12 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/frontend/package.json ./apps/frontend/
-COPY apps/backend/package.json ./apps/backend/
-COPY packages/visual-editor/package.json ./packages/visual-editor/
-COPY packages/visual-preview/package.json ./packages/visual-preview/
-COPY packages/ui-styles/package.json ./packages/ui-styles/
+WORKDIR /app/frontend
 
-RUN pnpm install --frozen-lockfile
+COPY apps/frontend/package.json ./
+RUN pnpm install
 
-COPY apps/frontend/ ./apps/frontend/
-COPY packages/visual-editor/ ./packages/visual-editor/
-COPY packages/visual-preview/ ./packages/visual-preview/
-COPY packages/ui-styles/ ./packages/ui-styles/
-
-WORKDIR /app/apps/frontend
+COPY apps/frontend/ ./
 
 ENV PORT=5173
 

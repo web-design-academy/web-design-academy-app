@@ -1,30 +1,28 @@
-import React, { useState, useEffect, useRef } from "react";
-import InspectorOverlay from "./InspectorOverlay";
-import { sanitizeHtml } from "../utility/cssAnalyzer.js";
-import { t } from "../utility/locales.js";
+import React, { useState, useEffect, useRef } from 'react';
+import InspectorOverlay from './InspectorOverlay';
+import { sanitizeHtml } from '../utility/cssAnalyzer.js';
+import { t } from '../utility/locales.js';
+import { useChallenge } from '../context/ChallengeContext';
 
-export const OutputPanel = ({
-  html = "",
-  css = "",
-  solutionHtml = "",
-  solutionCss = "",
-  locale = "en",
-  onSelectSelector,
+export const OutputPanel = ({ 
   allowInspect = true,
-  defaultMode = "student",
+  defaultMode = 'student',
   showControls = true,
-  disableDiffView = false,
-  evaluationContent = null,
-  evaluationViewRequest = 0,
+  hideProgress = false,
+  disableDiffView = false
 }) => {
+  
+  const { task, locale, userCss, setFocusSelectorStr, score } = useChallenge();
+
   const [previewMode, setPreviewMode] = useState(defaultMode);
   const [isInspectionMode, setInspectionMode] = useState(false);
-  const [inspectData, setInspectData] = useState(null);
-  const [solutionGhostData, setSolutionGhostData] = useState([]);
-  const [overlayOpacity, setOverlayOpacity] = useState(0.5);
-
-  const [previewWidth, setPreviewWidth] = useState("0px");
-  const [previewHeight, setPreviewHeight] = useState("0px");
+  const [solutionImageUrl, setSolutionImageUrl] = useState(null);
+  const [inspectData, setInspectData] = useState(null); 
+  const [solutionGhostData, setSolutionGhostData] = useState([]);  
+  const [overlayOpacity, setOverlayOpacity] = useState(0.5); 
+  
+  const [previewWidth, setPreviewWidth] = useState('0px'); 
+  const [previewHeight, setPreviewHeight] = useState('0px'); 
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -33,27 +31,22 @@ export const OutputPanel = ({
   const lastMousePos = useRef({ x: 0, y: 0 });
 
   const wrapperRef = useRef(null);
-  const resizableBoxRef = useRef(null);
+  const resizableBoxRef = useRef(null); 
   const iframeRef = useRef(null);
-  const solutionIframeRef = useRef(null);
 
-  const safeHtml = sanitizeHtml(html);
-  const safeSolutionHtml = sanitizeHtml(solutionHtml || html);
-  const fullSolutionCss = solutionCss;
+  const safeHtml = sanitizeHtml(task?.initialHtml || '');
+  const safeSolutionHtml = sanitizeHtml(task?.solutionHtml || task?.initialHtml || '');
+  const fullSolutionCss = `${task?.initialCss || ''}\n${task?.solutionCss || ''}`;
 
   const userSrcDoc = `
     <!DOCTYPE html>
-    <html><head><style>* { box-sizing: border-box; } html, body { margin: 0; padding: 0; min-width: 100%; min-height: 100%; cursor: default; background: #fff; } ${css}</style></head><body>${safeHtml}</body></html>
-  `;
-  const solutionSrcDoc = `
-    <!DOCTYPE html>
-    <html><head><style>* { box-sizing: border-box; } html, body { margin: 0; padding: 0; min-width: 100%; min-height: 100%; cursor: default; background: #fff; } ${fullSolutionCss}</style></head><body>${safeSolutionHtml}</body></html>
+    <html><head><style>* { box-sizing: border-box; } html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; cursor: default; } ${userCss}</style></head><body>${safeHtml}</body></html>
   `;
 
   useEffect(() => {
     if (resizableBoxRef.current) {
-      resizableBoxRef.current.style.width = "100%";
-      resizableBoxRef.current.style.height = "100%";
+        resizableBoxRef.current.style.width = '100%';
+        resizableBoxRef.current.style.height = '100%';
     }
   }, []);
 
@@ -65,14 +58,12 @@ export const OutputPanel = ({
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-        setZoom((prevZoom) =>
-          Math.min(Math.max(0.2, prevZoom * zoomFactor), 4),
-        );
+        setZoom(prevZoom => Math.min(Math.max(0.2, prevZoom * zoomFactor), 4));
       }
     };
 
-    wrapper.addEventListener("wheel", handleWheel, { passive: false });
-    return () => wrapper.removeEventListener("wheel", handleWheel);
+    wrapper.addEventListener('wheel', handleWheel, { passive: false });
+    return () => wrapper.removeEventListener('wheel', handleWheel);
   }, []);
 
   const handlePointerDown = (e) => {
@@ -80,8 +71,8 @@ export const OutputPanel = ({
       e.preventDefault();
       isPanning.current = true;
       lastMousePos.current = { x: e.clientX, y: e.clientY };
-      if (wrapperRef.current) wrapperRef.current.style.cursor = "grabbing";
-      if (iframeRef.current) iframeRef.current.style.pointerEvents = "none";
+      if (wrapperRef.current) wrapperRef.current.style.cursor = 'grabbing';
+      if (iframeRef.current) iframeRef.current.style.pointerEvents = 'none';
     }
   };
 
@@ -90,484 +81,341 @@ export const OutputPanel = ({
     const dx = e.clientX - lastMousePos.current.x;
     const dy = e.clientY - lastMousePos.current.y;
     lastMousePos.current = { x: e.clientX, y: e.clientY };
-    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
   };
 
   const handlePointerUp = () => {
     if (isPanning.current) {
       isPanning.current = false;
-      if (wrapperRef.current) wrapperRef.current.style.cursor = "grab";
-      if (iframeRef.current) iframeRef.current.style.pointerEvents = "auto";
+      if (wrapperRef.current) wrapperRef.current.style.cursor = 'grab';
+      if (iframeRef.current) iframeRef.current.style.pointerEvents = 'auto';
     }
   };
 
   useEffect(() => {
-    window.addEventListener("mouseup", handlePointerUp);
-    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('mousemove', handlePointerMove);
     return () => {
-      window.removeEventListener("mouseup", handlePointerUp);
-      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('mousemove', handlePointerMove);
     };
   }, []);
 
   useEffect(() => {
-    if (disableDiffView && previewMode === "diff") {
-      setPreviewMode("student");
+    if (disableDiffView && previewMode === 'diff') {
+      setPreviewMode('student');
     }
   }, [disableDiffView, previewMode]);
 
   useEffect(() => {
-    if (!evaluationContent && previewMode === "evaluation") {
-      setPreviewMode("student");
-    }
-  }, [evaluationContent, previewMode]);
-
-  useEffect(() => {
-    if (evaluationViewRequest > 0 && evaluationContent) {
-      setInspectionMode(false);
-      setPreviewMode("evaluation");
-    }
-  }, [evaluationContent, evaluationViewRequest]);
-
-  useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-    if (!isInspectionMode || previewMode !== "student" || !allowInspect) {
-      if (previewMode === "student") setInspectData(null);
-      return;
+    if (!isInspectionMode || previewMode !== 'student' || !allowInspect) {
+        if (previewMode === 'student') setInspectData(null);
+        return;
     }
 
     const attachListeners = () => {
-      const doc = iframe.contentDocument;
-      if (!doc || !doc.body) return;
+        const doc = iframe.contentDocument;
+        if (!doc || !doc.body) return;
 
-      const handleMouseMove = (e) => {
-        const target = e.target;
-        if (target === doc.documentElement || target === doc.body) {
-          setInspectData(null);
-          return;
-        }
-        const rect = target.getBoundingClientRect();
-        const computedStyle = iframe.contentWindow.getComputedStyle(target);
-        const isGrid =
-          computedStyle.display === "grid" ||
-          computedStyle.display === "inline-grid";
-        const isFlex =
-          computedStyle.display === "flex" ||
-          computedStyle.display === "inline-flex";
-        let layoutInfo = null;
+        const handleMouseMove = (e) => {
+            const target = e.target;
+            if (target === doc.documentElement || target === doc.body) { setInspectData(null); return; }
+            const rect = target.getBoundingClientRect();
+            const computedStyle = iframe.contentWindow.getComputedStyle(target);
+            const isGrid = computedStyle.display === 'grid' || computedStyle.display === 'inline-grid';
+            const isFlex = computedStyle.display === 'flex' || computedStyle.display === 'inline-flex';
+            let layoutInfo = null;
 
-        if (isGrid || isFlex) {
-          layoutInfo = {
-            type: isGrid ? "grid" : "flex",
-            rowGap: parseFloat(computedStyle.rowGap) || 0,
-            columnGap: parseFloat(computedStyle.columnGap) || 0,
-            gridCols: isGrid ? computedStyle.gridTemplateColumns : null,
-            gridRows: isGrid ? computedStyle.gridTemplateRows : null,
-            direction: isFlex ? computedStyle.flexDirection : null,
-            wrap: isFlex ? computedStyle.flexWrap : null,
-          };
-        }
-        setInspectData({
-          rect: {
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-          },
-          style: computedStyle,
-          tagName: target.tagName,
-          className: target.className,
-          layout: layoutInfo,
-        });
-      };
+            if (isGrid || isFlex) {
+                layoutInfo = {
+                    type: isGrid ? 'grid' : 'flex',
+                    rowGap: parseFloat(computedStyle.rowGap) || 0,
+                    columnGap: parseFloat(computedStyle.columnGap) || 0,
+                    gridCols: isGrid ? computedStyle.gridTemplateColumns : null,
+                    gridRows: isGrid ? computedStyle.gridTemplateRows : null,
+                    direction: isFlex ? computedStyle.flexDirection : null,
+                    wrap: isFlex ? computedStyle.flexWrap : null
+                };
+            }
+            setInspectData({ rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }, style: computedStyle, tagName: target.tagName, className: target.className, layout: layoutInfo });
+        };
 
-      const handleMouseClick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const target = e.target;
-        if (target === doc.documentElement || target === doc.body) return;
-        let selector = target.tagName.toLowerCase();
-        if (target.className && typeof target.className === "string")
-          selector = "." + target.className.trim().split(/\s+/).join(".");
-        else if (target.id) selector = "#" + target.id;
+        const handleMouseClick = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            const target = e.target;
+            if (target === doc.documentElement || target === doc.body) return;
+            let selector = target.tagName.toLowerCase();
+            if (target.className && typeof target.className === 'string') selector = '.' + target.className.trim().split(/\s+/).join('.');
+            else if (target.id) selector = '#' + target.id;
+            
+            setFocusSelectorStr(selector);
+        };
 
-        onSelectSelector?.(selector);
-      };
+        const handleMouseLeave = () => setInspectData(null);
 
-      const handleMouseLeave = () => setInspectData(null);
-
-      doc.body.addEventListener("mousemove", handleMouseMove);
-      doc.body.addEventListener("click", handleMouseClick);
-      doc.body.addEventListener("mouseleave", handleMouseLeave);
-
-      return () => {
-        if (doc && doc.body) {
-          doc.body.removeEventListener("mousemove", handleMouseMove);
-          doc.body.removeEventListener("click", handleMouseClick);
-          doc.body.removeEventListener("mouseleave", handleMouseLeave);
-        }
-      };
+        doc.body.addEventListener('mousemove', handleMouseMove);
+        doc.body.addEventListener('click', handleMouseClick);
+        doc.body.addEventListener('mouseleave', handleMouseLeave);
+        
+        return () => {
+          if (doc && doc.body) {
+            doc.body.removeEventListener('mousemove', handleMouseMove);
+            doc.body.removeEventListener('click', handleMouseClick);
+            doc.body.removeEventListener('mouseleave', handleMouseLeave);
+          }
+        };
     };
 
     let cleanupFn = null;
-    if (
-      iframe.contentDocument &&
-      iframe.contentDocument.readyState === "complete"
-    )
-      cleanupFn = attachListeners();
-    const onLoad = () => {
-      if (cleanupFn) cleanupFn();
-      cleanupFn = attachListeners();
-    };
-    iframe.addEventListener("load", onLoad);
-    return () => {
-      iframe.removeEventListener("load", onLoad);
-      if (cleanupFn) cleanupFn();
-    };
-  }, [
-    isInspectionMode,
-    userSrcDoc,
-    previewMode,
-    allowInspect,
-    onSelectSelector,
-  ]);
+    if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') cleanupFn = attachListeners();
+    const onLoad = () => { if (cleanupFn) cleanupFn(); cleanupFn = attachListeners(); };
+    iframe.addEventListener('load', onLoad);
+    return () => { iframe.removeEventListener('load', onLoad); if (cleanupFn) cleanupFn(); };
+  }, [isInspectionMode, userSrcDoc, previewMode, allowInspect, setFocusSelectorStr]); 
 
   useEffect(() => {
     const box = resizableBoxRef.current;
     if (!box) return;
     let debounceTimer;
 
-    const updatePreviewData = () => {
+    const updateImageAndGhostData = () => {
+      const box = resizableBoxRef.current;
+      if (!box || !iframeRef.current || !iframeRef.current.contentWindow) return;
+
+      const iframeDoc = iframeRef.current.contentDocument;
+      if (!iframeDoc) return;
+      
       const width = box.clientWidth;
       const height = box.clientHeight;
-      if (width <= 0 || height <= 0) return;
 
+      if (width <= 0 || height <= 0) return;
+      
       setPreviewWidth(`${width}px`);
       setPreviewHeight(`${height}px`);
 
-      if (!isInspectionMode || previewMode !== "solution") return;
+      const data = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width: ${width}px; height: ${height}px; overflow: hidden; background: white; margin: 0; padding: 0;"><style>* { box-sizing: border-box; } html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; } ${fullSolutionCss}</style>${safeSolutionHtml}</div></foreignObject></svg>`;
+      const blob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+      const newUrl = URL.createObjectURL(blob);
+      setSolutionImageUrl(prevUrl => { if (prevUrl) URL.revokeObjectURL(prevUrl); return newUrl; });
 
-      const solutionFrame = solutionIframeRef.current;
-      const doc = solutionFrame?.contentDocument;
-      const frameWindow = solutionFrame?.contentWindow;
-      if (!doc?.body || !frameWindow) return;
+      if(isInspectionMode && previewMode === 'solution') {
+          const hiddenIframe = document.createElement('iframe');
+          hiddenIframe.sandbox = 'allow-same-origin';
+          Object.assign(hiddenIframe.style, { position: 'fixed', top: '-9999px', left: '-9999px', width: `${width}px`, height: `${height}px`, border: 'none', visibility: 'hidden' });
+          document.body.appendChild(hiddenIframe);
 
-      const ghostData = [];
-      doc.body.querySelectorAll("*").forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.width === 0 && rect.height === 0) return;
+          const doc = hiddenIframe.contentDocument;
+          doc.open(); doc.write(`<!DOCTYPE html><html><head><style>* { box-sizing: border-box; } html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; } ${fullSolutionCss}</style></head><body>${safeSolutionHtml}</body></html>`); doc.close();
 
-        const style = frameWindow.getComputedStyle(el);
-        const isGrid =
-          style.display === "grid" || style.display === "inline-grid";
-        const isFlex =
-          style.display === "flex" || style.display === "inline-flex";
+          setTimeout(() => {
+              if (!hiddenIframe.contentWindow) return;
+              const elements = doc.body.querySelectorAll('*');
+              const ghostData = [];
 
-        ghostData.push({
-          rect: {
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-          },
-          style: {
-            marginTop: style.marginTop,
-            marginRight: style.marginRight,
-            marginBottom: style.marginBottom,
-            marginLeft: style.marginLeft,
-            paddingTop: style.paddingTop,
-            paddingRight: style.paddingRight,
-            paddingBottom: style.paddingBottom,
-            paddingLeft: style.paddingLeft,
-            borderTopWidth: style.borderTopWidth,
-            borderRightWidth: style.borderRightWidth,
-            borderBottomWidth: style.borderBottomWidth,
-            borderLeftWidth: style.borderLeftWidth,
-          },
-          tagName: el.tagName,
-          className: el.className,
-          layout:
-            isGrid || isFlex
-              ? {
-                  type: isGrid ? "grid" : "flex",
-                  rowGap: parseFloat(style.rowGap) || 0,
-                  columnGap: parseFloat(style.columnGap) || 0,
-                  gridCols: isGrid ? style.gridTemplateColumns : null,
-                  gridRows: isGrid ? style.gridTemplateRows : null,
-                  direction: isFlex ? style.flexDirection : null,
-                  wrap: isFlex ? style.flexWrap : null,
-                }
-              : null,
-        });
-      });
-      setSolutionGhostData(ghostData);
+              elements.forEach(el => {
+                  if (el === doc.documentElement || el === doc.body) return;
+                  const rect = el.getBoundingClientRect();
+                  if (rect.width === 0 && rect.height === 0) return; 
+
+                  const style = hiddenIframe.contentWindow.getComputedStyle(el);
+                  const safeStyles = { marginTop: style.marginTop, marginRight: style.marginRight, marginBottom: style.marginBottom, marginLeft: style.marginLeft, paddingTop: style.paddingTop, paddingRight: style.paddingRight, paddingBottom: style.paddingBottom, paddingLeft: style.paddingLeft, borderTopWidth: style.borderTopWidth, borderRightWidth: style.borderRightWidth, borderBottomWidth: style.borderBottomWidth, borderLeftWidth: style.borderLeftWidth };
+
+                  const isGrid = style.display === 'grid' || style.display === 'inline-grid';
+                  const isFlex = style.display === 'flex' || style.display === 'inline-flex';
+                  let layoutInfo = null;
+
+                  if (isGrid || isFlex) layoutInfo = { type: isGrid ? 'grid' : 'flex', rowGap: parseFloat(style.rowGap) || 0, columnGap: parseFloat(style.columnGap) || 0, gridCols: isGrid ? style.gridTemplateColumns : null, gridRows: isGrid ? style.gridTemplateRows : null, direction: isFlex ? style.flexDirection : null, wrap: isFlex ? style.flexWrap : null };
+
+                  ghostData.push({ rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }, style: safeStyles, tagName: el.tagName, className: el.className, layout: layoutInfo });
+              });
+              setSolutionGhostData(ghostData);
+              document.body.removeChild(hiddenIframe); 
+          }, 50);
+      }
     };
 
     const resizeObserver = new ResizeObserver(() => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(
-        () => window.requestAnimationFrame(updatePreviewData),
-        100,
-      );
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => window.requestAnimationFrame(updateImageAndGhostData), 100);
     });
-    const solutionFrame = solutionIframeRef.current;
-
+    
     resizeObserver.observe(box);
-    updatePreviewData();
-    solutionFrame?.addEventListener("load", updatePreviewData);
+    updateImageAndGhostData();
 
     return () => {
       resizeObserver.disconnect();
       clearTimeout(debounceTimer);
-      solutionFrame?.removeEventListener("load", updatePreviewData);
+      if (solutionImageUrl) URL.revokeObjectURL(solutionImageUrl);
     };
-  }, [solutionSrcDoc, previewMode, isInspectionMode, zoom]);
+  }, [safeHtml, fullSolutionCss, previewMode, isInspectionMode, zoom]);
 
-  useEffect(() => {
-    setInspectData(null);
-  }, [previewMode, isInspectionMode]);
+  useEffect(() => { setInspectData(null); }, [previewMode, isInspectionMode]);
 
   const handleFitToScreen = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
     if (resizableBoxRef.current) {
-      resizableBoxRef.current.style.width = "100%";
-      resizableBoxRef.current.style.height = "100%";
+      resizableBoxRef.current.style.width = '100%';
+      resizableBoxRef.current.style.height = '100%';
     }
   };
 
+  const getScoreColor = (sc) => {
+    if (sc === 100) return '#10b981'; 
+    if (sc >= 50) return '#f59e0b';  
+    return '#ef4444';                
+  };
+
   return (
-    <div className="css-analyzer-scope analysis-root wda-theme">
-      <div
-        className="output-panel"
-        style={{
-          flexGrow: 1,
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-        }}
-      >
+    <div className="css-analyzer-scope" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
+      {!hideProgress && (
+        <div className="progress-bar-container">
+            <div className="progress-bar-fill" style={{ width: score !== null ? `${score}%` : '0%', backgroundColor: getScoreColor(score) }}></div>
+            <span className="progress-text">{score !== null ? `${t(locale, 'ui', 'scoreResult')} ${score}%` : t(locale, 'ui', 'scoreWait')}</span>
+        </div>
+      )}
+
+      <div className="output-panel" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        
         <div className="output-panel-header" style={{ flexShrink: 0 }}>
-          <div className="analysis-header-group">
-            <h3 className="analysis-title">{t(locale, "ui", "preview")}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, color: '#334155' }}>
+                {t(locale, 'ui', 'preview')} 
+            </h3>
+            
+            <span style={{ 
+                fontSize: '15px', 
+                background: '#e0e7ff', 
+                color: '#3730a3', 
+                padding: '4px 10px', 
+                borderRadius: '6px', 
+                fontWeight: '800', 
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                border: '1px solid #c7d2fe',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            }}>
+                {previewWidth} × {previewHeight}
+            </span>
 
-            {previewMode !== "evaluation" && (
-              <>
-                <span className="analysis-dimensions">
-                  {previewWidth} × {previewHeight}
-                </span>
-
-                <div className="canvas-zoom-controls">
-                  <button
-                    onClick={() => setZoom((z) => Math.max(0.2, z - 0.1))}
-                    title={t(locale, "ui", "zoomOut")}
-                  >
-                    -
-                  </button>
-                  <span className="zoom-level">{Math.round(zoom * 100)}%</span>
-                  <button
-                    onClick={() => setZoom((z) => Math.min(4, z + 0.1))}
-                    title={t(locale, "ui", "zoomIn")}
-                  >
-                    +
-                  </button>
-                  <button
-                    onClick={handleFitToScreen}
-                    title={t(locale, "ui", "fitToScreen")}
-                    className="zoom-reset"
-                  >
-                    ⤢
-                  </button>
-                </div>
-              </>
-            )}
+            <div className="canvas-zoom-controls">
+              <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} title={t(locale, 'ui', 'zoomOut')}>-</button>
+              <span className="zoom-level">{Math.round(zoom * 100)}%</span>
+              <button onClick={() => setZoom(z => Math.min(4, z + 0.1))} title={t(locale, 'ui', 'zoomIn')}>+</button>
+              <button onClick={handleFitToScreen} title={t(locale, 'ui', 'fitToScreen')} className="zoom-reset">⤢</button>
+            </div>
           </div>
-
+          
           {showControls && (
             <div className="preview-controls">
               {allowInspect && (
                 <>
-                  <button
-                    onClick={() => {
-                      setPreviewMode("student");
-                      setInspectionMode(!isInspectionMode);
-                    }}
-                    className={`control-button ${isInspectionMode ? "active-inspect" : ""}`}
-                    title="Zapnúť inšpekciu Box Modelu"
-                  >
-                    {t(locale, "ui", "inspect")}
+                  <button onClick={() => setInspectionMode(!isInspectionMode)} className={`control-button ${isInspectionMode ? 'active-inspect' : ''}`} title="Zapnúť inšpekciu Box Modelu">
+                    {t(locale, 'ui', 'inspect')}
                   </button>
                   <div className="control-divider"></div>
                 </>
               )}
-              <button
-                onClick={() => setPreviewMode("student")}
-                className={`control-button ${previewMode === "student" ? "active" : ""}`}
-              >
-                {t(locale, "ui", "mySolution")}
-              </button>
-              <button
-                onClick={() => setPreviewMode("solution")}
-                className={`control-button ${previewMode === "solution" ? "active" : ""}`}
-              >
-                {t(locale, "ui", "pattern")}
-              </button>
-              <button
-                onClick={() => setPreviewMode("overlay")}
-                className={`control-button ${previewMode === "overlay" ? "active" : ""}`}
-              >
-                {t(locale, "ui", "overlay")}
-              </button>
-
+              <button onClick={() => setPreviewMode('student')} className={`control-button ${previewMode === 'student' ? 'active' : ''}`}>{t(locale, 'ui', 'mySolution')}</button>
+              <button onClick={() => setPreviewMode('solution')} className={`control-button ${previewMode === 'solution' ? 'active' : ''}`}>{t(locale, 'ui', 'pattern')}</button>
+              <button onClick={() => setPreviewMode('overlay')} className={`control-button ${previewMode === 'overlay' ? 'active' : ''}`}>{t(locale, 'ui', 'overlay')}</button>
+              
               {!disableDiffView && (
-                <button
-                  onClick={() => setPreviewMode("diff")}
-                  className={`control-button is-diff ${previewMode === "diff" ? "active" : ""}`}
-                >
-                  {t(locale, "ui", "diffView")}
-                </button>
-              )}
-              {evaluationContent && (
-                <button
-                  onClick={() => setPreviewMode("evaluation")}
-                  className={`control-button ${previewMode === "evaluation" ? "active" : ""}`}
-                >
-                  {t(locale, "ui", "evaluation")}
+                <button onClick={() => setPreviewMode('diff')} className={`control-button ${previewMode === 'diff' ? 'active' : ''}`} style={{ color: previewMode === 'diff' ? '#db2777' : '' }}>
+                  {t(locale, 'ui', 'diffView')}
                 </button>
               )}
             </div>
           )}
         </div>
 
-        {showControls && previewMode === "overlay" && (
+        {showControls && previewMode === 'overlay' && (
           <div className="opacity-slider-container">
             <label htmlFor="opacity-slider">
-              {t(locale, "ui", "opacity")}{" "}
-              <strong>{Math.round(overlayOpacity * 100)}%</strong>
+              {t(locale, 'ui', 'opacity')} <strong>{Math.round(overlayOpacity * 100)}%</strong>
             </label>
-            <input
-              type="range"
-              id="opacity-slider"
-              min="0"
-              max="1"
-              step="0.05"
-              value={overlayOpacity}
-              onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
+            <input 
+              type="range" id="opacity-slider" min="0" max="1" step="0.05"
+              value={overlayOpacity} onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
               className="opacity-slider"
             />
           </div>
         )}
 
-        {!disableDiffView && previewMode === "diff" && (
-          <div className="analysis-diff-note">
-            {t(locale, "ui", "diffViewText")}
+        {!disableDiffView && previewMode === 'diff' && (
+          <div style={{ backgroundColor: '#fdf2f8', padding: '6px 12px', fontSize: '11px', color: '#be185d', borderBottom: '1px solid #fbcfe8', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+             {t(locale, 'ui', 'diffViewText')}
           </div>
         )}
 
-        {previewMode === "evaluation" && (
-          <div className="analysis-evaluation-view">{evaluationContent}</div>
-        )}
-        <div
-          className={`preview-wrapper canvas-background ${previewMode === "evaluation" ? "is-hidden" : ""}`}
+        <div 
+          className="preview-wrapper canvas-background" 
           ref={wrapperRef}
           onMouseDown={handlePointerDown}
-          style={{
-            overflow: "hidden",
-            position: "relative",
+          style={{ 
+            overflow: 'hidden', 
+            position: 'relative',
             flexGrow: 1,
-            cursor: "grab",
+            cursor: 'grab' 
           }}
         >
-          <div
+          <div 
             style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              width: "100%",
-              height: "100%",
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '100%',
+              height: '100%',
               transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${zoom})`,
-              transformOrigin: "center center",
-              transition: isPanning.current
-                ? "none"
-                : "transform 0.1s ease-out",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              pointerEvents: "none",
+              transformOrigin: 'center center',
+              transition: isPanning.current ? 'none' : 'transform 0.1s ease-out', 
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              pointerEvents: 'none' 
             }}
           >
-            <div
-              ref={resizableBoxRef}
-              className="resizable-preview-box canvas-resizable-item"
-              style={{ pointerEvents: "auto" }}
+            <div 
+              ref={resizableBoxRef} 
+              className="resizable-preview-box canvas-resizable-item" 
+              style={{ pointerEvents: 'auto' }}
             >
-              <iframe
-                ref={iframeRef}
-                srcDoc={userSrcDoc}
-                title="preview"
-                sandbox="allow-same-origin"
-                className="student-iframe"
-                style={{
-                  visibility: previewMode === "solution" ? "hidden" : "visible",
-                  zIndex: 1,
-                }}
-              />
+                <iframe ref={iframeRef} srcDoc={userSrcDoc} title="preview" sandbox="allow-same-origin" className="student-iframe" style={{ visibility: previewMode === 'solution' ? 'hidden' : 'visible', zIndex: 1 }} />
 
-              <iframe
-                ref={solutionIframeRef}
-                srcDoc={solutionSrcDoc}
-                title="target preview"
-                sandbox="allow-same-origin"
-                className="solution-iframe"
-                style={{
-                  visibility: previewMode === "student" ? "hidden" : "visible",
-                  zIndex: 10,
-                  opacity: previewMode === "overlay" ? overlayOpacity : 1,
-                  mixBlendMode:
-                    previewMode === "diff" ? "difference" : "normal",
-                  pointerEvents:
-                    previewMode === "solution" && !isInspectionMode
-                      ? "auto"
-                      : "none",
-                }}
-              />
-
-              {isInspectionMode &&
-                previewMode === "solution" &&
-                solutionGhostData.map((data, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      position: "absolute",
-                      top: data.rect.top,
-                      left: data.rect.left,
-                      width: data.rect.width,
-                      height: data.rect.height,
-                      zIndex: 15 + idx,
-                      cursor: "crosshair",
-                      background: "transparent",
-                    }}
-                    onMouseEnter={() => setInspectData(data)}
-                    onMouseLeave={() => setInspectData(null)}
-                  />
+                {isInspectionMode && previewMode === 'solution' && solutionGhostData.map((data, idx) => (
+                    <div key={idx} style={{ position: 'absolute', top: data.rect.top, left: data.rect.left, width: data.rect.width, height: data.rect.height, zIndex: 15 + idx, cursor: 'crosshair', background: 'transparent' }} onMouseEnter={() => setInspectData(data)} onMouseLeave={() => setInspectData(null)} />
                 ))}
 
-              {isInspectionMode && inspectData && (
-                <div className="inspector-layer" style={{ zIndex: 100 }}>
-                  <InspectorOverlay data={inspectData} locale={locale} />
-                </div>
-              )}
+                {isInspectionMode && inspectData && (
+                    <div className="inspector-layer" style={{ zIndex: 100 }}>
+                        <InspectorOverlay data={inspectData} />
+                    </div>
+                )}
+
+                {solutionImageUrl && previewMode === 'solution' && (
+                <img src={solutionImageUrl} className="solution-image" alt="Vzor" onContextMenu={(e) => e.preventDefault()} style={{ zIndex: 10 }} />
+                )}
+                
+                {solutionImageUrl && previewMode === 'overlay' && (
+                <img src={solutionImageUrl} className="solution-overlay" alt="Overlay" onContextMenu={(e) => e.preventDefault()} style={{ zIndex: 20, opacity: overlayOpacity, pointerEvents: 'none', border: '1px dashed rgba(0, 123, 255, 0.4)' }} />
+                )}
+
+                {!disableDiffView && solutionImageUrl && previewMode === 'diff' && (
+                <img src={solutionImageUrl} className="solution-overlay" alt="Diff" onContextMenu={(e) => e.preventDefault()} 
+                     style={{ zIndex: 20, opacity: 1, pointerEvents: 'none', border: 'none', mixBlendMode: 'difference' }} 
+                />
+                )}
             </div>
           </div>
-
-          <div className="analysis-canvas-hint">
-            {t(locale, "ui", "canvasHint")}
+          
+          <div style={{ position: 'absolute', bottom: '10px', right: 0, left: 0, textAlign: 'center', fontSize: '11px', color: '#64748b', pointerEvents: 'none', fontWeight: '600', textShadow: '0 0 4px white, 0 0 2px white' }}>
+            {t(locale, 'ui', 'canvasHint')}
           </div>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default OutputPanel;

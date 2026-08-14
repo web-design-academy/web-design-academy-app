@@ -7,57 +7,15 @@ body {
 }
 
 .app-container {
-  display: grid;
-  grid-template-rows: var(--header-height) minmax(0, 1fr) var(--footer-height);
-  height: 100vh;
   min-height: 100vh;
-  overflow: hidden;
-}
-
-@supports (height: 100dvh) {
-  .app-container {
-    height: 100dvh;
-    min-height: 100dvh;
-  }
-}
-
-.app-content {
   display: flex;
-  min-height: 0;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.app-footer {
-  display: flex;
-  width: 100%;
-  height: var(--footer-height);
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-top: var(--border-width-thin) solid var(--color-border);
-  background: var(--color-card);
-  color: color-mix(in srgb, var(--color-text) 64%, transparent);
-  font-size: var(--font-size-xs);
-  text-align: center;
-}
-
-.app-footer a {
-  color: inherit;
-  font-size: inherit;
-  text-decoration: none;
-}
-
-.app-footer a:hover {
-  text-decoration: underline;
 }
 
 header {
   background: var(--color-card);
   border-bottom: var(--border-width-thin) solid var(--color-border);
   height: var(--header-height);
-  min-height: var(--header-height);
   position: sticky;
   top: 0;
   z-index: var(--z-header);
@@ -153,8 +111,8 @@ header {
 
 .logo-image {
   flex: 0 0 auto;
-  width: auto;
-  height: calc(var(--size-logo-desktop) * 0.72);
+  height: var(--size-logo-desktop);
+  width: var(--size-logo-desktop);
 }
 
 .logo-text {
@@ -332,13 +290,8 @@ header {
   }
 
   .logo-image {
-    width: auto;
-    height: calc(var(--size-logo-mobile) * 0.72);
-  }
-
-  .app-footer {
-    flex-direction: column;
-    gap: 0;
+    width: var(--size-logo-mobile);
+    height: var(--size-logo-mobile);
   }
 
   .hamburger-toggle {

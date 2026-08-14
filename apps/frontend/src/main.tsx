@@ -10,7 +10,7 @@ import {
   isGoogleAuthEnabled,
   isOnlineMode,
 } from "@/lib/config/appMode";
-import "@wda/ui-styles/tokens.css";
+import "@/styles/system/tokens.css";
 import "@/styles/system/base.css";
 import { ThemeProvider } from "./lib/ctx/ThemeContext";
 import { AuthProvider } from "./lib/ctx/AuthContext";

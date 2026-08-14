@@ -187,8 +187,8 @@ export default function Root() {
         <div className="header-left">
           <Link to="/" className="logo-link">
             <img
-              src={`${import.meta.env.BASE_URL}logo.svg`}
-              alt="Web Design Academy logo"
+              src={`${import.meta.env.BASE_URL}logo.png`}
+              alt="Web Design Academy logo: Academic cap and letters WDA"
               className="logo-image"
             />
             <span className="logo-text">Web Design Academy</span>
@@ -272,16 +272,7 @@ export default function Root() {
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
-      <div className="app-content">
-        <Outlet />
-      </div>
-
-      <footer className="app-footer">
-        <span>&copy; {new Date().getFullYear()} Web Design Academy</span>
-        <a href="mailto:support@webdesignacademy.org">
-          support@webdesignacademy.org
-        </a>
-      </footer>
+      <Outlet />
     </div>
   );
 }

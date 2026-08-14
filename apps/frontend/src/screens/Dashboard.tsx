@@ -6,7 +6,6 @@ import Pagination from "@/components/Pagination";
 import {
   getAllLessons,
   getLessons,
-  loadLessons,
   type LessonMeta,
 } from "@/lib/helpers/getLessons";
 import { getLessonTasksSync } from "@/lib/helpers/getTasks";
@@ -26,7 +25,6 @@ type LessonWithProgress = LessonMeta & {
 export default function Dashboard() {
   const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const { user, isAuthenticated } = useAuth();
 
@@ -34,35 +32,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchAllProgress = async () => {
-      setLoading(true);
-      setLoadError(null);
-
-      try {
-        await loadLessons();
-      } catch (error) {
-        setLoadError(
-          error instanceof Error ? error.message : "Failed to load lessons",
-        );
-        setLoading(false);
-        return;
-      }
-
       const allLessons =
         user?.role === "admin" ? getAllLessons() : getLessons();
-
-      const getTaskCount = (lesson: LessonMeta) => {
-        const draftTasks = getLessonTasksSync(lesson.slug);
-        return draftTasks.length
-          ? draftTasks.filter((task) => !task.deleted).length
-          : (lesson.taskCount ?? 0);
-      };
 
       if (!isOnlineMode || !showProgress) {
         setLessons(
           allLessons.map((lesson) => ({
             ...lesson,
             progress: 0,
-            taskCount: getTaskCount(lesson),
+            taskCount: getLessonTasksSync(lesson.slug).filter(
+              (task) => !task.deleted,
+            ).length,
           })),
         );
         setLoading(false);
@@ -75,7 +55,9 @@ export default function Dashboard() {
             const res = await fetch(`${API_BASE}/progress/${lesson.slug}`);
             const data = await res.json();
             const completedCount = data.completedTaskIds?.length || 0;
-            const taskCount = getTaskCount(lesson);
+            const taskCount = getLessonTasksSync(lesson.slug).filter(
+              (task) => !task.deleted,
+            ).length;
 
             const progress =
               taskCount > 0
@@ -88,7 +70,9 @@ export default function Dashboard() {
             return {
               ...lesson,
               progress: 0,
-              taskCount: getTaskCount(lesson),
+              taskCount: getLessonTasksSync(lesson.slug).filter(
+                (task) => !task.deleted,
+              ).length,
             };
           }
         }),
@@ -102,15 +86,6 @@ export default function Dashboard() {
   }, [isAuthenticated, showProgress, user?.role]);
 
   if (loading) return <LoadingSpinner />;
-  if (loadError) {
-    return (
-      <main className="dashboard-page">
-        <div className="dashboard-shell">
-          <p className="admin-error">{loadError}</p>
-        </div>
-      </main>
-    );
-  }
 
   const pageLessons = lessons.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 

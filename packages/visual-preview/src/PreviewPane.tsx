@@ -1,5 +1,7 @@
+import { useMemo } from "react";
+
+import { ChallengeProvider } from "./context/ChallengeContext";
 import { OutputPanel } from "./components/OutputPanel";
-import type { ReactNode } from "react";
 
 export interface PreviewPaneProps {
   html: string;
@@ -8,10 +10,10 @@ export interface PreviewPaneProps {
   solutionCss?: string;
   solutionHtml?: string;
   initialCss?: string;
+  targetSelectors?: string[];
+  checks?: any[];
   showControls?: boolean;
-  evaluationContent?: ReactNode;
-  evaluationViewRequest?: number;
-  onSelectSelector?: (selector: string) => void;
+  hideProgress?: boolean;
 }
 
 export default function PreviewPane({
@@ -21,22 +23,30 @@ export default function PreviewPane({
   solutionCss = "",
   solutionHtml = "",
   initialCss = "",
+  targetSelectors = [],
+  checks = [],
   showControls = true,
-  evaluationContent,
-  evaluationViewRequest,
-  onSelectSelector,
+  hideProgress = true,
 }: PreviewPaneProps) {
+  const task = useMemo(
+    () => ({
+      id: "workspace-preview",
+      title: "Preview",
+      instructions: "",
+      initialHtml: html,
+      initialCss: initialCss,
+      solutionCss: solutionCss,
+      solutionHtml: solutionHtml,
+      currentCode: css,
+      targetSelectors: targetSelectors,
+      checks: checks,
+    }),
+    [css, html, solutionCss, solutionHtml, initialCss, targetSelectors, checks],
+  );
+
   return (
-    <OutputPanel
-      html={html}
-      css={css}
-      solutionCss={solutionCss || initialCss}
-      solutionHtml={solutionHtml || html}
-      locale={locale}
-      showControls={showControls}
-      evaluationContent={evaluationContent}
-      evaluationViewRequest={evaluationViewRequest}
-      onSelectSelector={onSelectSelector}
-    />
+    <ChallengeProvider task={task} locale={locale}>
+      <OutputPanel showControls={showControls} hideProgress={hideProgress} />
+    </ChallengeProvider>
   );
 }

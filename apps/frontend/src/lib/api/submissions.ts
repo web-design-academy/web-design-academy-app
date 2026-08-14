@@ -1,6 +1,5 @@
 import { requireOnlineMode } from "@/lib/config/appMode";
 import { API_BASE } from "./client";
-import type { AnalysisIssue } from "@wda/css-analysis";
 
 export interface SubmissionPayload {
   lessonSlug: string;
@@ -8,13 +7,6 @@ export interface SubmissionPayload {
   html: string;
   css: string;
   js: string;
-  evaluation?: {
-    version: 1;
-    status: "error" | "success_with_warning" | "success_perfect";
-    score: number;
-    passed: boolean;
-    issues: AnalysisIssue[];
-  };
 }
 
 export interface SubmissionResponse {
@@ -34,12 +26,6 @@ export interface SubmissionRecord {
   css: string;
   js: string;
   timestamp: string;
-  evaluation_status?: string | null;
-  evaluation_score?: number | null;
-  evaluation_passed?: number | null;
-  evaluation_issues?: string | null;
-  evaluation_version?: number | null;
-  evaluation_config_hash?: string | null;
 }
 
 export interface UserTag {

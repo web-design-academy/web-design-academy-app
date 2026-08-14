@@ -1,0 +1,30 @@
+---
+title: "UX/UI Principles"
+description: "Adding navigation and improving usability. Applying alignment, contrast, and visual hierarchy"
+slug: "ux-ui-principles"
+color: "oklch(58.6% 0.253 17.585)"
+order: 3
+icon: Palette
+hidden: false
+---
+
+import C from "../../components/C";
+
+# UX/UI Principles
+
+## Task Instructions
+
+1. **Navigation Bar**
+
+   You start with a <C l="html">{'<div id="plain-links">'}</C> that just has the words "Home About Services Contact" as plain text. Transform this into a proper navigation bar:
+   - In the HTML: replace the <C l="html">{"<div>"}</C> with a <C l="html">{"<nav>"}</C>, add a <C l="html">{"<ul>"}</C> list inside it, and wrap each link word in <C l="html">{'<li><a href="#sectionId">...</a></li>'}</C> pointing to the matching section below
+   - In the CSS: remove the list bullets (<C l="css">list-style: none</C>), use Flexbox with a <C l="css">gap</C>, style the anchor <C l="css">color</C>, and add a <C l="css">:hover</C> underline effect
+
+2. **Responsive Burger Menu**
+
+   The page already has a header with a hidden <C l="css">#menu-toggle</C> checkbox, a burger icon label (<C l="css">#burger</C>), and a <C l="css">#nav-links</C> nav. On wide screens the nav is visible. On narrow screens, add CSS so the menu can collapse and expand.
+
+   Using only CSS (no JavaScript), make it responsive:
+   - Inside a <C l="css">@media (max-width: 600px)</C> block: show <C l="css">#burger</C>, hide <C l="css">#nav-links ul</C> by default
+   - Use the sibling selector <C l="css">{"#menu-toggle:checked + #burger + #nav-links ul"}</C> to show the menu when the checkbox is checked
+   - Also switch <C l="css">#page-content</C> to <C l="css">flex-direction: column</C> so the sections stack vertically on narrow screens

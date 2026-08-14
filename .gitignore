@@ -7,4 +7,3 @@ dist
 *.local
 .env
 storage/
-/lessons/

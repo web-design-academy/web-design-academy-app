@@ -14,22 +14,20 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/visual-preview/package.json ./packages/visual-preview/
-COPY packages/visual-editor/package.json ./packages/visual-editor/
-COPY packages/ui-styles/package.json ./packages/ui-styles/
+COPY packages/visual-editor/VisualEditor/package.json ./packages/visual-editor/VisualEditor/
 
 RUN pnpm install --frozen-lockfile
 
 COPY apps/frontend/ ./apps/frontend/
 COPY packages/visual-preview/ ./packages/visual-preview/
-COPY packages/visual-editor/ ./packages/visual-editor/
-COPY packages/ui-styles/ ./packages/ui-styles/
+COPY packages/visual-editor/VisualEditor/ ./packages/visual-editor/VisualEditor/
 RUN pnpm --filter web-design-academy build
 
 FROM node:22-alpine
 
 WORKDIR /app
 
-RUN mkdir -p storage lessons
+RUN mkdir -p storage
 
 COPY apps/backend/package.json ./
 RUN npm install --omit=dev

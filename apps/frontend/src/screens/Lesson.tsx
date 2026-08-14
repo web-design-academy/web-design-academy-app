@@ -1,6 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
+import { MDXProvider } from "@mdx-js/react";
+import type { MDXContent } from "mdx/types";
 import {
   CheckCircle2,
   ChevronDown,
@@ -16,19 +25,10 @@ import PreviewPane from "@/components/PreviewPane";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
 import LessonIcon from "@/components/LessonIcon";
-import RuntimeMdx from "@/components/RuntimeMdx";
-import {
-  getLessonMeta,
-  loadLessons,
-  setDefaultLessonContent,
-  type LessonMeta,
-} from "@/lib/helpers/getLessons";
+import { getLessonMeta } from "@/lib/helpers/getLessons";
 import {
   getDefaultLessonTasksSync,
   getLessonTasksSync,
-  mergeLegacyEditableSource,
-  normalizeTaskCode,
-  setDefaultLessonTasks,
   type TaskCode,
 } from "@/lib/helpers/getTasks";
 import {
@@ -50,34 +50,27 @@ import { useAuth } from "@/lib/ctx/useAuth";
 import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
 import { isOnlineMode } from "@/lib/config/appMode";
 import { API_BASE } from "@/lib/api/client";
-import { fetchLesson } from "@/lib/api/lessons";
-import EvaluationPanel from "@/features/challenge/EvaluationPanel";
-import { useTaskEvaluation } from "@/features/challenge/useTaskEvaluation";
-import type { AnalysisIssue } from "@wda/css-analysis";
 
-type TaskFileState = Pick<Partial<TaskCode>, "html" | "css" | "js">;
+type EditableTaskState = Pick<
+  Partial<TaskCode>,
+  "editableHtml" | "editableCss" | "editableJs"
+>;
 
 const normalizeCode = (value?: string) => (value ?? "").replace(/\r\n/g, "\n");
 
-const getTaskFileState = (task?: Partial<TaskCode>): TaskFileState => ({
-  html: task?.html,
-  css: task?.css,
-  js: task?.js,
+const getEditableTaskState = (task?: Partial<TaskCode>): EditableTaskState => ({
+  editableHtml: task?.editableHtml,
+  editableCss: task?.editableCss,
+  editableJs: task?.editableJs,
 });
 
-const areTaskFileStatesEqual = (left?: TaskFileState, right?: TaskFileState) =>
-  normalizeCode(left?.html) === normalizeCode(right?.html) &&
-  normalizeCode(left?.css) === normalizeCode(right?.css) &&
-  normalizeCode(left?.js) === normalizeCode(right?.js);
-
-const getSubmittedTaskState = (
-  task: Partial<TaskCode>,
-  submission: { html: string; css: string; js: string },
-): TaskFileState => ({
-  html: mergeLegacyEditableSource(task.html, submission.html, "html"),
-  css: mergeLegacyEditableSource(task.css, submission.css, "css"),
-  js: mergeLegacyEditableSource(task.js, submission.js, "js"),
-});
+const areEditableTaskStatesEqual = (
+  left?: EditableTaskState,
+  right?: EditableTaskState,
+) =>
+  normalizeCode(left?.editableHtml) === normalizeCode(right?.editableHtml) &&
+  normalizeCode(left?.editableCss) === normalizeCode(right?.editableCss) &&
+  normalizeCode(left?.editableJs) === normalizeCode(right?.editableJs);
 
 export default function Lesson() {
   const { slug } = useParams<{ slug: string }>();
@@ -94,9 +87,6 @@ export default function Lesson() {
 
   const isAdmin = user?.role === "admin";
   const [isNew, setIsNew] = useState<boolean | null>(null);
-  const [lessonMeta, setLessonMeta] = useState<LessonMeta | undefined>();
-  const [lessonContent, setLessonContent] = useState("");
-  const [lessonLoadError, setLessonLoadError] = useState<string | null>(null);
 
   const submitMutation = useMutation({
     mutationFn: (payload: SubmissionPayload) => submitSolution(payload),
@@ -140,13 +130,11 @@ export default function Lesson() {
   >("saved");
   const [autosaveRevision, setAutosaveRevision] = useState(0);
   const [submissionBaselines, setSubmissionBaselines] = useState<
-    Record<string, TaskFileState>
+    Record<string, EditableTaskState>
   >({});
-  const [editorFocusRequest, setEditorFocusRequest] = useState<{
-    line: number;
-    nonce: number;
-  } | null>(null);
 
+  const [LessonContent, setLessonContent] =
+    useState<React.LazyExoticComponent<MDXContent> | null>(null);
   const lessonContentRef = useRef<HTMLDivElement | null>(null);
   const lessonContentAnimationTimeoutRef = useRef<number | undefined>(
     undefined,
@@ -159,6 +147,8 @@ export default function Lesson() {
   const autosaveStatusRef = useRef<"saved" | "saving" | "pending" | "error">(
     "saved",
   );
+  const lessonMeta = slug ? getLessonMeta(slug) : undefined;
+
   const persistAutosaveDraft = useCallback(() => {
     if (!slug || loadedSubmission) return;
 
@@ -220,69 +210,51 @@ export default function Lesson() {
 
   useEffect(() => {
     if (!slug) return;
-    let cancelled = false;
 
-    setIsNew(null);
-    setLessonMeta(undefined);
-    setLessonContent("");
-    setLessonLoadError(null);
-    setCurrentTaskIndex(0);
+    const addedDraft = isAddedLessonDraft(slug);
+    setIsNew(addedDraft);
 
-    const loadLesson = async () => {
-      try {
-        await loadLessons();
-        const addedDraft = isAddedLessonDraft(slug);
+    if (!addedDraft) {
+      const sourceFolder = lessonMeta?.sourceFolder ?? slug;
+      setLessonContent(
+        lazy(() => import(`../lessons/${sourceFolder}/index.mdx`)),
+      );
+    } else {
+      setLessonContent(null);
+    }
 
-        if (!addedDraft) {
-          const detail = await fetchLesson(slug);
-          setDefaultLessonTasks(slug, detail.tasks);
-          setDefaultLessonContent(slug, detail.content);
-          if (!cancelled) setLessonContent(detail.content);
-        }
-
-        if (cancelled) return;
-
-        const localTasks = getLessonTasksSync(slug).filter(
-          (task) => isAdmin || !task.deleted,
-        );
-        const studentDraft =
-          !isAdmin && !submissionId
-            ? getStudentLessonDraft(slug, user?.userId)
-            : null;
-        const nextTaskStates = localTasks.map((task, index) => {
-          if (isAdmin) return { ...task };
-
-          const draftTask = studentDraft?.tasks[index]
-            ? normalizeTaskCode(studentDraft.tasks[index], task)
-            : undefined;
-          return {
-            html: draftTask?.html ?? task.html,
-            css: draftTask?.css ?? task.css,
-            js: draftTask?.js ?? task.js,
-          };
-        });
-
-        setLessonMeta(getLessonMeta(slug));
-        setIsNew(addedDraft);
-        setTasksSnapshot(localTasks);
-        setTaskStatesSnapshot(nextTaskStates);
-        setSubmissionBaselines({});
-        markAutosaveSaved();
-      } catch (error) {
-        if (cancelled) return;
-        setLessonLoadError(
-          error instanceof Error ? error.message : "Failed to load lesson",
-        );
-        setIsNew(false);
+    const localTasks = getLessonTasksSync(slug).filter(
+      (task) => isAdmin || !task.deleted,
+    );
+    const studentDraft =
+      !isAdmin && !submissionId
+        ? getStudentLessonDraft(slug, user?.userId)
+        : null;
+    const nextTaskStates = localTasks.map((task, index) => {
+      if (isAdmin) {
+        return { ...task };
       }
-    };
 
-    void loadLesson();
+      const draftTask = studentDraft?.tasks[index];
+      return {
+        editableHtml: draftTask?.editableHtml ?? task.editableHtml,
+        editableCss: draftTask?.editableCss ?? task.editableCss,
+        editableJs: draftTask?.editableJs ?? task.editableJs,
+      };
+    });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isAdmin, markAutosaveSaved, slug, submissionId, user?.userId]);
+    setTasksSnapshot(localTasks);
+    setTaskStatesSnapshot(nextTaskStates);
+    setSubmissionBaselines({});
+    markAutosaveSaved();
+  }, [
+    isAdmin,
+    lessonMeta?.sourceFolder,
+    markAutosaveSaved,
+    slug,
+    submissionId,
+    user?.userId,
+  ]);
 
   useEffect(() => {
     setVisualEditorEnabled(false);
@@ -316,12 +288,12 @@ export default function Lesson() {
         targetTaskIndex < tasks.length
       ) {
         setCurrentTaskIndex(targetTaskIndex);
-        const submittedTaskState = getSubmittedTaskState(
-          tasks[targetTaskIndex],
-          loadedSubmission,
-        );
         setSubmissionBaselines({
-          [loadedSubmission.task_id]: submittedTaskState,
+          [loadedSubmission.task_id]: {
+            editableHtml: loadedSubmission.html,
+            editableCss: loadedSubmission.css,
+            editableJs: loadedSubmission.js,
+          },
         });
 
         updateTaskStatesSnapshot((prev) =>
@@ -329,7 +301,9 @@ export default function Lesson() {
             if (idx === targetTaskIndex) {
               return {
                 ...s,
-                ...submittedTaskState,
+                editableHtml: loadedSubmission.html,
+                editableCss: loadedSubmission.css,
+                editableJs: loadedSubmission.js,
               };
             }
             return s;
@@ -337,7 +311,7 @@ export default function Lesson() {
         );
       }
     }
-  }, [loadedSubmission, tasks]);
+  }, [loadedSubmission, tasks.length]);
 
   useEffect(() => {
     const submissions = latestLessonSubmissions?.items ?? [];
@@ -348,13 +322,14 @@ export default function Lesson() {
 
     setSubmissionBaselines(
       Object.fromEntries(
-        submissions.map((submission) => {
-          const taskIndex = Number.parseInt(submission.task_id, 10) - 1;
-          return [
-            submission.task_id,
-            getSubmittedTaskState(tasks[taskIndex] ?? {}, submission),
-          ];
-        }),
+        submissions.map((submission) => [
+          submission.task_id,
+          {
+            editableHtml: submission.html,
+            editableCss: submission.css,
+            editableJs: submission.js,
+          },
+        ]),
       ),
     );
 
@@ -363,14 +338,8 @@ export default function Lesson() {
         const savedSubmission = submissions.find(
           (submission) => submission.task_id === String(index + 1),
         );
-        const storedDraftTask = slug
+        const draftTask = slug
           ? getStudentLessonDraft(slug, user?.userId)?.tasks[index]
-          : undefined;
-        const draftTask = storedDraftTask
-          ? normalizeTaskCode(storedDraftTask, tasks[index])
-          : undefined;
-        const submittedTask = savedSubmission
-          ? getSubmittedTaskState(tasks[index], savedSubmission)
           : undefined;
 
         if (!savedSubmission && !draftTask) {
@@ -379,9 +348,14 @@ export default function Lesson() {
 
         return {
           ...state,
-          html: draftTask?.html ?? submittedTask?.html ?? state.html,
-          css: draftTask?.css ?? submittedTask?.css ?? state.css,
-          js: draftTask?.js ?? submittedTask?.js ?? state.js,
+          editableHtml:
+            draftTask?.editableHtml ??
+            savedSubmission?.html ??
+            state.editableHtml,
+          editableCss:
+            draftTask?.editableCss ?? savedSubmission?.css ?? state.editableCss,
+          editableJs:
+            draftTask?.editableJs ?? savedSubmission?.js ?? state.editableJs,
         };
       }),
     );
@@ -395,7 +369,7 @@ export default function Lesson() {
     ) {
       setCurrentTaskIndex(latestTaskIndex);
     }
-  }, [latestLessonSubmissions, slug, submissionId, tasks, user?.userId]);
+  }, [latestLessonSubmissions, slug, submissionId, tasks.length, user?.userId]);
 
   useEffect(() => {
     if (!slug || autosaveRevision === 0 || loadedSubmission) {
@@ -569,41 +543,6 @@ export default function Lesson() {
     };
   }, [currentTaskIndex, isNew, slug]);
 
-  const evaluationTask = tasks[currentTaskIndex]
-    ? {
-        ...tasks[currentTaskIndex],
-        ...taskStates[currentTaskIndex],
-      }
-    : undefined;
-  const lessonVisualPreviewEnabled = Boolean(lessonMeta?.visualPreview);
-  const lessonVisualEditorEnabled = Boolean(lessonMeta?.visualEditor);
-  const taskSupportsVisualPreview = !evaluationTask?.js;
-  const visualPreviewActive =
-    lessonVisualPreviewEnabled &&
-    taskSupportsVisualPreview &&
-    visualPreviewEnabled;
-  const taskEvaluation = useTaskEvaluation(
-    evaluationTask,
-    visualPreviewActive,
-    currentTaskIndex,
-  );
-  const [evaluationViewRequest, setEvaluationViewRequest] = useState(0);
-
-  useEffect(() => {
-    if (!lessonVisualPreviewEnabled || !taskSupportsVisualPreview) {
-      setVisualPreviewEnabled(false);
-    }
-    if (!lessonVisualEditorEnabled) {
-      setVisualEditorEnabled(false);
-    }
-  }, [
-    lessonVisualEditorEnabled,
-    lessonVisualPreviewEnabled,
-    setVisualEditorEnabled,
-    setVisualPreviewEnabled,
-    taskSupportsVisualPreview,
-  ]);
-
   if (submissionId && submissionError) {
     return (
       <main className="lesson-container">
@@ -617,15 +556,6 @@ export default function Lesson() {
   }
 
   if (isNew === null || isLoadingSubmission) return <LoadingSpinner />;
-  if (lessonLoadError) {
-    return (
-      <main className="lesson-container">
-        <p className="admin-error" style={{ margin: 24 }}>
-          {lessonLoadError}
-        </p>
-      </main>
-    );
-  }
   if (!lessonMeta && !isNew) return <Navigate to="/" />;
   if (lessonMeta?.hidden && !isAdmin && !isNew) return <Navigate to="/" />;
   if (lessonMeta?.deleted && !isAdmin) return <Navigate to="/" />;
@@ -644,27 +574,20 @@ export default function Lesson() {
   const previewTask: Partial<TaskCode> = effectiveTask.deleted
     ? {}
     : effectiveTask;
-  const visualPreviewSupported = lessonVisualPreviewEnabled && !previewTask.js;
+  const visualPreviewSupported =
+    !previewTask?.hiddenJs &&
+    !previewTask?.readonlyJs &&
+    !previewTask?.editableJs;
   const currentStudentBaseline =
-    submissionBaselines[currentTaskId] ?? getTaskFileState(currentTask);
-  const hasStudentTaskChanges = !areTaskFileStatesEqual(
-    getTaskFileState(currentTaskState),
+    submissionBaselines[currentTaskId] ?? getEditableTaskState(currentTask);
+  const hasStudentTaskChanges = !areEditableTaskStatesEqual(
+    getEditableTaskState(currentTaskState),
     currentStudentBaseline,
   );
-  const needsPassingEvaluation =
-    visualPreviewActive && Boolean(effectiveTask.evaluation);
-  const hasPassingEvaluation =
-    taskEvaluation.result?.passed === true && !taskEvaluation.isResultStale;
-  const isSubmitDisabled =
-    !isAdmin &&
-    (!hasStudentTaskChanges ||
-      (needsPassingEvaluation && !hasPassingEvaluation));
-  const submitDisabledTitle =
-    needsPassingEvaluation && !hasPassingEvaluation
-      ? "Evaluate the current solution successfully before submitting."
-      : completedTasks.has(currentTaskId)
-        ? "Make a change before resubmitting."
-        : "Make a change before submitting.";
+  const isSubmitDisabled = !isAdmin && !hasStudentTaskChanges;
+  const submitDisabledTitle = completedTasks.has(currentTaskId)
+    ? "Make a change before resubmitting."
+    : "Make a change before submitting.";
   const srcDoc = `
   <!DOCTYPE html>
   <html>
@@ -675,13 +598,19 @@ export default function Lesson() {
       >
       <style>
         * {margin: 0; padding: 0;}
-        ${previewTask.css || ""}
+        ${previewTask?.hiddenCss || ""}
+        ${previewTask?.readonlyCss || ""}
+        ${previewTask?.editableCss || ""}
       </style>
     </head>
     <body>
-      ${previewTask.html || ""}
+      ${previewTask?.hiddenHtml || ""}
+      ${previewTask?.readonlyHtml || ""}
+      ${previewTask?.editableHtml || ""}
       <script>
-        ${previewTask.js || ""}
+        ${previewTask?.hiddenJs || ""}
+        ${previewTask?.readonlyJs || ""}
+        ${previewTask?.editableJs || ""}
       </script>
     </body>
   </html>
@@ -721,18 +650,6 @@ export default function Lesson() {
     markAutosaveChanged();
   };
 
-  const updateTaskMetadata = <K extends keyof TaskCode>(
-    field: K,
-    value: TaskCode[K],
-  ) => {
-    updateTaskStatesSnapshot((prev) =>
-      prev.map((state, index) =>
-        index === currentTaskIndex ? { ...state, [field]: value } : state,
-      ),
-    );
-    markAutosaveChanged();
-  };
-
   const applyResetTask = (taskIndex = currentTaskIndex) => {
     updateTaskStatesSnapshot((prev) => {
       const updated = prev.map((s, idx) => {
@@ -748,9 +665,9 @@ export default function Lesson() {
           ? { ...(defaultTask ?? tasks[idx]) }
           : {
               ...s,
-              html: tasks[idx].html,
-              css: tasks[idx].css,
-              js: tasks[idx].js,
+              editableHtml: tasks[idx].editableHtml,
+              editableCss: tasks[idx].editableCss,
+              editableJs: tasks[idx].editableJs,
             };
       });
 
@@ -778,8 +695,9 @@ export default function Lesson() {
     if (!isAdmin || !slug) return;
 
     const newTask: Partial<TaskCode> = {
-      html: "<h1>New Task</h1>\n<p>Start editing...</p>",
-      css: "h1 { color: blue; }",
+      editableHtml: "<h1>New Task</h1>\n<p>Start editing...</p>",
+      editableCss: "h1 { color: blue; }",
+      editableJs: 'console.log("Hello World");',
     };
     const updatedTasks = [...tasks, newTask];
     const updatedTaskStates = [...taskStates, newTask];
@@ -816,450 +734,357 @@ export default function Lesson() {
     }
     if (isAdmin) return false;
 
-    const evaluationResult = taskEvaluation.result;
-    if (
-      visualPreviewActive &&
-      effectiveTask.evaluation &&
-      (!evaluationResult?.passed || taskEvaluation.isResultStale)
-    ) {
-      setIsLessonContentHidden(false);
-      return false;
-    }
-
     await submitMutation.mutateAsync({
       lessonSlug: slug!,
       taskId: currentTaskId,
-      html: currentTaskState.html || "",
-      css: (cssOverride ?? currentTaskState.css) || "",
-      js: currentTaskState.js || "",
-      evaluation:
-        visualPreviewActive && evaluationResult
-          ? {
-              version: effectiveTask.evaluation?.version ?? 1,
-              status: evaluationResult.status,
-              score: evaluationResult.score,
-              passed: evaluationResult.passed,
-              issues: evaluationResult.results,
-            }
-          : undefined,
+      html: currentTaskState.editableHtml || "",
+      css: (cssOverride ?? currentTaskState.editableCss) || "",
+      js: currentTaskState.editableJs || "",
     });
 
     setCompletedTasks((prev) => new Set(prev).add(currentTaskId));
     setSubmissionBaselines((prev) => ({
       ...prev,
       [currentTaskId]: {
-        html: currentTaskState.html || "",
-        css: (cssOverride ?? currentTaskState.css) || "",
-        js: currentTaskState.js || "",
+        editableHtml: currentTaskState.editableHtml || "",
+        editableCss: (cssOverride ?? currentTaskState.editableCss) || "",
+        editableJs: currentTaskState.editableJs || "",
       },
     }));
     return true;
-  };
-
-  const evaluationResults =
-    visualPreviewActive && effectiveTask.evaluation ? (
-      <EvaluationPanel
-        config={effectiveTask.evaluation}
-        result={taskEvaluation.result}
-        liveIssues={taskEvaluation.liveIssues}
-        isEvaluating={taskEvaluation.isEvaluating}
-        isStale={taskEvaluation.isResultStale}
-        onIssueClick={(issue: AnalysisIssue) =>
-          setEditorFocusRequest({
-            line: issue.lineNumber,
-            nonce: Date.now(),
-          })
-        }
-      />
-    ) : null;
-  const handleEvaluate = async () => {
-    setEvaluationViewRequest((request) => request + 1);
-    return taskEvaluation.evaluate();
   };
 
   return (
     <main
       className={`lesson-container ${isMobileLayout ? "lesson-container-mobile" : ""}`}
     >
-      <div className="lesson-shell">
-        <aside className="lesson-sidebar">
-          <div className="lesson-sidebar-heading">
-            {lessonMeta?.icon ? (
-              <span
-                className="lesson-sidebar-icon"
-                style={{ background: lessonMeta.color }}
-                aria-hidden="true"
-              >
-                <LessonIcon name={lessonMeta.icon} size={20} />
-              </span>
-            ) : null}
-            <strong>{lessonMeta?.title ?? slug}</strong>
-          </div>
+      <Suspense fallback={<LoadingSpinner />}>
+        <div className="lesson-shell">
+          <aside className="lesson-sidebar">
+            <div className="lesson-sidebar-heading">
+              {lessonMeta?.icon ? (
+                <span
+                  className="lesson-sidebar-icon"
+                  style={{ background: lessonMeta.color }}
+                  aria-hidden="true"
+                >
+                  <LessonIcon name={lessonMeta.icon} size={20} />
+                </span>
+              ) : null}
+              <strong>{lessonMeta?.title ?? slug}</strong>
+            </div>
 
-          <div className="lesson-task-list">
-            <nav className="lesson-task-nav" aria-label="Lesson tasks">
-              {tasks.map((task, index) => {
-                const taskId = (index + 1).toString();
-                const isActive = index === currentTaskIndex;
-                const isCompleted = completedTasks.has(taskId);
-                const isDeleted = Boolean(
-                  taskStates[index]?.deleted ?? task.deleted,
-                );
+            <div className="lesson-task-list">
+              <nav className="lesson-task-nav" aria-label="Lesson tasks">
+                {tasks.map((task, index) => {
+                  const taskId = (index + 1).toString();
+                  const isActive = index === currentTaskIndex;
+                  const isCompleted = completedTasks.has(taskId);
+                  const isDeleted = Boolean(
+                    taskStates[index]?.deleted ?? task.deleted,
+                  );
 
-                return (
-                  <div
-                    key={taskId}
-                    className={`lesson-task-item ${isActive ? "is-active" : ""} ${isDeleted ? "is-deleted" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      className="lesson-task-link"
-                      onClick={() => setCurrentTaskIndex(index)}
+                  return (
+                    <div
+                      key={taskId}
+                      className={`lesson-task-item ${isActive ? "is-active" : ""} ${isDeleted ? "is-deleted" : ""}`}
                     >
-                      <span>Task {index + 1}</span>
-                      {isCompleted && !isAdmin && (
-                        <span className="lesson-task-done">
-                          <CheckCircle2 size={14} />
-                          DONE
-                        </span>
-                      )}
-                      {isDeleted && isAdmin && (
-                        <span className="lesson-task-deleted">Deleted</span>
-                      )}
-                    </button>
-
-                    <div className="lesson-task-actions">
                       <button
                         type="button"
-                        className="lesson-task-icon-button"
-                        onClick={() => resetTask(index)}
-                        title="Discard task changes"
-                        aria-label={`Discard changes for task ${index + 1}`}
+                        className="lesson-task-link"
+                        onClick={() => setCurrentTaskIndex(index)}
                       >
-                        <RotateCcw size={14} />
+                        <span>Task {index + 1}</span>
+                        {isCompleted && !isAdmin && (
+                          <span className="lesson-task-done">
+                            <CheckCircle2 size={14} />
+                            DONE
+                          </span>
+                        )}
+                        {isDeleted && isAdmin && (
+                          <span className="lesson-task-deleted">Deleted</span>
+                        )}
                       </button>
-                      {isAdmin && (
+
+                      <div className="lesson-task-actions">
                         <button
                           type="button"
-                          className="lesson-task-icon-button is-danger"
-                          onClick={() => deleteTask(index)}
-                          title="Delete task"
-                          aria-label={`Delete task ${index + 1}`}
-                          disabled={isDeleted}
+                          className="lesson-task-icon-button"
+                          onClick={() => resetTask(index)}
+                          title="Discard task changes"
+                          aria-label={`Discard changes for task ${index + 1}`}
                         >
-                          <Trash2 size={14} />
+                          <RotateCcw size={14} />
                         </button>
-                      )}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="lesson-task-icon-button is-danger"
+                            onClick={() => deleteTask(index)}
+                            title="Delete task"
+                            aria-label={`Delete task ${index + 1}`}
+                            disabled={isDeleted}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </nav>
+                  );
+                })}
+              </nav>
 
-            {isAdmin && (
-              <button
-                type="button"
-                className="lesson-add-task-button"
-                onClick={addTask}
-              >
-                <Plus size={16} />
-                Add new task
-              </button>
-            )}
-          </div>
-
-          <div className="lesson-sidebar-switches">
-            <div className="lesson-switch-row">
-              <span>
-                <strong>Visual editor</strong>
-                <small>Use direct HTML/CSS editing</small>
-              </span>
-              <button
-                type="button"
-                role="switch"
-                className="lesson-switch"
-                aria-checked={visualEditorEnabled}
-                aria-disabled={!lessonVisualEditorEnabled}
-                disabled={!lessonVisualEditorEnabled}
-                onClick={() => setVisualEditorEnabled(!visualEditorEnabled)}
-              >
-                <span />
-              </button>
-            </div>
-
-            <div className="lesson-switch-row">
-              <span>
-                <strong>Visual preview</strong>
-                <small>Use guided visual checks</small>
-              </span>
-              <button
-                type="button"
-                role="switch"
-                className="lesson-switch"
-                aria-checked={visualPreviewEnabled}
-                aria-disabled={!visualPreviewSupported}
-                disabled={!visualPreviewSupported}
-                onClick={() => setVisualPreviewEnabled(!visualPreviewEnabled)}
-              >
-                <span />
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        <section className="lesson-workspace">
-          {isMobileLayout ? (
-            <>
-              <section className="lesson-mobile-editor">
-                <EditorPane
-                  task={currentTaskState}
-                  currentIndex={currentTaskIndex}
-                  onTaskChange={updateTask}
-                  onSubmit={handleSubmit}
-                  isSubmitted={completedTasks.has(currentTaskId)}
-                  isSubmitDisabled={isSubmitDisabled}
-                  submitDisabledTitle={submitDisabledTitle}
-                  autosaveStatus={autosaveStatus}
-                  autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
-                  diagnostics={
-                    taskEvaluation.result && !taskEvaluation.isResultStale
-                      ? taskEvaluation.result.results
-                      : taskEvaluation.liveIssues
-                  }
-                  focusRequest={editorFocusRequest}
-                  onEvaluationChange={(evaluation) =>
-                    updateTaskMetadata("evaluation", evaluation)
-                  }
-                  onEvaluate={handleEvaluate}
-                  isEvaluating={taskEvaluation.isEvaluating}
-                  evaluationEnabled={
-                    visualPreviewActive && Boolean(effectiveTask.evaluation)
-                  }
-                  visualEditorSupported={lessonVisualEditorEnabled}
-                  onGenerateEvaluation={async () => {
-                    const analyzer = await import("@wda/css-analysis");
-                    const evaluation = analyzer.generateEvaluationChecks(
-                      effectiveTask.solutionCss ?? "",
-                    );
-                    updateTaskMetadata("evaluation", evaluation);
-                    return evaluation;
-                  }}
-                />
-              </section>
-
-              <section className="lesson-mobile-preview">
-                <PreviewPane
-                  html={srcDoc}
-                  visualHtml={previewTask.html}
-                  visualCss={previewTask.css}
-                  visualPreviewSupported={visualPreviewSupported}
-                  solutionHtml={previewTask.solutionHtml}
-                  solutionCss={previewTask.solutionCss}
-                  evaluationContent={evaluationResults}
-                  evaluationViewRequest={evaluationViewRequest}
-                  onSelectSelector={(selector) => {
-                    const line = (previewTask.css ?? "")
-                      .split("\n")
-                      .findIndex((sourceLine) => sourceLine.includes(selector));
-                    setEditorFocusRequest({
-                      line: line >= 0 ? line + 1 : 1,
-                      nonce: Date.now(),
-                    });
-                  }}
-                />
-              </section>
-            </>
-          ) : (
-            <Resizable
-              className={`lesson-top-row ${isLessonContentHidden ? "is-expanded" : ""} ${isLessonContentAnimating ? "is-animating" : ""}`}
-              size={{
-                width: "100%",
-                height: isLessonContentHidden
-                  ? "calc(100% - 2.25rem)"
-                  : `${topRowPercent}%`,
-              }}
-              enable={{ bottom: !isLessonContentHidden }}
-              minHeight={isLessonContentHidden ? 0 : 100}
-              maxHeight={isLessonContentHidden ? "100%" : "90%"}
-              onResize={handleTopRowResize}
-              onResizeStop={handleTopRowResize}
-              handleComponent={{
-                bottom: <div className="resize-handle-bottom" />,
-              }}
-              handleStyles={{ bottom: { height: 16 } }}
-            >
-              <div className="lesson-top-inner">
-                <Resizable
-                  className="lesson-editor"
-                  size={{ width: `${editorPercent}%`, height: "100%" }}
-                  enable={{ right: true }}
-                  minWidth="15%"
-                  maxWidth="85%"
-                  onResize={handleEditorResize}
-                  onResizeStop={handleEditorResize}
-                  handleComponent={{
-                    right: <div className="resize-handle-right" />,
-                  }}
-                  handleStyles={{ right: { width: 16 } }}
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="lesson-add-task-button"
+                  onClick={addTask}
                 >
+                  <Plus size={16} />
+                  Add new task
+                </button>
+              )}
+            </div>
+
+            <div className="lesson-sidebar-switches">
+              <div className="lesson-switch-row">
+                <span>
+                  <strong>Visual editor</strong>
+                  <small>Use direct HTML/CSS editing</small>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  className="lesson-switch"
+                  aria-checked={visualEditorEnabled}
+                  onClick={() => setVisualEditorEnabled(!visualEditorEnabled)}
+                >
+                  <span />
+                </button>
+              </div>
+
+              <div className="lesson-switch-row">
+                <span>
+                  <strong>Visual preview</strong>
+                  <small>Use guided visual checks</small>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  className="lesson-switch"
+                  aria-checked={visualPreviewEnabled}
+                  onClick={() => setVisualPreviewEnabled(!visualPreviewEnabled)}
+                >
+                  <span />
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <section className="lesson-workspace">
+            {isMobileLayout ? (
+              <>
+                <section className="lesson-mobile-editor">
                   <EditorPane
                     task={currentTaskState}
                     currentIndex={currentTaskIndex}
                     onTaskChange={updateTask}
+                    readonlyHtml={effectiveTask?.readonlyHtml}
+                    readonlyCss={effectiveTask?.readonlyCss}
+                    readonlyJs={effectiveTask?.readonlyJs}
                     onSubmit={handleSubmit}
                     isSubmitted={completedTasks.has(currentTaskId)}
                     isSubmitDisabled={isSubmitDisabled}
                     submitDisabledTitle={submitDisabledTitle}
                     autosaveStatus={autosaveStatus}
                     autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
-                    diagnostics={
-                      taskEvaluation.result && !taskEvaluation.isResultStale
-                        ? taskEvaluation.result.results
-                        : taskEvaluation.liveIssues
-                    }
-                    focusRequest={editorFocusRequest}
-                    onEvaluationChange={(evaluation) =>
-                      updateTaskMetadata("evaluation", evaluation)
-                    }
-                    onEvaluate={handleEvaluate}
-                    isEvaluating={taskEvaluation.isEvaluating}
-                    evaluationEnabled={
-                      visualPreviewActive && Boolean(effectiveTask.evaluation)
-                    }
-                    visualEditorSupported={lessonVisualEditorEnabled}
-                    onGenerateEvaluation={async () => {
-                      const analyzer = await import("@wda/css-analysis");
-                      const evaluation = analyzer.generateEvaluationChecks(
-                        effectiveTask.solutionCss ?? "",
-                      );
-                      updateTaskMetadata("evaluation", evaluation);
-                      return evaluation;
-                    }}
                   />
-                </Resizable>
+                </section>
 
-                <div
-                  className="lesson-preview"
-                  style={{ width: `${100 - editorPercent}%` }}
-                >
+                <section className="lesson-mobile-preview">
                   <PreviewPane
                     html={srcDoc}
-                    visualHtml={previewTask.html}
-                    visualCss={previewTask.css}
+                    visualHtml={`${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`}
+                    visualCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                    solutionCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.solutionCss || ""}`}
+                    solutionHtml={
+                      previewTask?.solutionHtml !== undefined
+                        ? `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.solutionHtml || ""}`
+                        : `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`
+                    }
+                    initialCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                    targetSelectors={previewTask?.targetSelectors}
+                    checks={previewTask?.checks}
                     visualPreviewSupported={visualPreviewSupported}
-                    solutionHtml={previewTask.solutionHtml}
-                    solutionCss={previewTask.solutionCss}
-                    evaluationContent={evaluationResults}
-                    evaluationViewRequest={evaluationViewRequest}
-                    onSelectSelector={(selector) => {
-                      const line = (previewTask.css ?? "")
-                        .split("\n")
-                        .findIndex((sourceLine) =>
-                          sourceLine.includes(selector),
-                        );
-                      setEditorFocusRequest({
-                        line: line >= 0 ? line + 1 : 1,
-                        nonce: Date.now(),
-                      });
-                    }}
                   />
-                </div>
-              </div>
-            </Resizable>
-          )}
-
-          <div className="lesson-content-toggle-row">
-            <button
-              type="button"
-              className="lesson-content-toggle"
-              onClick={toggleLessonContent}
-              aria-expanded={!isLessonContentHidden}
-            >
-              {isLessonContentHidden ? (
-                <>
-                  <ChevronUp size={16} />
-                  Show lesson content
-                </>
-              ) : (
-                <>
-                  <ChevronDown size={16} />
-                  Hide lesson content
-                </>
-              )}
-            </button>
-          </div>
-
-          <div
-            ref={lessonContentRef}
-            className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""} ${isLessonContentHidden ? "is-hidden" : ""} ${isLessonContentAnimating ? "is-animating" : ""}`}
-            style={
-              isMobileLayout
-                ? undefined
-                : {
-                    height: isLessonContentHidden
-                      ? "0%"
-                      : `${100 - topRowPercent}%`,
-                  }
-            }
-          >
-            {isNew ? (
-              <div
-                className="admin-new-lesson-placeholder"
-                style={{ padding: 40, textAlign: "center" }}
-              >
-                <h1>New Course: {slug}</h1>
-                <p>You are in creation mode. Add tasks and edit code above.</p>
-              </div>
-            ) : (
-              <>
-                {lessonContent ? <RuntimeMdx source={lessonContent} /> : null}
+                </section>
               </>
+            ) : (
+              <Resizable
+                className={`lesson-top-row ${isLessonContentHidden ? "is-expanded" : ""} ${isLessonContentAnimating ? "is-animating" : ""}`}
+                size={{
+                  width: "100%",
+                  height: isLessonContentHidden
+                    ? "calc(100% - 2.25rem)"
+                    : `${topRowPercent}%`,
+                }}
+                enable={{ bottom: !isLessonContentHidden }}
+                minHeight={isLessonContentHidden ? 0 : 100}
+                maxHeight={isLessonContentHidden ? "100%" : "90%"}
+                onResize={handleTopRowResize}
+                onResizeStop={handleTopRowResize}
+                handleComponent={{
+                  bottom: <div className="resize-handle-bottom" />,
+                }}
+                handleStyles={{ bottom: { height: 16 } }}
+              >
+                <div className="lesson-top-inner">
+                  <Resizable
+                    className="lesson-editor"
+                    size={{ width: `${editorPercent}%`, height: "100%" }}
+                    enable={{ right: true }}
+                    minWidth="15%"
+                    maxWidth="85%"
+                    onResize={handleEditorResize}
+                    onResizeStop={handleEditorResize}
+                    handleComponent={{
+                      right: <div className="resize-handle-right" />,
+                    }}
+                    handleStyles={{ right: { width: 16 } }}
+                  >
+                    <EditorPane
+                      task={currentTaskState}
+                      currentIndex={currentTaskIndex}
+                      onTaskChange={updateTask}
+                      readonlyHtml={effectiveTask?.readonlyHtml}
+                      readonlyCss={effectiveTask?.readonlyCss}
+                      readonlyJs={effectiveTask?.readonlyJs}
+                      onSubmit={handleSubmit}
+                      isSubmitted={completedTasks.has(currentTaskId)}
+                      isSubmitDisabled={isSubmitDisabled}
+                      submitDisabledTitle={submitDisabledTitle}
+                      autosaveStatus={autosaveStatus}
+                      autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
+                    />
+                  </Resizable>
+
+                  <div
+                    className="lesson-preview"
+                    style={{ width: `${100 - editorPercent}%` }}
+                  >
+                    <PreviewPane
+                      html={srcDoc}
+                      visualHtml={`${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`}
+                      visualCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                      solutionCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.solutionCss || ""}`}
+                      solutionHtml={
+                        previewTask?.solutionHtml !== undefined
+                          ? `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.solutionHtml || ""}`
+                          : `${previewTask?.hiddenHtml || ""}${previewTask?.readonlyHtml || ""}${previewTask?.editableHtml || ""}`
+                      }
+                      initialCss={`${previewTask?.hiddenCss || ""}\n${previewTask?.readonlyCss || ""}\n${previewTask?.editableCss || ""}`}
+                      targetSelectors={previewTask?.targetSelectors}
+                      checks={previewTask?.checks}
+                      visualPreviewSupported={visualPreviewSupported}
+                    />
+                  </div>
+                </div>
+              </Resizable>
             )}
-          </div>
-        </section>
-      </div>
 
-      <Modal
-        title="Authentication Required"
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-      >
-        <p>
-          {isOnlineMode
-            ? "You need to be signed in to submit your solution"
-            : "Submissions are disabled in offline mode"}
-        </p>
-      </Modal>
+            <div className="lesson-content-toggle-row">
+              <button
+                type="button"
+                className="lesson-content-toggle"
+                onClick={toggleLessonContent}
+                aria-expanded={!isLessonContentHidden}
+              >
+                {isLessonContentHidden ? (
+                  <>
+                    <ChevronUp size={16} />
+                    Show lesson content
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={16} />
+                    Hide lesson content
+                  </>
+                )}
+              </button>
+            </div>
 
-      <Modal
-        title="Reset Task"
-        isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
-        actions={
-          <>
-            <button
-              className="btn-ghost"
-              onClick={() => setShowResetModal(false)}
+            <div
+              ref={lessonContentRef}
+              className={`lesson-content ${isMobileLayout ? "lesson-content-mobile" : ""} ${isLessonContentHidden ? "is-hidden" : ""} ${isLessonContentAnimating ? "is-animating" : ""}`}
+              style={
+                isMobileLayout
+                  ? undefined
+                  : {
+                      height: isLessonContentHidden
+                        ? "0%"
+                        : `${100 - topRowPercent}%`,
+                    }
+              }
             >
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              onClick={() => {
-                applyResetTask(resetTaskIndex);
-                setShowResetModal(false);
-              }}
-            >
-              Reset
-            </button>
-          </>
-        }
-      >
-        <p>
-          Are you sure you want to reset task {resetTaskIndex + 1}? All your
-          changes will be lost.
-        </p>
-      </Modal>
+              {isNew ? (
+                <div
+                  className="admin-new-lesson-placeholder"
+                  style={{ padding: 40, textAlign: "center" }}
+                >
+                  <h1>New Course: {slug}</h1>
+                  <p>
+                    You are in creation mode. Add tasks and edit code above.
+                  </p>
+                </div>
+              ) : (
+                <MDXProvider>{LessonContent && <LessonContent />}</MDXProvider>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <Modal
+          title="Authentication Required"
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+        >
+          <p>
+            {isOnlineMode
+              ? "You need to be signed in to submit your solution"
+              : "Submissions are disabled in offline mode"}
+          </p>
+        </Modal>
+
+        <Modal
+          title="Reset Task"
+          isOpen={showResetModal}
+          onClose={() => setShowResetModal(false)}
+          actions={
+            <>
+              <button
+                className="btn-ghost"
+                onClick={() => setShowResetModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  applyResetTask(resetTaskIndex);
+                  setShowResetModal(false);
+                }}
+              >
+                Reset
+              </button>
+            </>
+          }
+        >
+          <p>
+            Are you sure you want to reset task {resetTaskIndex + 1}? All your
+            changes will be lost.
+          </p>
+        </Modal>
+      </Suspense>
     </main>
   );
 }

@@ -1,7 +1,7 @@
 .dashboard-page {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: calc(100vh - var(--header-height));
   min-height: 0;
   padding: var(--space-5);
   background: var(--color-bg);
@@ -32,7 +32,7 @@
 .course-list {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
   list-style: none;
   margin: 0 0 var(--space-3);
   padding: 0;
@@ -177,22 +177,6 @@
 /* ── Responsive ──────────────────────────────────────────── */
 
 @media (max-width: 860px) {
-  .dashboard-page {
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-
-  .dashboard-shell {
-    min-height: 100%;
-    flex: none;
-  }
-
-  .course-list {
-    min-height: auto;
-    flex: none;
-    overflow: visible;
-  }
-
   .course-row {
     grid-template-columns: 2.75rem 1fr;
     grid-template-rows: auto auto;

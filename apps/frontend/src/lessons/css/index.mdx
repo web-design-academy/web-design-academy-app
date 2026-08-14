@@ -1,0 +1,33 @@
+---
+title: "CSS Layout"
+description: "Applying styles: colors, typography, spacing. Learning Flexbox for responsive design"
+slug: "css-layout"
+color: "oklch(54.6% 0.245 262.881)"
+order: 2
+icon: Layout
+hidden: false
+---
+
+import C from "../../components/C";
+
+# CSS Layout
+
+## Task Instructions
+
+1. **Mondrian Painting**
+
+   You have a grid of 7 rectangles (<C l="css">r1</C> to <C l="css">r7</C>) that form a Mondrian-style painting. The grid structure and positions are already done. Your job is to add the color classes in HTML and define their <C l="css">background-color</C> in CSS.
+
+   In the HTML, add one color class (<C l="css">.red</C>, <C l="css">.yellow</C>, <C l="css">.blue</C>, <C l="css">.white</C>, or <C l="css">.grey</C>) to each <C l="css">.rect</C> div. Then in the CSS, add a <C l="css">background-color</C> rule for each using hex codes: red <C l="css">#dd0100</C>, yellow <C l="css">#fac901</C>, blue <C l="css">#225095</C>, white <C l="css">#ffffff</C>, grey <C l="css">#efefef</C>.
+
+2. **Layout & Spacing**
+
+   You have three <C l="css">.card</C> elements inside a <C l="html">{"<main>"}</C> container, but they are too close together. The <C l="html">main</C> and <C l="css">.card</C> rules already exist in the CSS, and you need to complete them:
+   - On <C l="html">main</C>: add <C l="css">gap</C> and <C l="css">margin</C> to center it and space the cards out
+   - On <C l="css">.card</C>: add <C l="css">padding</C>, adjust <C l="css">border</C> color, add <C l="css">border-radius</C>, and a <C l="css">box-shadow</C>
+
+3. **Hide the Fish**
+
+   There is a 🐠 fish and a 🪸 coral inside <C l="css">#ocean</C>. The coral is absolutely positioned in the center of the page. The fish sits at the top-left corner by default.
+
+   Add Flexbox properties to <C l="css">#ocean</C> (<C l="css">display: flex</C>, <C l="css">justify-content: center</C>, <C l="css">align-items: center</C>) so the fish moves to the center and sits directly behind the coral.
