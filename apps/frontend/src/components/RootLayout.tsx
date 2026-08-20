@@ -277,7 +277,7 @@ export default function Root() {
       </div>
 
       <footer className="app-footer">
-        <span>&copy; {new Date().getFullYear()} Web Design Academy</span>
+        <span>&copy; {new Date().getFullYear()} Web Design Academy contributors</span>
         <a href="mailto:support@webdesignacademy.org">
           support@webdesignacademy.org
         </a>
