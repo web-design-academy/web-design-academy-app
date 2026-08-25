@@ -97,3 +97,13 @@ This starts:
 
 - Host changes are available immediately; containers do not need rebuilding or
   restarting.
+
+## License & Branding
+
+The source code in this repository is licensed under the [MIT License](LICENSE).
+
+**Brand Protection:** The "Web Design Academy" name, logo, and associated domain names (e.g., webdesignacademy.org) are the exclusive intellectual property of Dmitrii Ivanushkin and are **not** covered by the MIT License. They may not be used for commercial purposes, in derivative works, or in standalone deployments without explicit written permission. In the event of a change in repository ownership or maintainership, the transfer of domain names and branding assets is not automatic and will require a separate, explicit agreement with Dmitrii Ivanushkin.
+
+## Academic Citation
+
+If you use this software for your research, academic projects, or build upon it for your thesis, please cite our work. A `CITATION.cff` file is included in this repository.

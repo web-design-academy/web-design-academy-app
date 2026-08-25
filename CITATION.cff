@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use this software in your research or academic work, please cite it as below. You may also cite the individual theses associated with the project."
+authors:
+  - family-names: "Ivanushkin"
+    given-names: "Dmitrii"
+  - family-names: "Virágová"
+    given-names: "Karolína"
+  - family-names: "Mičky"
+    given-names: "Tomáš"
+  - family-names: "Hynek"
+    given-names: "Jiří"
+title: "Web Design Academy"
+url: "https://webdesignacademy.org"
+repository-code: "https://github.com/web-design-academy/web-design-academy-app"
+
+references:
+  - type: thesis
+    authors:
+      - family-names: "Ivanushkin"
+        given-names: "Dmitrii"
+    title: "Web Design Learning Application"
+    year: 2026
+    institution:
+      name: "Brno University of Technology"
+    thesis-type: "Bachelor's Thesis"
+  - type: thesis
+    authors:
+      - family-names: "Virágová"
+        given-names: "Karolína"
+    title: "Interaktivní vizuální editor pro výuku webdesignu"
+    year: 2026
+    url: "https://www.vut.cz/en/students/final-thesis/detail/171264"
+    institution:
+      name: "Brno University of Technology"
+    thesis-type: "Bachelor's Thesis"
+  - type: thesis
+    authors:
+      - family-names: "Mičky"
+        given-names: "Tomáš"
+    title: "Výukový nástroj pro analýzu stylových předpisů"
+    year: 2026
+    url: "https://www.vut.cz/en/students/final-thesis/detail/171134"
+    institution:
+      name: "Brno University of Technology"
+    thesis-type: "Bachelor's Thesis"
