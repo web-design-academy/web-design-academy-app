@@ -135,6 +135,28 @@ export default function Profile() {
     }
   }
 
+  const removeRemote = async (repoId: number) => {
+    try {
+      const response = await fetch(`${API_BASE}/repos/${repoId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include"
+      });
+
+      if (!response.ok)
+        throw new Error("Failed to remove remote repository");
+    } catch (error) {
+      setError(error as Error);
+      handlePopUpClose();
+    } finally {
+      await remoteRefetch();
+      await addedRefetch();
+    }
+  }
+
   const linkGitHubButton = () => (
     <button
       type="button"
@@ -367,7 +389,11 @@ export default function Profile() {
                                   <Pencil size={16} />
                                 </button>
 
-                                <button type="button" className="btn-ghost">
+                                <button
+                                  type="button"
+                                  className="btn-ghost"
+                                  onClick={() => removeRemote(repo.id)}
+                                >
                                   <X size={16} />
                                 </button>
                               </>

@@ -1010,22 +1010,6 @@ export default function EditDashboard() {
           </div>
           <div className="admin-switch-row">
               <span>
-                <strong>Hidden lesson</strong>
-              </span>
-            <button
-              type="button"
-              role="switch"
-              className="admin-switch"
-              // aria-checked={formData.hidden}
-              onClick={() =>
-                setFormData((prev) => ({ ...prev }))
-              }
-            >
-              <span />
-            </button>
-          </div>
-          <div className="admin-switch-row">
-              <span>
                 <strong>Visual editor</strong>
               </span>
             <button
