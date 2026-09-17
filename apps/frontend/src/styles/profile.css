@@ -1,0 +1,173 @@
+.profile-page {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: var(--space-4);
+    height: 100%;
+    min-height: 0;
+    padding: var(--workspace-shell-padding);
+    margin: var(--workspace-shell-padding);
+    border: var(--border-width-thin) solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-card);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.profile-header {
+    display: flex;
+    gap: var(--space-5);
+    flex-flow: row nowrap;
+    align-items: center;
+}
+
+.profile-header-avatar {
+    display: flex;
+    width: auto;
+    height: 5rem;
+    flex-shrink: 0;
+}
+
+.profile-header-actions {
+    margin-left: auto;
+    display: flex;
+    flex-flow: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+}
+
+.profile-panel {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-4);
+    flex: 1;
+}
+
+.profile-section {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: var(--space-2);
+    flex: 1;
+    height: 100%;
+}
+
+.profile-section-panel {
+    padding: var(--space-4);
+    border: var(--border-width-thin) solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-card);
+}
+
+.profile-larger {
+    flex: 2;
+}
+
+.profile-panel-item {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-2);
+}
+
+.profile-panel-item > * {
+    flex: 1;
+}
+
+.end {
+    margin-top: auto;
+    align-self: flex-end;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.profile-scopes {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: var(--space-4);
+}
+
+.profile-scope-item {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: var(--space-2);
+}
+
+.profile-scopes-footer {
+    border-top: var(--border-width-thin) solid var(--color-border);
+    padding-top: var(--space-4);
+    margin-top: var(--space-4);
+}
+
+.profile-repositories-header {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: space-between;
+}
+
+.profile-repositories {
+    border-top: var(--border-width-thin) solid var(--color-border);
+    display: flex;
+    flex-flow: column nowrap;
+    flex: 1;
+    overflow: scroll;
+    max-height: 100%;
+}
+
+.profile-repository {
+    align-items: center;
+    justify-content: space-between;
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-2);
+    border-bottom: var(--border-width-thin) solid var(--color-border);
+    padding: var(--space-4) var(--space-2);
+}
+
+.profile-repository-actions {
+    display: flex;
+    justify-items: center;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.profile-section-info {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: var(--space-2);
+    align-items: center;
+    justify-items: center;
+    text-align: center;
+    padding-block: var(--space-4);
+}
+
+.profile-section-info.big {
+    margin-block: auto;
+}
+
+.profile-section-info.border {
+    border-block: var(--border-width-thin) solid var(--color-border);
+}
+
+.profile-modal-large {
+    width: max(50vw, 20rem);
+    height: 80vh;
+    max-height: 80vh;
+    max-width: 80vw;
+}
+
+.profile-remote-repositories {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: var(--space-2);
+    width: 100%;
+}
+
+.profile-repository-info h3 {
+    margin-bottom: var(--space-2);
+}
+
+.profile-repository-info h3 small {
+    font-weight: normal;
+}

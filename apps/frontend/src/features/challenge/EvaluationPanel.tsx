@@ -7,7 +7,7 @@ import {
   X,
 } from "lucide-react";
 import type { AnalysisIssue, EvaluationResult } from "@wda/css-analysis";
-import type { CssEvaluationConfig } from "@/lib/helpers/getTasks";
+import type { CssEvaluationConfig } from "@/lib/helpers/tasks";
 
 interface EvaluationPanelProps {
   config?: CssEvaluationConfig;

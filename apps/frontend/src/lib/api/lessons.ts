@@ -1,6 +1,6 @@
 import { API_BASE } from "./client";
-import type { LessonMeta } from "@/lib/helpers/getLessons";
-import type { TaskCode } from "@/lib/helpers/getTasks";
+import type {LessonMeta} from "@/lib/helpers/db.ts";
+import type {TaskCode} from "@/lib/helpers/tasks.ts";
 
 export type LessonDetail = {
   lesson: LessonMeta;

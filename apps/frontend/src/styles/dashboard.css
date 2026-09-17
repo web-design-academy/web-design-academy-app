@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: var(--space-5);
+  padding: var(--workspace-shell-padding);
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
@@ -19,12 +19,41 @@
 }
 
 .dashboard-title {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dashboard-title h1 {
   flex: 0 0 auto;
   margin: 0 0 var(--space-5);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   line-height: 1.2;
+}
+
+/* ── Edit ────────────────────────────────────────────────── */
+
+.dashboard-edit-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  justify-content: space-between;
+  align-items: end;
+}
+
+.dashboard-edit-actions-count {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  opacity: 0.55;
+}
+
+.dashboard-edit-actions-buttons {
+  display: flex;
+  gap: var(--space-2);
 }
 
 /* ── Course list ─────────────────────────────────────────── */
@@ -172,6 +201,37 @@
   width: 100%;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ── Drag and Drop ──────────────────────────────────────────── */
+
+.drag-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: grayscale(60%) blur(2px);
+}
+
+.drag-overlay-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  opacity: 0.7;
+  background: var(--color-card);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  border: var(--border-width-thin) solid var(--color-border);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 /* ── Responsive ──────────────────────────────────────────── */

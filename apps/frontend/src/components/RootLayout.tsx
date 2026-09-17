@@ -6,7 +6,7 @@ import "@/styles/root.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { useAuth } from "@/lib/ctx/useAuth";
 import Modal from "@/components/Modal";
-import { isGoogleAuthEnabled } from "@/lib/config/appMode";
+import { isGoogleAuthEnabled } from "@/lib/config/config.ts";
 import type { AuthData } from "@/lib/api/auth";
 
 interface GoogleSignInButtonProps {
@@ -51,7 +51,7 @@ function GoogleSignInButton({
   return (
     <button
       type="button"
-      className="btn-ghost google-signin-button"
+      className="btn-ghost signin-button"
       onClick={() => {
         if (!isSigningIn) googleLogin();
       }}
@@ -129,12 +129,8 @@ export default function Root() {
     navigate("/");
   };
 
-  const handleAuthenticated = (data: AuthData) => {
-    if (data.role === "admin") {
-      navigate("/admin");
-    } else {
-      navigate("/");
-    }
+  const handleAuthenticated = () => {
+    navigate("/profile");
   };
 
   const handleAuthError = (message: string) => {
@@ -149,23 +145,15 @@ export default function Root() {
   ) : null;
 
   const userIdentity = user ? (
-    user.role === "admin" ? (
-      <Link to="/admin" className="nav-link user-info-link">
-        {userIdentityContent}
-      </Link>
-    ) : (
-      <div className="user-info">{userIdentityContent}</div>
-    )
+    <Link to="/profile" className="nav-link user-info-link">
+      {userIdentityContent}
+    </Link>
   ) : null;
 
   const mobileUserIdentity = user ? (
-    user.role === "admin" ? (
-      <Link to="/admin" className="nav-link mobile-user-info user-info-link">
-        {userIdentityContent}
-      </Link>
-    ) : (
-      <div className="mobile-user-info">{userIdentityContent}</div>
-    )
+    <Link to="/profile" className="nav-link mobile-user-info user-info-link">
+      {userIdentityContent}
+    </Link>
   ) : null;
 
   return (
@@ -277,7 +265,7 @@ export default function Root() {
       </div>
 
       <footer className="app-footer">
-        <span>&copy; {new Date().getFullYear()} Web Design Academy contributors</span>
+        <span>&copy; {new Date().getFullYear()} Web Design Academy</span>
         <a href="mailto:support@webdesignacademy.org">
           support@webdesignacademy.org
         </a>

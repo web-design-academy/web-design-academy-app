@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import {useEffect, useState, type ReactNode, useCallback} from "react";
 import {
   loginWithGoogle as apiLoginWithGoogle,
   fetchSession,
@@ -6,51 +6,14 @@ import {
   type AuthData,
   type GoogleLoginPayload,
 } from "@/lib/api/auth";
-import { isOnlineMode } from "@/lib/config/appMode";
-import { clearAllCustomData } from "@/lib/helpers/adminStorage";
+import { isOnlineMode } from "@/lib/config/config.ts";
 import { AuthContext, type User } from "./useAuth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [shouldClearLocalData, setShouldClearLocalData] = useState(false);
 
-  useEffect(() => {
-    if (!isOnlineMode) {
-      setIsLoading(false);
-      return;
-    }
-
-    fetchSession()
-      .then((session) => {
-        if (!session) {
-          setShouldClearLocalData(true);
-          return;
-        }
-
-        setUser({
-          userId: session.userId,
-          role: session.role,
-          name: session.name,
-          email: session.email,
-        });
-        setShouldClearLocalData(false);
-      })
-      .catch(() => {
-        setShouldClearLocalData(false);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading && !user && shouldClearLocalData) {
-      clearAllCustomData();
-    }
-  }, [isLoading, shouldClearLocalData, user]);
-
-  const loginWithGoogle = async (
+  const login = async (
     payload: GoogleLoginPayload,
   ): Promise<AuthData> => {
     if (!isOnlineMode) {
@@ -58,13 +21,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await apiLoginWithGoogle(payload);
-    setShouldClearLocalData(false);
-
     setUser({
       userId: data.userId,
       role: data.role,
       name: data.name,
       email: data.email,
+      githubId: data.githubId,
+      githubLogin: data.githubLogin,
+      githubName: data.githubName,
+      githubAvatarUrl: data.githubAvatarUrl,
+      githubScopes: data.githubScopes
     });
 
     return data;
@@ -72,10 +38,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     logoutSession().catch(() => {});
-    setShouldClearLocalData(true);
-    clearAllCustomData();
     setUser(null);
   };
+
+  const refresh = useCallback(async () => {
+    if (!isOnlineMode)
+      return;
+
+    try {
+      const data = await fetchSession();
+      if (!data) {
+        setUser(null);
+        return;
+      }
+
+      setUser({
+        userId: data.userId,
+        role: data.role,
+        name: data.name,
+        email: data.email,
+        githubId: data.githubId,
+        githubLogin: data.githubLogin,
+        githubName: data.githubName,
+        githubAvatarUrl: data.githubAvatarUrl,
+        githubScopes: data.githubScopes
+      });
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOnlineMode) {
+      setIsLoading(false);
+      return;
+    }
+
+    refresh().finally(() => {
+      setIsLoading(false);
+    });
+  }, [refresh]);
 
   return (
     <AuthContext.Provider
@@ -83,8 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
-        loginWithGoogle,
+        loginWithGoogle: login,
         logout,
+        refresh
       }}
     >
       {children}

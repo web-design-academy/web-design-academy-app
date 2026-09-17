@@ -3,8 +3,10 @@ import { createBrowserRouter } from "react-router";
 import Root from "@/components/RootLayout";
 import Dashboard from "@/screens/Dashboard";
 import Lesson from "@/screens/Lesson";
-import AdminPage from "@/screens/AdminPage";
-import { isOnlineMode } from "@/lib/config/appMode";
+import Admin from "@/screens/Admin.tsx";
+import { isOnlineMode } from "@/lib/config/config.ts";
+import EditDashboard from "@/screens/EditDashboard.tsx";
+import Profile from "@/screens/Profile.tsx";
 
 export const router = createBrowserRouter(
   [
@@ -13,7 +15,11 @@ export const router = createBrowserRouter(
       children: [
         { index: true, Component: Dashboard },
         { path: "/lessons/:slug", Component: Lesson },
-        ...(isOnlineMode ? [{ path: "/admin", Component: AdminPage }] : []),
+        { path: "/edit", Component: EditDashboard},
+        ...(isOnlineMode ? [
+          { path: "/profile", Component: Profile },
+          { path: "/admin", Component: Admin },
+        ] : []),
       ],
     },
   ],

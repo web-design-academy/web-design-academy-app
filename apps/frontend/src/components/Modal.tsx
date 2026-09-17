@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, {type CSSProperties, useEffect} from "react";
 import "@/styles/modal.css";
 
 interface ModalProps {
@@ -7,6 +7,8 @@ interface ModalProps {
   onClose: () => void;
   children: React.ReactNode;
   actions?: React.ReactNode;
+  className?: string;
+  style?: CSSProperties;
 }
 
 export default function Modal({
@@ -15,6 +17,8 @@ export default function Modal({
   onClose,
   children,
   actions,
+  className,
+  style,
 }: ModalProps) {
   useEffect(() => {
     if (!isOpen) return;
@@ -32,9 +36,10 @@ export default function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} >
       <div
-        className="modal-content"
+        className={`modal-content ${className || ""}`}
+        style={style}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modal-header">

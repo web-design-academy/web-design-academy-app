@@ -9,7 +9,7 @@ import {
   googleClientId,
   isGoogleAuthEnabled,
   isOnlineMode,
-} from "@/lib/config/appMode";
+} from "@/lib/config/config.ts";
 import "@wda/ui-styles/tokens.css";
 import "@/styles/system/base.css";
 import { ThemeProvider } from "./lib/ctx/ThemeContext";

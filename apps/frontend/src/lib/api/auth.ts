@@ -1,4 +1,4 @@
-import { requireOnlineMode } from "@/lib/config/appMode";
+import { requireOnlineMode } from "@/lib/config/config.ts";
 import { API_BASE } from "./client";
 
 export interface AuthData {
@@ -6,6 +6,11 @@ export interface AuthData {
   role: "student" | "admin";
   name: string;
   email: string;
+  githubId?: string;
+  githubLogin?: string;
+  githubName?: string;
+  githubAvatarUrl?: string;
+  githubScopes?: string;
 }
 
 export type GoogleLoginPayload =

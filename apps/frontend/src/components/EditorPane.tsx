@@ -1,9 +1,5 @@
 import { Editor, type OnMount } from "@monaco-editor/react";
-import {
-  type CssEvaluationConfig,
-  type TaskCode,
-} from "@/lib/helpers/getTasks";
-import type { AnalysisIssue } from "@wda/css-analysis";
+import type {AnalysisIssue, CssEvaluationConfig} from "@wda/css-analysis";
 import {
   useState,
   useMemo,
@@ -28,6 +24,7 @@ import {
   canApplyStudentEdit,
   parseReadonlyRanges,
 } from "@/lib/helpers/readonlyBlocks";
+import type {TaskCode} from "@/lib/helpers/tasks.ts";
 
 interface VisualEditorProps {
   html: string;

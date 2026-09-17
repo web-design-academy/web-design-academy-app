@@ -18,24 +18,6 @@ import Modal from "@/components/Modal";
 import LessonIcon from "@/components/LessonIcon";
 import RuntimeMdx from "@/components/RuntimeMdx";
 import {
-  getLessonMeta,
-  loadLessons,
-  setDefaultLessonContent,
-  type LessonMeta,
-} from "@/lib/helpers/getLessons";
-import {
-  getDefaultLessonTasksSync,
-  getLessonTasksSync,
-  mergeLegacyEditableSource,
-  normalizeTaskCode,
-  setDefaultLessonTasks,
-  type TaskCode,
-} from "@/lib/helpers/getTasks";
-import {
-  isAddedLessonDraft,
-  saveLessonTasksDraft,
-} from "@/lib/helpers/lessonDrafts";
-import {
   getStudentLessonDraft,
   saveStudentLessonDraft,
 } from "@/lib/helpers/studentDrafts";
@@ -48,12 +30,23 @@ import {
 } from "@/lib/api/submissions";
 import { useAuth } from "@/lib/ctx/useAuth";
 import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
-import { isOnlineMode } from "@/lib/config/appMode";
+import { isOnlineMode } from "@/lib/config/config.ts";
 import { API_BASE } from "@/lib/api/client";
 import { fetchLesson } from "@/lib/api/lessons";
 import EvaluationPanel from "@/features/challenge/EvaluationPanel";
 import { useTaskEvaluation } from "@/features/challenge/useTaskEvaluation";
 import type { AnalysisIssue } from "@wda/css-analysis";
+
+import {
+  getLessonByIdAsync,
+  getLessonTasksAsync,
+  type LessonMeta, saveLessonTasksAsync,
+} from "@/lib/helpers/db.ts";
+import {
+  mergeLegacyEditableSource,
+  normalizeTaskCode,
+  type TaskCode,
+} from "@/lib/helpers/tasks.ts";
 
 type TaskFileState = Pick<Partial<TaskCode>, "html" | "css" | "js">;
 
@@ -80,11 +73,13 @@ const getSubmittedTaskState = (
 });
 
 export default function Lesson() {
+  const { isAuthenticated, user } = useAuth();
   const { slug } = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const submissionId = searchParams.get("submissionId");
 
-  const { isAuthenticated, user } = useAuth();
+  const isEditMode = searchParams.get("mode") === "edit" && isAuthenticated;
+
   const {
     visualEditorEnabled,
     visualPreviewEnabled,
@@ -92,7 +87,6 @@ export default function Lesson() {
     setVisualPreviewEnabled,
   } = useUiPreferences();
 
-  const isAdmin = user?.role === "admin";
   const [isNew, setIsNew] = useState<boolean | null>(null);
   const [lessonMeta, setLessonMeta] = useState<LessonMeta | undefined>();
   const [lessonContent, setLessonContent] = useState("");
@@ -116,7 +110,7 @@ export default function Lesson() {
     queryKey: ["latest-lesson-submissions", slug],
     queryFn: () => fetchLatestLessonSubmissions(slug!),
     enabled:
-      !!slug && !submissionId && isOnlineMode && isAuthenticated && !isAdmin,
+      !!slug && !submissionId && isOnlineMode && isAuthenticated && !isEditMode,
   });
 
   const [tasks, setTasks] = useState<Partial<TaskCode>[]>([]);
@@ -159,20 +153,21 @@ export default function Lesson() {
   const autosaveStatusRef = useRef<"saved" | "saving" | "pending" | "error">(
     "saved",
   );
+
   const persistAutosaveDraft = useCallback(() => {
     if (!slug || loadedSubmission) return;
 
-    if (isAdmin) {
+    if (isEditMode) {
       const persisted = taskStatesRef.current.map((state, idx) => ({
         ...tasksRef.current[idx],
         ...state,
       }));
-      saveLessonTasksDraft(slug, persisted);
+      saveLessonTasksAsync(slug, persisted);
       return;
     }
 
     saveStudentLessonDraft(slug, taskStatesRef.current, user?.userId);
-  }, [isAdmin, loadedSubmission, slug, user?.userId]);
+  }, [isEditMode, loadedSubmission, slug, user?.userId]);
 
   useEffect(() => {
     persistAutosaveDraftRef.current = persistAutosaveDraft;
@@ -230,27 +225,24 @@ export default function Lesson() {
 
     const loadLesson = async () => {
       try {
-        await loadLessons();
-        const addedDraft = isAddedLessonDraft(slug);
+        const addedDraft = true;
 
         if (!addedDraft) {
           const detail = await fetchLesson(slug);
-          setDefaultLessonTasks(slug, detail.tasks);
-          setDefaultLessonContent(slug, detail.content);
           if (!cancelled) setLessonContent(detail.content);
         }
 
         if (cancelled) return;
 
-        const localTasks = getLessonTasksSync(slug).filter(
-          (task) => isAdmin || !task.deleted,
+        const localTasks = (await getLessonTasksAsync(slug)).filter(
+          (task) => isEditMode || !task.deleted,
         );
         const studentDraft =
-          !isAdmin && !submissionId
+          !isEditMode && !submissionId
             ? getStudentLessonDraft(slug, user?.userId)
             : null;
         const nextTaskStates = localTasks.map((task, index) => {
-          if (isAdmin) return { ...task };
+          if (isEditMode) return { ...task };
 
           const draftTask = studentDraft?.tasks[index]
             ? normalizeTaskCode(studentDraft.tasks[index], task)
@@ -262,7 +254,7 @@ export default function Lesson() {
           };
         });
 
-        setLessonMeta(getLessonMeta(slug));
+        setLessonMeta(await getLessonByIdAsync(slug));
         setIsNew(addedDraft);
         setTasksSnapshot(localTasks);
         setTaskStatesSnapshot(nextTaskStates);
@@ -282,7 +274,7 @@ export default function Lesson() {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, markAutosaveSaved, slug, submissionId, user?.userId]);
+  }, [isEditMode, markAutosaveSaved, slug, submissionId, user?.userId]);
 
   useEffect(() => {
     setVisualEditorEnabled(false);
@@ -571,9 +563,9 @@ export default function Lesson() {
 
   const evaluationTask = tasks[currentTaskIndex]
     ? {
-        ...tasks[currentTaskIndex],
-        ...taskStates[currentTaskIndex],
-      }
+      ...tasks[currentTaskIndex],
+      ...taskStates[currentTaskIndex],
+    }
     : undefined;
   const lessonVisualPreviewEnabled = Boolean(lessonMeta?.visualPreview);
   const lessonVisualEditorEnabled = Boolean(lessonMeta?.visualEditor);
@@ -627,15 +619,14 @@ export default function Lesson() {
     );
   }
   if (!lessonMeta && !isNew) return <Navigate to="/" />;
-  if (lessonMeta?.hidden && !isAdmin && !isNew) return <Navigate to="/" />;
-  if (lessonMeta?.deleted && !isAdmin) return <Navigate to="/" />;
-  if (!tasks.length) return <Navigate to={isNew ? "/admin" : "/"} />;
+  if (lessonMeta?.deleted && !isEditMode) return <Navigate to="/" />;
+  if (!tasks.length) return <Navigate to={isNew ? "/profile" : "/"} />;
 
   const currentTask = tasks[currentTaskIndex];
   const currentTaskState = taskStates[currentTaskIndex];
   const currentTaskId = (currentTaskIndex + 1).toString();
 
-  if (!currentTask) return <Navigate to={isNew ? "/admin" : "/"} />;
+  if (!currentTask) return <Navigate to={isNew ? "/profile" : "/"} />;
 
   const effectiveTask = {
     ...currentTask,
@@ -655,16 +646,19 @@ export default function Lesson() {
     visualPreviewActive && Boolean(effectiveTask.evaluation);
   const hasPassingEvaluation =
     taskEvaluation.result?.passed === true && !taskEvaluation.isResultStale;
+
   const isSubmitDisabled =
-    !isAdmin &&
-    (!hasStudentTaskChanges ||
-      (needsPassingEvaluation && !hasPassingEvaluation));
+    isEditMode ||
+    !hasStudentTaskChanges ||
+    (needsPassingEvaluation && !hasPassingEvaluation);
+
   const submitDisabledTitle =
     needsPassingEvaluation && !hasPassingEvaluation
       ? "Evaluate the current solution successfully before submitting."
       : completedTasks.has(currentTaskId)
         ? "Make a change before resubmitting."
         : "Make a change before submitting.";
+
   const srcDoc = `
   <!DOCTYPE html>
   <html>
@@ -712,7 +706,7 @@ export default function Lesson() {
     }, 260);
   };
 
-  const updateTask = (field: keyof Partial<TaskCode>, value: string) => {
+  const updateTask = (field: keyof TaskCode, value: string) => {
     updateTaskStatesSnapshot((prev) =>
       prev.map((s, idx) =>
         idx === currentTaskIndex ? { ...s, [field]: value } : s,
@@ -733,39 +727,36 @@ export default function Lesson() {
     markAutosaveChanged();
   };
 
-  const applyResetTask = (taskIndex = currentTaskIndex) => {
-    updateTaskStatesSnapshot((prev) => {
-      const updated = prev.map((s, idx) => {
-        if (idx !== taskIndex) {
-          return s;
-        }
+  const applyResetTask = async (taskIndex = currentTaskIndex) => {
+    const currentStates = taskStatesRef.current;
+    const currentTasks = tasksRef.current;
 
-        const defaultTask = slug
-          ? getDefaultLessonTasksSync(slug)[idx]
-          : undefined;
+    const resetTaskState = isEditMode
+      ? { ...currentTasks[taskIndex] }
+      : {
+        ...currentStates[taskIndex],
+        html: currentTasks[taskIndex]?.html,
+        css: currentTasks[taskIndex]?.css,
+        js: currentTasks[taskIndex]?.js,
+      };
 
-        return isAdmin
-          ? { ...(defaultTask ?? tasks[idx]) }
-          : {
-              ...s,
-              html: tasks[idx].html,
-              css: tasks[idx].css,
-              js: tasks[idx].js,
-            };
-      });
+    const updated = currentStates.map((s, idx) =>
+      idx === taskIndex ? resetTaskState : s,
+    );
 
-      if (isAdmin && slug && !loadedSubmission) {
-        const persisted = updated.map((state, idx) => ({
-          ...tasks[idx],
-          ...state,
-        }));
-        saveLessonTasksDraft(slug, persisted);
-      } else if (!isAdmin && slug && !loadedSubmission) {
-        saveStudentLessonDraft(slug, updated, user?.userId);
-      }
-      setAutosaveStatusSnapshot("saved");
-      return updated;
-    });
+    setTaskStatesSnapshot(updated);
+
+    if (isEditMode && slug && !loadedSubmission) {
+      const persisted = updated.map((state, idx) => ({
+        ...currentTasks[idx],
+        ...state,
+      }));
+      await saveLessonTasksAsync(slug, persisted);
+    } else if (!isEditMode && slug && !loadedSubmission) {
+      saveStudentLessonDraft(slug, updated, user?.userId);
+    }
+
+    setAutosaveStatusSnapshot("saved");
   };
 
   const resetTask = (taskIndex = currentTaskIndex) => {
@@ -774,8 +765,8 @@ export default function Lesson() {
     setShowResetModal(true);
   };
 
-  const addTask = () => {
-    if (!isAdmin || !slug) return;
+  const addTask = async () => {
+    if (!isEditMode || !slug) return;
 
     const newTask: Partial<TaskCode> = {
       html: "<h1>New Task</h1>\n<p>Start editing...</p>",
@@ -787,12 +778,12 @@ export default function Lesson() {
     setTaskStatesSnapshot(updatedTaskStates);
     setCurrentTaskIndex(updatedTasks.length - 1);
 
-    saveLessonTasksDraft(slug, updatedTaskStates);
+    await saveLessonTasksAsync(slug, updatedTaskStates);
     setAutosaveStatusSnapshot("saved");
   };
 
-  const deleteTask = (taskIndex = currentTaskIndex) => {
-    if (!isAdmin || !slug) return;
+  const deleteTask = async (taskIndex = currentTaskIndex) => {
+    if (!isEditMode || !slug) return;
 
     const updatedTaskStates = taskStates.map((state, index) =>
       index === taskIndex ? { ...state, deleted: true } : state,
@@ -800,12 +791,12 @@ export default function Lesson() {
 
     setCurrentTaskIndex(taskIndex);
     setTaskStatesSnapshot(updatedTaskStates);
-    saveLessonTasksDraft(slug, updatedTaskStates);
+    await saveLessonTasksAsync(slug, updatedTaskStates);
     setAutosaveStatusSnapshot("saved");
   };
 
   const handleSubmit = async (cssOverride?: string) => {
-    if (!currentTaskState) return false;
+    if (!currentTaskState || isEditMode) return false;
     if (!isOnlineMode) {
       setShowLoginModal(true);
       return false;
@@ -814,7 +805,6 @@ export default function Lesson() {
       setShowLoginModal(true);
       return false;
     }
-    if (isAdmin) return false;
 
     const evaluationResult = taskEvaluation.result;
     if (
@@ -835,12 +825,12 @@ export default function Lesson() {
       evaluation:
         visualPreviewActive && evaluationResult
           ? {
-              version: effectiveTask.evaluation?.version ?? 1,
-              status: evaluationResult.status,
-              score: evaluationResult.score,
-              passed: evaluationResult.passed,
-              issues: evaluationResult.results,
-            }
+            version: effectiveTask.evaluation?.version ?? 1,
+            status: evaluationResult.status,
+            score: evaluationResult.score,
+            passed: evaluationResult.passed,
+            issues: evaluationResult.results,
+          }
           : undefined,
     });
 
@@ -872,6 +862,7 @@ export default function Lesson() {
         }
       />
     ) : null;
+
   const handleEvaluate = async () => {
     setEvaluationViewRequest((request) => request + 1);
     return taskEvaluation.evaluate();
@@ -884,16 +875,18 @@ export default function Lesson() {
       <div className="lesson-shell">
         <aside className="lesson-sidebar">
           <div className="lesson-sidebar-heading">
-            {lessonMeta?.icon ? (
-              <span
-                className="lesson-sidebar-icon"
-                style={{ background: lessonMeta.color }}
-                aria-hidden="true"
-              >
-                <LessonIcon name={lessonMeta.icon} size={20} />
-              </span>
-            ) : null}
-            <strong>{lessonMeta?.title ?? slug}</strong>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              {lessonMeta?.icon ? (
+                <span
+                  className="lesson-sidebar-icon"
+                  style={{ background: lessonMeta.color }}
+                  aria-hidden="true"
+                >
+                  <LessonIcon name={lessonMeta.icon} size={20} />
+                </span>
+              ) : null}
+              <strong>{lessonMeta?.title ?? slug}</strong>
+            </div>
           </div>
 
           <div className="lesson-task-list">
@@ -917,13 +910,13 @@ export default function Lesson() {
                       onClick={() => setCurrentTaskIndex(index)}
                     >
                       <span>Task {index + 1}</span>
-                      {isCompleted && !isAdmin && (
+                      {isCompleted && !isEditMode && (
                         <span className="lesson-task-done">
                           <CheckCircle2 size={14} />
                           DONE
                         </span>
                       )}
-                      {isDeleted && isAdmin && (
+                      {isDeleted && isEditMode && (
                         <span className="lesson-task-deleted">Deleted</span>
                       )}
                     </button>
@@ -938,7 +931,7 @@ export default function Lesson() {
                       >
                         <RotateCcw size={14} />
                       </button>
-                      {isAdmin && (
+                      {isEditMode && (
                         <button
                           type="button"
                           className="lesson-task-icon-button is-danger"
@@ -956,7 +949,7 @@ export default function Lesson() {
               })}
             </nav>
 
-            {isAdmin && (
+            {isEditMode && (
               <button
                 type="button"
                 className="lesson-add-task-button"
@@ -1004,6 +997,28 @@ export default function Lesson() {
                 <span />
               </button>
             </div>
+
+            {isAuthenticated && (
+              <div className="lesson-switch-row">
+                <button
+                  type="button"
+                  className="btn-ghost lesson-switch-mode"
+                  onClick={() => {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      if (isEditMode) {
+                        next.delete("mode");
+                      } else {
+                        next.set("mode", "edit");
+                      }
+                      return next;
+                    });
+                  }}
+                >
+                  {isEditMode ? "Switch to play mode" : "Switch to edit mode"}
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -1020,7 +1035,7 @@ export default function Lesson() {
                   isSubmitDisabled={isSubmitDisabled}
                   submitDisabledTitle={submitDisabledTitle}
                   autosaveStatus={autosaveStatus}
-                  autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
+                  autosaveLabelPrefix={isEditMode ? "Task draft" : "Work"}
                   diagnostics={
                     taskEvaluation.result && !taskEvaluation.isResultStale
                       ? taskEvaluation.result.results
@@ -1111,7 +1126,7 @@ export default function Lesson() {
                     isSubmitDisabled={isSubmitDisabled}
                     submitDisabledTitle={submitDisabledTitle}
                     autosaveStatus={autosaveStatus}
-                    autosaveLabelPrefix={isAdmin ? "Task draft" : "Work"}
+                    autosaveLabelPrefix={isEditMode ? "Task draft" : "Work"}
                     diagnostics={
                       taskEvaluation.result && !taskEvaluation.isResultStale
                         ? taskEvaluation.result.results
@@ -1196,10 +1211,10 @@ export default function Lesson() {
               isMobileLayout
                 ? undefined
                 : {
-                    height: isLessonContentHidden
-                      ? "0%"
-                      : `${100 - topRowPercent}%`,
-                  }
+                  height: isLessonContentHidden
+                    ? "0%"
+                    : `${100 - topRowPercent}%`,
+                }
             }
           >
             {isNew ? (
@@ -1207,8 +1222,12 @@ export default function Lesson() {
                 className="admin-new-lesson-placeholder"
                 style={{ padding: 40, textAlign: "center" }}
               >
-                <h1>New Course: {slug}</h1>
-                <p>You are in creation mode. Add tasks and edit code above.</p>
+                <h1>Course: {slug}</h1>
+                <p>
+                  {isEditMode
+                    ? "You are in edit mode. Add tasks and edit code above."
+                    : "You are in preview/play mode."}
+                </p>
               </div>
             ) : (
               <>

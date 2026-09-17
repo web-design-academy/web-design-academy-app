@@ -1,4 +1,4 @@
-import type { TaskCode } from "./getTasks";
+import type { TaskCode } from "./tasks";
 
 const STUDENT_DRAFT_KEY_PREFIX = "student_lesson_draft_";
 

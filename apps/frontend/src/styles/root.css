@@ -78,6 +78,28 @@ header {
   gap: var(--space-3);
 }
 
+.error {
+  margin: var(--space-4);
+  border: var(--border-width-thin) solid var(--status-error-text);
+  border-radius: var(--radius-control);
+  background-color: var(--status-error-bg);
+  color: var(--status-error-text);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-4);
+  align-items: center;
+  font-weight: bold;
+}
+
+.error-cross {
+  background-color: var(--status-error-text);
+  color: var(--status-error-bg);
+  border-radius: 50%;
+  padding: var(--space-1);
+}
+
 .google-login-wrap {
   display: flex;
   align-items: center;
@@ -287,18 +309,18 @@ header {
   border-color: var(--color-border);
 }
 
-.google-signin-button {
+.signin-button {
   align-items: center;
   gap: var(--space-2);
   line-height: 1;
   white-space: nowrap;
 }
 
-.google-signin-button svg {
+.signin-button svg {
   flex-shrink: 0;
 }
 
-.google-signin-button span {
+.signin-button span {
   display: inline-flex;
   align-items: center;
   line-height: 1;
@@ -424,7 +446,7 @@ header {
     flex-shrink: 0;
   }
 
-  .mobile-drawer-content .google-signin-button {
+  .mobile-drawer-content .signin-button {
     width: 100%;
   }
 }

@@ -6,6 +6,11 @@ export interface User {
   role: "student" | "admin";
   name: string;
   email: string;
+  githubId?: string;
+  githubLogin?: string;
+  githubName?: string;
+  githubAvatarUrl?: string;
+  githubScopes?: string;
 }
 
 interface AuthContextType {
@@ -14,6 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   loginWithGoogle: (payload: GoogleLoginPayload) => Promise<AuthData>;
   logout: () => void;
+  refresh: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);

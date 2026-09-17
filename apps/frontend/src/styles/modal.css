@@ -57,7 +57,9 @@
   padding: var(--space-4);
   font-size: var(--font-size-base);
   color: var(--color-text);
-  overflow: visible;
+  overflow: hidden;
+  display: flex;
+  flex: 1;
 }
 
 .modal-actions {

@@ -1,4 +1,4 @@
-import { requireOnlineMode } from "@/lib/config/appMode";
+import { requireOnlineMode } from "@/lib/config/config.ts";
 import type { PaginatedResponse, UserTag } from "@/lib/api/submissions";
 import { API_BASE } from "@/lib/api/client";
 

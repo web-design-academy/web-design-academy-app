@@ -1,4 +1,4 @@
-import { requireOnlineMode } from "@/lib/config/appMode";
+import { requireOnlineMode } from "@/lib/config/config.ts";
 import { API_BASE } from "./client";
 import type { AnalysisIssue } from "@wda/css-analysis";
 

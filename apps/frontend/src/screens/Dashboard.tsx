@@ -1,20 +1,19 @@
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 import { Link } from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
-import {
-  getAllLessons,
-  getLessons,
-  loadLessons,
-  type LessonMeta,
-} from "@/lib/helpers/getLessons";
-import { getLessonTasksSync } from "@/lib/helpers/getTasks";
 import LessonIcon from "@/components/LessonIcon";
 import { useAuth } from "@/lib/ctx/useAuth";
-import { isOnlineMode } from "@/lib/config/appMode";
-import { API_BASE } from "@/lib/api/client";
-import { ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Pencil,
+} from "lucide-react";
+import {
+  getLessonProgressForUser,
+  getPlayableLessonsAsync,
+  type LessonMeta
+} from "@/lib/helpers/db.ts";
 
 const PAGE_SIZE = 8;
 
@@ -30,78 +29,30 @@ export default function Dashboard() {
   const [page, setPage] = useState(1);
   const { user, isAuthenticated } = useAuth();
 
-  const showProgress = isAuthenticated && user?.role === "student";
-
   useEffect(() => {
-    const fetchAllProgress = async () => {
-      setLoading(true);
-      setLoadError(null);
+    setLoading(true);
+    setLoadError(null);
 
-      try {
-        await loadLessons();
-      } catch (error) {
-        setLoadError(
-          error instanceof Error ? error.message : "Failed to load lessons",
-        );
-        setLoading(false);
-        return;
-      }
-
-      const allLessons =
-        user?.role === "admin" ? getAllLessons() : getLessons();
-
-      const getTaskCount = (lesson: LessonMeta) => {
-        const draftTasks = getLessonTasksSync(lesson.slug);
-        return draftTasks.length
-          ? draftTasks.filter((task) => !task.deleted).length
-          : (lesson.taskCount ?? 0);
-      };
-
-      if (!isOnlineMode || !showProgress) {
-        setLessons(
-          allLessons.map((lesson) => ({
+    const fetchProgress = async () : Promise<LessonWithProgress[]> => {
+      const lessons = await getPlayableLessonsAsync();
+      return await Promise.all(
+        lessons.map(async (lesson) => ({
             ...lesson,
-            progress: 0,
-            taskCount: getTaskCount(lesson),
-          })),
-        );
-        setLoading(false);
-        return;
-      }
-
-      const lessonsWithProgress = await Promise.all(
-        allLessons.map(async (lesson) => {
-          try {
-            const res = await fetch(`${API_BASE}/progress/${lesson.slug}`);
-            const data = await res.json();
-            const completedCount = data.completedTaskIds?.length || 0;
-            const taskCount = getTaskCount(lesson);
-
-            const progress =
-              taskCount > 0
-                ? Math.round((completedCount / taskCount) * 100)
-                : 0;
-
-            return { ...lesson, progress, taskCount };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (err) {
-            return {
-              ...lesson,
-              progress: 0,
-              taskCount: getTaskCount(lesson),
-            };
-          }
-        }),
+            progress: user ? (await getLessonProgressForUser(lesson.id, user.userId))?.completedTasks.length ?? 0 : 0,
+            taskCount: lesson.taskCount ?? 0,
+          })
+        )
       );
-
-      setLessons(lessonsWithProgress);
-      setLoading(false);
     };
 
-    fetchAllProgress();
-  }, [isAuthenticated, showProgress, user?.role]);
+    fetchProgress().then((l) => {
+      setLessons(l);
+      setLoading(false);
+    });
+  }, [isAuthenticated, user]);
 
   if (loading) return <LoadingSpinner />;
+
   if (loadError) {
     return (
       <main className="dashboard-page">
@@ -116,85 +67,84 @@ export default function Dashboard() {
 
   return (
     <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <h1 className="dashboard-title">Course dashboard</h1>
+      <section className="dashboard-shell">
+        <div className="dashboard-title">
+          <h1>Course dashboard</h1>
 
-        <ul className="course-list">
-          {pageLessons.map(
-            ({
-              slug,
-              title,
-              description,
-              color,
-              icon,
-              hidden,
-              deleted,
-              progress,
-              taskCount,
-            }) => (
-              <li key={slug} className="course-row">
-                <div
-                  className="course-icon"
-                  style={{ background: color }}
-                  aria-hidden="true"
-                >
-                  <LessonIcon name={icon} size={20} />
-                </div>
-
-                <div className="course-info">
-                  <h2 className="course-name">
-                    {title}
-                    {hidden && user?.role === "admin" && (
-                      <span className="course-hidden-pill">Hidden</span>
-                    )}
-                    {deleted && user?.role === "admin" && (
-                      <span className="course-hidden-pill is-deleted">
-                        Deleted
-                      </span>
-                    )}
-                  </h2>
-                  <p className="course-description">{description}</p>
-                </div>
-
-                <div className="course-right">
-                  <span className="course-task-count">
-                    {taskCount} {taskCount === 1 ? "task" : "tasks"}
-                  </span>
-
-                  {showProgress && (
-                    <div className="course-progress">
-                      <div className="course-progress-bar-bg">
-                        <div
-                          className="course-progress-bar-fill"
-                          style={{
-                            width: `${progress}%`,
-                            background: color,
-                          }}
-                        />
-                      </div>
-                      <span className="course-progress-label">{progress}%</span>
-                    </div>
-                  )}
-
-                  <Link
-                    to={`/lessons/${slug}`}
-                    className="btn-primary"
-                    aria-label={`Open lesson "${title}"`}
-                  >
-                    {showProgress && progress > 0
-                      ? progress === 100
-                        ? "Review"
-                        : "Continue"
-                      : user?.role === "admin"
-                        ? "View"
-                        : "Start"}
-                    <ArrowRight size={16} />
-                  </Link>
-                </div>
-              </li>
-            ),
+          {isAuthenticated && (
+            <Link
+              to={`/edit`}
+              className="btn-ghost"
+              aria-label={`Edit Lessons`}
+            >
+              <Pencil size={16} className="icon-margin-right" />
+              Edit Mode
+            </Link>
           )}
-        </ul>
+        </div>
+
+        {loading && <LoadingSpinner />}
+        {!loading && (
+          <ul className="course-list">
+            {pageLessons.map(
+              (lesson: LessonWithProgress) => (
+                <li key={lesson.id} className="course-row">
+                  <div
+                    className="course-icon"
+                    style={{ background: lesson.color }}
+                    aria-hidden="true"
+                  >
+                    <LessonIcon name={lesson.icon} size={20} />
+                  </div>
+
+                  <div className="course-info">
+                    <h2 className="course-name">
+                      {lesson.title}
+                    </h2>
+                    <p className="course-description">{lesson.description}</p>
+                  </div>
+
+                  <div className="course-right">
+                    <span className="course-task-count">
+                      {lesson.taskCount} {lesson.taskCount === 1 ? "task" : "tasks"}
+                    </span>
+
+                    {isAuthenticated && (
+                      <div className="course-progress">
+                        <div className="course-progress-bar-bg">
+                          <div
+                            className="course-progress-bar-fill"
+                            style={{
+                              width: `${lesson.progress}%`,
+                              background: lesson.color,
+                            }}
+                          />
+                        </div>
+                        <span className="course-progress-label">{lesson.progress}%</span>
+                      </div>
+                    )}
+
+                    <Link
+                      to={{
+                        pathname: `/lessons/${lesson.id}`,
+                        search: "?mode=play",
+                      }}
+                      className="btn-primary"
+                      aria-label={`Open lesson "${lesson.title}"`}
+                    >
+                      {isAuthenticated && lesson.progress > 0
+                        ? lesson.progress === 100
+                          ? "Review"
+                          : "Continue"
+                        : "Start"}
+                      <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                </li>
+              ),
+          )}
+          </ul>
+        )}
 
         <Pagination
           page={page}
@@ -202,7 +152,7 @@ export default function Dashboard() {
           pageSize={PAGE_SIZE}
           onChange={setPage}
         />
-      </div>
+      </section>
     </main>
   );
 }

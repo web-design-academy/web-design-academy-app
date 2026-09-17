@@ -23,7 +23,9 @@
     "@types/mdx": "^2.0.13",
     "@wda/css-analysis": "workspace:*",
     "@wda/ui-styles": "workspace:*",
+    "@wda/visual-editor": "workspace:*",
     "culori": "^4.0.2",
+    "dexie": "^4.4.5",
     "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
     "monaco-editor": "^0.55.1",
@@ -32,7 +34,6 @@
     "react-colorful": "^5.7.0",
     "react-dom": "^19.1.1",
     "react-router": "^8.3.0",
-    "@wda/visual-editor": "workspace:*",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {

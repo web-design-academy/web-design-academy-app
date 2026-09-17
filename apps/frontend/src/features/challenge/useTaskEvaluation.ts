@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AnalysisIssue, EvaluationResult } from "@wda/css-analysis";
-import type { TaskCode } from "@/lib/helpers/getTasks";
+import type { TaskCode } from "@/lib/helpers/tasks";
 
 type AnalyzerModule = typeof import("@wda/css-analysis");
 
