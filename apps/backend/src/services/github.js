@@ -23,7 +23,8 @@ function mapRepository(repo) {
     private: repo.private,
     default_branch: repo.default_branch,
     created_at: repo.created_at,
-    pushed_at: repo.pushed_at
+    pushed_at: repo.pushed_at,
+    updated_at: repo.updated_at
   }
 }
 

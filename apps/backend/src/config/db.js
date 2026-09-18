@@ -60,8 +60,9 @@ const initDb = () => {
         private INTEGER DEFAULT 0,
         default_branch TEXT DEFAULT 'main',
         created_at TEXT,
-        pushed_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        pushed_at TEXT,
+        updated_at TEXT,
+        last_sync_at TEXT DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(id, user_id)
       )
     `).run();

@@ -1,38 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Plus,
-  Send,
-  Tags,
-  Users,
-  X,
-} from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type {ReactNode} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {ArrowDown, ArrowUp, ArrowUpDown, Plus, Send, Tags, Users, X,} from "lucide-react";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {Link, useNavigate} from "react-router";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
-import { useAuth } from "@/lib/ctx/useAuth";
+import {useAuth} from "@/lib/ctx/useAuth";
 import {
   addTagToUsers,
   addUserTag,
-  deleteTag,
   type AdminTag,
+  type AdminUser,
+  deleteTag,
   fetchAdminTags,
   fetchAdminUsers,
   removeTagFromUsers,
   removeUserTag,
-  type AdminUser,
 } from "@/lib/api/admin";
-import {
-  fetchSubmissions,
-  type PaginatedResponse,
-  type SubmissionRecord,
-} from "@/lib/api/submissions";
+import {fetchSubmissions, type PaginatedResponse, type SubmissionRecord,} from "@/lib/api/submissions";
 import {isOnlineMode} from "@/lib/config/config.ts";
 import "@/styles/admin.css";
+import InfoBanner from "@/components/InfoBanner.tsx";
 
 // Default values and settings
 const PAGE_SIZE = 12;
@@ -713,13 +701,7 @@ export default function Admin() {
 
       <section className="admin-workspace">
         {error && (
-          <div className="admin-error">
-            {error instanceof Error
-              ? error.message
-              : typeof error === "string"
-                ? error
-                : "Error loading data"}
-          </div>
+          <InfoBanner type="error" icon={(<X/>)} message={error?.message ?? "An unknown error occurred"}/>
         )}
 
         {activeSection === "users" && (

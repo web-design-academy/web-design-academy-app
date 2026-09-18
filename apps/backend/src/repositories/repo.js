@@ -1,7 +1,7 @@
-const { db } = require('../config/db');
+const {db} = require("../config/db");
 
 const updatableColumns = new Set([
-  'name', 'url', 'is_private', 'default_branch', 'pushed_at'
+  "name", "description", "language", "owner_login", "html_url", "private", "default_branch", "created_at", "pushed_at", "updated_at"
 ]);
 
 function getReposByUser(userId) {
@@ -41,7 +41,8 @@ function createRepo(userId, repo) {
                        default_branch,
                        created_at,
                        pushed_at,
-                       updated_at
+                       updated_at,
+                       last_sync_at
     )
     VALUES (
             @id,
@@ -55,6 +56,7 @@ function createRepo(userId, repo) {
             @default_branch,
             @created_at,
             @pushed_at,
+            @updated_at,
             CURRENT_TIMESTAMP
            )
     ON CONFLICT (id) DO UPDATE SET
@@ -66,7 +68,8 @@ function createRepo(userId, repo) {
        private = excluded.private,
        default_branch = excluded.default_branch,
        created_at = excluded.created_at,
-       pushed_at = excluded.pushed_at
+       pushed_at = excluded.pushed_at,
+       updated_at = excluded.updated_at
     RETURNING *
   `).get({
     id: Math.floor(repo.id),
@@ -80,11 +83,13 @@ function createRepo(userId, repo) {
     default_branch: repo.default_branch,
     created_at: repo.created_at,
     pushed_at: repo.pushed_at,
+    updated_at: repo.updated_at
   });
 }
 
 function updateRepo(userId, repoId, updates) {
   const fields = Object.keys(updates).filter((field) => updatableColumns.has(field));
+  console.log(fields);
 
   if (fields.length !== 0) {
     const set = fields.map((field) => `${field} = ?`).join(", ");
@@ -92,7 +97,7 @@ function updateRepo(userId, repoId, updates) {
 
     return db.prepare(`
       UPDATE repos
-      SET ${set}, updated_at = CURRENT_TIMESTAMP
+      SET ${set}, last_sync_at = CURRENT_TIMESTAMP
       WHERE user_id = ? AND id = ?
       RETURNING *
     `).get(...values, userId, repoId);

@@ -78,26 +78,42 @@ header {
   gap: var(--space-3);
 }
 
-.error {
-  margin: var(--space-4);
-  border: var(--border-width-thin) solid var(--status-error-text);
+.info-banner {
+  /*margin: var(--space-4);*/
+  border: var(--border-width-thin) solid;
   border-radius: var(--radius-control);
-  background-color: var(--status-error-bg);
-  color: var(--status-error-text);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2);
   font-size: var(--font-size-sm);
-  display: grid;
   grid-template-columns: auto 1fr auto;
+  display: grid;
   gap: var(--space-4);
   align-items: center;
   font-weight: bold;
 }
 
-.error-cross {
-  background-color: var(--status-error-text);
-  color: var(--status-error-bg);
-  border-radius: 50%;
+.info-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-1);
+}
+
+.info-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.error {
+  background-color: var(--status-error-bg);
+  border-color: var(--status-error-text);
+  color: var(--status-error-text);
+}
+
+.warning {
+  border-color: var(--status-warning-text);
+  color: var(--status-warning-text);
+  background-color: var(--status-warning-bg);
 }
 
 .google-login-wrap {

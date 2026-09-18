@@ -1,8 +1,10 @@
+import * as LucideIcons from "lucide-react";
 import {
   ArrowLeft,
   Download,
   Edit3,
   ExternalLink,
+  FolderPlus,
   GripVertical,
   Plus,
   Search,
@@ -12,7 +14,11 @@ import {
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {
   deleteMarkedLessonsAsync,
-  getLessonsAsync, type LessonMeta, markLessonDeletedAsync, markLessonRestoredAsync, saveLessonAsync,
+  getLessonsAsync,
+  type LessonMeta,
+  markLessonDeletedAsync,
+  markLessonRestoredAsync,
+  saveLessonAsync,
   saveLessonTasksAsync
 } from "@/lib/helpers/db.ts";
 import {Link} from "react-router";
@@ -25,12 +31,13 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import {converter, formatHex, parse} from "culori";
-import * as LucideIcons from "lucide-react";
-import { CSS } from "@dnd-kit/utilities";
+import {CSS} from "@dnd-kit/utilities";
 import Modal from "@/components/Modal.tsx";
 import {
   closestCenter,
-  DndContext, type DragEndEvent, DragOverlay,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
   type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
@@ -40,6 +47,7 @@ import {
 import {generateCoursesZipAsync, parseLessonZip} from "@/lib/helpers/zipHeper";
 import {HexColorPicker} from "react-colorful";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
+import Folders from "@/components/Folders.tsx";
 
 const LESSON_COLOR_OPTIONS = [
   "oklch(64.6% 0.222 41.116)",
@@ -384,7 +392,8 @@ export default function EditDashboard() {
   const [hasTouchedTitle, setHasTouchedTitle] = useState(false);
   const [isDownloadingLessonChanges, setIsDownloadingLessonChanges] = useState(false);
   const [iconSearch, setIconSearch] = useState("");
-  const [isDragingOver, setIsDraggingOver] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isFoldersOpen, setIsFoldersOpen] = useState(false);
 
   const closePopovers = useCallback(() => {
     setIsColorPickerOpen(false);
@@ -718,6 +727,14 @@ export default function EditDashboard() {
 
           <div className="dashboard-edit-actions-buttons">
             <button
+              className="btn-ghost"
+              onClick={() => setIsFoldersOpen(true)}
+            >
+              <FolderPlus size={16} className="icon-margin-right"/>
+              Add local folder
+            </button>
+
+            <button
               type="button"
               onClick={handleDiscardLessonChanges}
               className="btn-ghost"
@@ -788,7 +805,7 @@ export default function EditDashboard() {
         )}
       </section>
 
-      {isDragingOver && (
+      {isDraggingOver && (
         <div className="drag-overlay">
           <div className="drag-overlay-text">
             <span>Drop a .zip file to import lessons</span>
@@ -1048,6 +1065,11 @@ export default function EditDashboard() {
           </div>
         </div>
       </Modal>
+
+      <Folders
+        isOpen={isFoldersOpen}
+        onClose={() => setIsFoldersOpen(false)}
+      />
     </main>
   );
 }

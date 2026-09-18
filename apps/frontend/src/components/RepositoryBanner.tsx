@@ -12,6 +12,7 @@ export interface Repository {
   default_branch: string;
   created_at: string;
   pushed_at: string;
+  updated_at: string;
 }
 
 interface Props {

@@ -159,6 +159,8 @@
 
 .profile-remote-repositories {
     display: flex;
+    flex: 1;
+    max-height: 100%;
     flex-flow: column nowrap;
     gap: var(--space-2);
     width: 100%;
@@ -170,4 +172,9 @@
 
 .profile-repository-info h3 small {
     font-weight: normal;
+}
+
+.profile-error {
+    margin: var(--space-5);
+    margin-bottom: 0;
 }

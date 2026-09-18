@@ -4,19 +4,18 @@ import GitHubAvatar from "@/components/GitHubAvatar.tsx";
 import {useCallback, useEffect, useState} from "react";
 import {Link, useNavigate} from "react-router";
 import "@/styles/profile.css"
-import {DownloadCloud, Pencil, Plus, Settings, X} from "lucide-react";
+import {DownloadCloud, Pencil, Plus, Settings, X, XIcon} from "lucide-react";
 import Modal from "@/components/Modal.tsx";
 import Pagination from "@/components/Pagination.tsx";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import {API_BASE} from "@/lib/api/client.ts";
 import {useQuery} from "@tanstack/react-query";
-import ErrorBanner from "@/components/ErrorBanner.tsx";
+import InfoBanner from "@/components/InfoBanner.tsx";
 import RepositoryBanner, {type Repository} from "@/components/RepositoryBanner.tsx";
 
 type Modals = "scopes" | "unlink" | "remote" | "none";
 
 const PAGE_SIZE = 5;
-
 
 export default function Profile() {
   const { user, isLoading, refresh } = useAuth();
@@ -202,6 +201,7 @@ export default function Profile() {
 
       return await response.json() as Promise<Repository[]>;
     },
+    enabled: Boolean(!isLoading),
     staleTime: Infinity,
   });
   
@@ -216,8 +216,6 @@ export default function Profile() {
         },
         credentials: "include"
       });
-
-      console.log("ljasdj " + user?.githubId);
 
       if (!response.ok)
         throw new Error("Failed to fetch repositories");
@@ -251,10 +249,21 @@ export default function Profile() {
   return (
     <>
       {error && (
-        <ErrorBanner
-          error={error}
-          action={()=> setError(null)}
-        />
+        <div className="profile-error">
+          <InfoBanner
+            type="error"
+            icon={(<XIcon/>)}
+            message={error.message}
+            actions={(
+              <button
+                onClick={() => setError(null)}
+                className="btn-ghost"
+              >
+                Close
+              </button>
+            )}
+          />
+        </div>
       )}
 
       <main className="profile-page">
