@@ -56,14 +56,8 @@
   gap: var(--space-2);
 }
 
-.folders-body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-}
-
-.folders-file-input {
-    display: none;
+.dashboard-info {
+    text-align: center;
 }
 
 /* ── Course list ─────────────────────────────────────────── */

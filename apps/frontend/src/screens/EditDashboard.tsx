@@ -8,7 +8,8 @@ import {
   markLessonDeletedAsync,
   markLessonRestoredAsync,
   saveLessonAsync,
-  saveLessonTasksAsync
+  saveLessonTasksAsync,
+  slugifyTitle
 } from "@/lib/helpers/db.ts";
 import {Link} from "react-router";
 import LessonIcon from "@/components/LessonIcon.tsx";
@@ -175,24 +176,6 @@ function parseOklchColor(value: string): OklchColor {
 }
 
 type LessonForm = Omit<LessonMeta, "id" | "order">;
-
-/**
- * Converts a given title string into a URL-friendly slug by:
- * 1. Trimming leading and trailing whitespace.
- * 2. Converting all characters to lowercase.
- * 3. Replacing non-alphanumeric characters with hyphens.
- * 4. Removing leading and trailing hyphens.
- *
- * @param {string} title - The input string to be slugified.
- * @return {string} The slugified version of the input string.
- */
-function slugifyTitle(title: string): string {
-  return title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 /**
  * Creates and returns a new empty lesson form object with default values.
@@ -718,7 +701,7 @@ export default function EditDashboard() {
               onClick={handleDiscardLessonChanges}
               className="btn-ghost"
               disabled={isDownloadingLessonChanges || lessons.filter((lesson) => lesson.deleted).length === 0}
-              title=""
+              title="Delete all lessons marked as 'Deleted'"
             >
               <Trash2 size={16}/>
             </button>
@@ -746,7 +729,9 @@ export default function EditDashboard() {
           </div>
         </div>
 
-        {loading ? (<LoadingSpinner />) : (
+        {loading ? (<LoadingSpinner/>) : lessons.length === 0 ? (
+          <h3 className="dashboard-info">No lessons available</h3>
+        ) : (
           <DndContext
             sensors={lessonDragSensors}
             collisionDetection={closestCenter}

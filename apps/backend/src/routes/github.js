@@ -7,7 +7,8 @@ const {
   exchangeCode,
   assignUser,
   refreshUser,
-  getRemoteRepositories
+  getRemoteRepositories,
+  getRemoteRepository
 } = require("../services/github");
 const { authenticateToken } = require("../middleware/auth");
 const ServerError = require("../errors/ServerError");
@@ -67,6 +68,12 @@ router.get("/me", asyncHandler(async (req, res) => {
 
 router.get("/repositories", asyncHandler(async (req, res) => {
   res.json(await getRemoteRepositories(req.user.sub));
+}));
+
+router.get("/repositories/:id", asyncHandler(async (req, res) => {
+  const repoId = req.params.id;
+  const remote = await getRemoteRepository(req.user.sub, repoId);
+  res.json(remote);
 }));
 
 module.exports = router;

@@ -5,6 +5,9 @@ const {ZipArchive} = require("archiver");
 const {finished} = require("node:stream/promises");
 
 async function packLesson(sourcePath, outputPath) {
+  const lessonName = path.basename(sourcePath);
+  const sourceJsonPath = path.join(sourcePath, `${lessonName}.json`);
+  const targetJsonPath = outputPath.replace(/\.zip$/i, ".json");
   const output = fs.createWriteStream(outputPath);
   const archive = new ZipArchive("zip", {
     zlib: 9,
@@ -19,16 +22,12 @@ async function packLesson(sourcePath, outputPath) {
   });
 
   archive.pipe(output);
-  archive.directory(sourcePath, false);
+  archive.directory(sourcePath, lessonName);
 
   await Promise.all([
     archive.finalize(),
     finished(output)
   ]);
-
-  const lessonName = path.basename(sourcePath);
-  const sourceJsonPath = path.join(sourcePath, `${lessonName}.json`);
-  const targetJsonPath = outputPath.replace(/\.zip$/i, ".json");
 
   try {
     await fsAsync.access(sourceJsonPath);

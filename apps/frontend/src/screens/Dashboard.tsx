@@ -1,19 +1,13 @@
 import {useEffect, useState} from "react";
-import { Link } from "react-router";
+import {Link} from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
 import LessonIcon from "@/components/LessonIcon";
-import { useAuth } from "@/lib/ctx/useAuth";
-import {
-  ArrowRight,
-  Pencil,
-} from "lucide-react";
-import {
-  getLessonProgressForUser,
-  getPlayableLessonsAsync,
-  type LessonMeta
-} from "@/lib/helpers/db.ts";
+import {useAuth} from "@/lib/ctx/useAuth";
+import {ArrowRight, Pencil,} from "lucide-react";
+import {getLessonProgressForUser, getPlayableLessonsAsync, type LessonMeta} from "@/lib/helpers/db.ts";
+import Updater from "@/components/Updater.tsx";
 
 const PAGE_SIZE = 8;
 
@@ -75,7 +69,8 @@ export default function Dashboard() {
             <Link
               to={`/edit`}
               className="btn-ghost"
-              aria-label={`Edit Lessons`}
+              aria-label={`Edit Mode`}
+              title="Create, edit and manage lessons"
             >
               <Pencil size={16} className="icon-margin-right" />
               Edit Mode
@@ -83,76 +78,80 @@ export default function Dashboard() {
           )}
         </div>
 
-        {loading && <LoadingSpinner />}
-        {!loading && (
-          <ul className="course-list">
-            {pageLessons.map(
-              (lesson: LessonWithProgress) => (
-                <li key={lesson.id} className="course-row">
-                  <div
-                    className="course-icon"
-                    style={{ background: lesson.color }}
-                    aria-hidden="true"
-                  >
-                    <LessonIcon name={lesson.icon} size={20} />
-                  </div>
-
-                  <div className="course-info">
-                    <h2 className="course-name">
-                      {lesson.title}
-                    </h2>
-                    <p className="course-description">{lesson.description}</p>
-                  </div>
-
-                  <div className="course-right">
-                    <span className="course-task-count">
-                      {lesson.taskCount} {lesson.taskCount === 1 ? "task" : "tasks"}
-                    </span>
-
-                    {isAuthenticated && (
-                      <div className="course-progress">
-                        <div className="course-progress-bar-bg">
-                          <div
-                            className="course-progress-bar-fill"
-                            style={{
-                              width: `${lesson.progress}%`,
-                              background: lesson.color,
-                            }}
-                          />
-                        </div>
-                        <span className="course-progress-label">{lesson.progress}%</span>
-                      </div>
-                    )}
-
-                    <Link
-                      to={{
-                        pathname: `/lessons/${lesson.id}`,
-                        search: "?mode=play",
-                      }}
-                      className="btn-primary"
-                      aria-label={`Open lesson "${lesson.title}"`}
+        {loading ? <LoadingSpinner/> : lessons.length === 0 ? (
+          <h3 className="dashboard-info">No lessons available</h3>
+        ) : (
+          <>
+            <ul className="course-list">
+              {pageLessons.map(
+                (lesson: LessonWithProgress) => (
+                  <li key={lesson.id} className="course-row">
+                    <div
+                      className="course-icon"
+                      style={{background: lesson.color}}
+                      aria-hidden="true"
                     >
-                      {isAuthenticated && lesson.progress > 0
-                        ? lesson.progress === 100
-                          ? "Review"
-                          : "Continue"
-                        : "Start"}
-                      <ArrowRight size={16} />
-                    </Link>
-                  </div>
-                </li>
-              ),
-          )}
-          </ul>
-        )}
+                      <LessonIcon name={lesson.icon} size={20}/>
+                    </div>
 
-        <Pagination
-          page={page}
-          total={lessons.length}
-          pageSize={PAGE_SIZE}
-          onChange={setPage}
-        />
+                    <div className="course-info">
+                      <h2 className="course-name">
+                        {lesson.title}
+                      </h2>
+                      <p className="course-description">{lesson.description}</p>
+                    </div>
+
+                    <div className="course-right">
+                      <span className="course-task-count">
+                        {lesson.taskCount} {lesson.taskCount === 1 ? "task" : "tasks"}
+                      </span>
+
+                      {isAuthenticated && (
+                        <div className="course-progress">
+                          <div className="course-progress-bar-bg">
+                            <div
+                              className="course-progress-bar-fill"
+                              style={{
+                                width: `${lesson.progress}%`,
+                                background: lesson.color,
+                              }}
+                            />
+                          </div>
+                          <span className="course-progress-label">{lesson.progress}%</span>
+                        </div>
+                      )}
+
+                      <Link
+                        to={{
+                          pathname: `/lessons/${lesson.id}`,
+                          search: "?mode=play",
+                        }}
+                        className="btn-primary"
+                        aria-label={`Open lesson "${lesson.title}"`}
+                      >
+                        {isAuthenticated && lesson.progress > 0
+                          ? lesson.progress === 100
+                            ? "Review"
+                            : "Continue"
+                          : "Start"}
+                        <ArrowRight size={16}/>
+                      </Link>
+                    </div>
+                  </li>
+                ),
+              )}
+            </ul>
+            <Pagination
+              page={page}
+              total={lessons.length}
+              pageSize={PAGE_SIZE}
+              onChange={setPage}
+            />
+          </>
+        )}
       </section>
+
+      <Updater/>
     </main>
   );
 }

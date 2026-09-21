@@ -31,8 +31,7 @@ const initDb = () => {
         github_avatar_url TEXT,
         github_scopes TEXT,
         github_access_token TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `).run();
 
@@ -58,10 +57,9 @@ const initDb = () => {
         html_url TEXT NOT NULL,
         private INTEGER DEFAULT 0,
         default_branch TEXT DEFAULT 'main',
+        sha TEXT NOT NULL,
         created_at TEXT,
         pushed_at TEXT,
-        updated_at TEXT,
-        last_sync_at TEXT DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(id, user_id)
       )
     `).run();

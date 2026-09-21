@@ -21,6 +21,7 @@ function mapRepository(repo) {
     html_url: repo.html_url,
     private: repo.private,
     default_branch: repo.default_branch,
+    sha: repo.sha,
     created_at: repo.created_at,
     pushed_at: repo.pushed_at,
     updated_at: repo.updated_at
@@ -154,11 +155,18 @@ async function getRemoteRepository(userId, repoId) {
   const octokit = getOctokit(userId);
 
   try {
-    const response = await octokit.request("GET /repositories/{repository_id}", {
+    const {data: repo} = await octokit.request("GET /repositories/{repository_id}", {
       repository_id: repoId
     })
 
-    return mapRepository(response.data);
+    const {data: refData} = await octokit.rest.git.getRef({
+      owner: repo.owner.login,
+      repo: repo.name,
+      ref: `heads/${repo.default_branch}`,
+    });
+
+    repo.sha = refData.object.sha;
+    return mapRepository(repo);
   } catch (error) {
     console.log(error);
     throw new ServerError("Failed to fetch remote repository", 500);

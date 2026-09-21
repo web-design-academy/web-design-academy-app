@@ -1,9 +1,16 @@
-import { Dexie, type EntityTable, type Table } from "dexie";
-import type { TaskCode } from "@/lib/helpers/tasks.ts";
+import {Dexie, type EntityTable, type Table} from "dexie";
+import type {TaskCode} from "@/lib/helpers/tasks.ts";
+
+export type Source = "local" | "github" | "wda";
 
 export type LessonTasks = {
   lessonId: string;
   tasks: Partial<TaskCode>[];
+};
+
+export type LessonContent = {
+  lessonId: string;
+  content: string;
 };
 
 export type FinishedTaskItem = {
@@ -20,19 +27,44 @@ export type UserLessonProgress = {
 
 export type LessonMeta = {
   id: string;
+
   title: string;
   description: string;
   color: string;
-  order: number;
   icon: string;
-  taskCount: number;
-  visualEditor?: boolean;
   visualPreview?: boolean;
+  visualEditor?: boolean;
+  source: Source;
+  remoteId?: string;
+  sha?: string;
+
+  order: number;
+  taskCount: number;
   deleted?: boolean;
 };
 
+
+/**
+ * Converts a given title string into a URL-friendly slug by:
+ * 1. Trimming leading and trailing whitespace.
+ * 2. Converting all characters to lowercase.
+ * 3. Replacing non-alphanumeric characters with hyphens.
+ * 4. Removing leading and trailing hyphens.
+ *
+ * @param {string} title - The input string to be slugified.
+ * @return {string} The slugified version of the input string.
+ */
+export function slugifyTitle(title: string): string {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 const db = new Dexie("WDA") as Dexie & {
   lessons: EntityTable<LessonMeta, "id">;
+  content: EntityTable<LessonContent, "lessonId">
   tasks: EntityTable<LessonTasks, "lessonId">;
   progress: Table<UserLessonProgress, [string, string]>;
 };
@@ -41,21 +73,13 @@ db.version(1).stores({
   lessons: "id, order",
   tasks: "lessonId",
   progress: "[userId+lessonId], userId, lessonId",
+  content: "lessonId"
 });
 
 export { db };
 
 function emitLessonDraftsChanged() {
   window.dispatchEvent(new Event("lessonsChanged"));
-}
-
-export async function clearAllDataAsync(): Promise<void> {
-  await db.transaction("rw", [db.lessons, db.tasks, db.progress], async () => {
-    await db.lessons.clear();
-    await db.tasks.clear();
-    await db.progress.clear();
-  });
-  emitLessonDraftsChanged();
 }
 
 export async function getLessonsAsync(): Promise<LessonMeta[]> {
@@ -97,6 +121,7 @@ export async function deleteLessonAsync(id: string): Promise<void> {
     await db.lessons.delete(id);
     await db.tasks.delete(id);
     await db.progress.where("lessonId").equals(id).delete();
+    await db.content.delete(id);
   });
 
   emitLessonDraftsChanged();
@@ -118,6 +143,11 @@ export async function getLessonTasksAsync(id: string): Promise<Partial<TaskCode>
   return record?.tasks ?? [];
 }
 
+export async function getLessonContentAsync(id: string): Promise<string> {
+  const content = await db.content.get(id)
+  return content?.content ?? "";
+}
+
 export async function getLessonProgressForUser(
   lessonId: string,
   userId: string,
@@ -128,6 +158,13 @@ export async function getLessonProgressForUser(
 export async function getLessonTasksCountAsync(id: string): Promise<number> {
   const tasks = await getLessonTasksAsync(id);
   return tasks.length;
+}
+
+export async function saveLessonContent(lessonId: string, content: string) {
+  await db.content.put({
+    lessonId,
+    content
+  });
 }
 
 export async function saveLessonTasksAsync(

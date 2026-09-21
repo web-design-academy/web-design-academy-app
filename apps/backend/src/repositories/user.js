@@ -115,12 +115,11 @@ function getUsersCount(tagId = undefined) {
 
 function createUser({ id, email, name, role = "student" }) {
   return db.prepare(`
-    INSERT INTO users (id, email, name, role, updated_at)
-    VALUES (@id, @email, @name, @role, CURRENT_TIMESTAMP)
+    INSERT INTO users (id, email, name, role)
+    VALUES (@id, @email, @name, @role)
     ON CONFLICT(email) DO UPDATE SET
       name = excluded.name,
-      role = excluded.role,
-      updated_at = excluded.updated_at
+      role = excluded.role
     RETURNING *
   `).get({
     id,
@@ -139,7 +138,7 @@ function updateUser(userId, updates) {
 
     return db.prepare(`
       UPDATE users
-      SET ${set}, updated_at = CURRENT_TIMESTAMP
+      SET ${set}
       WHERE id = ?
       RETURNING *
     `).get(...values, userId);

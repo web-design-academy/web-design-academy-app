@@ -1,7 +1,7 @@
 const {db} = require("../config/db");
 
 const updatableColumns = new Set([
-  "name", "description", "language", "owner_login", "html_url", "private", "default_branch", "created_at", "pushed_at", "updated_at"
+  "name", "description", "language", "owner_login", "html_url", "private", "default_branch", "created_at", "pushed_at", "sha"
 ]);
 
 function getReposByUser(userId) {
@@ -39,10 +39,9 @@ function createRepo(userId, repo) {
                        html_url,
                        private, 
                        default_branch,
+                       sha,
                        created_at,
-                       pushed_at,
-                       updated_at,
-                       last_sync_at
+                       pushed_at
     )
     VALUES (
             @id,
@@ -54,10 +53,9 @@ function createRepo(userId, repo) {
             @html_url,
             @private,
             @default_branch,
+            @sha,
             @created_at,
-            @pushed_at,
-            @updated_at,
-            CURRENT_TIMESTAMP
+            @pushed_at
            )
     ON CONFLICT (id) DO UPDATE SET
        name = excluded.name,
@@ -67,9 +65,9 @@ function createRepo(userId, repo) {
        html_url = excluded.html_url,
        private = excluded.private,
        default_branch = excluded.default_branch,
+       sha = excluded.sha,
        created_at = excluded.created_at,
-       pushed_at = excluded.pushed_at,
-       updated_at = excluded.updated_at
+       pushed_at = excluded.pushed_at
     RETURNING *
   `).get({
     id: Math.floor(repo.id),
@@ -81,9 +79,9 @@ function createRepo(userId, repo) {
     html_url: repo.html_url,
     private: repo.private ? 1 : 0,
     default_branch: repo.default_branch,
+    sha: repo.sha,
     created_at: repo.created_at,
-    pushed_at: repo.pushed_at,
-    updated_at: repo.updated_at
+    pushed_at: repo.pushed_at
   });
 }
 
@@ -97,7 +95,7 @@ function updateRepo(userId, repoId, updates) {
 
     return db.prepare(`
       UPDATE repos
-      SET ${set}, last_sync_at = CURRENT_TIMESTAMP
+      SET ${set}
       WHERE user_id = ? AND id = ?
       RETURNING *
     `).get(...values, userId, repoId);

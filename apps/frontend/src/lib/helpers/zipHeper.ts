@@ -1,42 +1,47 @@
 import JSZip from "jszip";
-import { ensureReadonlyBlockSpacing } from "./readonlyBlocks";
+import {ensureReadonlyBlockSpacing} from "./readonlyBlocks";
 import {
+  getLessonContentAsync,
   getLessonTasksAsync,
   type LessonMeta,
   type LessonTasks,
+  slugifyTitle,
 } from "@/lib/helpers/db.ts";
-import type { TaskCode } from "@/lib/helpers/tasks.ts";
+import type {TaskCode} from "@/lib/helpers/tasks.ts";
+
+type LessonExport = Omit<LessonMeta, "id" | "order" | "taskCount" | "deleted" | "tasks">;
+const OMIT_KEYS = new Set(["id", "order", "taskCount", "deleted", "tasks"]);
 
 function addCourseToZip(
   zip: JSZip,
-  course: LessonMeta,
+  course: LessonExport,
+  content: string,
   courseTasks: Partial<TaskCode>[],
 ): void {
-  const courseFolder = zip.folder(course.id);
+  const slug = slugifyTitle(`${course.title}${course.remoteId ? `_${course.remoteId}` : ""}`);
+  const courseFolder = zip.folder(slug);
   if (!courseFolder) throw new Error("Failed to create zip folder");
 
   const jsonContent = JSON.stringify(
     course,
-    (key, value) => (key === "tasks" ? undefined : value),
+    (key, value) => (OMIT_KEYS.has(key) ? undefined : value),
     2,
   );
 
-  courseFolder.file(`${course.id}.json`, jsonContent);
-
-  const tasksFolder = courseFolder.folder("tasks");
-  if (!tasksFolder) throw new Error("Failed to create tasks folder");
+  courseFolder.file(`${slug}.json`, jsonContent);
+  courseFolder.file(`${slug}.mdx`, content ?? "");
 
   courseTasks
     .filter((task) => !task.deleted)
     .forEach((task, index) => {
       const taskId = (index + 1).toString();
-      const taskFolder = tasksFolder.folder(taskId);
-      if (!taskFolder) return;
+      const taskFolder = courseFolder.folder(taskId);
+      if (!taskFolder)
+        return;
 
-      const addFile = (name: string, content?: string) => {
-        if (content !== undefined && content.trim() !== "") {
-          taskFolder.file(name, content);
-        }
+      const addFile = (name: string, fileContent?: string) => {
+        if (fileContent !== undefined && fileContent.trim() !== "")
+          taskFolder.file(name, fileContent);
       };
 
       if (task.html !== undefined) {
@@ -113,49 +118,66 @@ export async function generateCoursesZipAsync(
 ): Promise<void> {
   const zip = new JSZip();
   for (const course of courses) {
-    addCourseToZip(zip, course, await getLessonTasksAsync(course.id));
+    addCourseToZip(
+      zip,
+      course as LessonExport,
+      await getLessonContentAsync(course.id),
+      await getLessonTasksAsync(course.id),
+    );
   }
 
   await downloadZip(zip, suggestedName);
 }
 
 export async function parseLessonZip(
-  file: File,
-): Promise<[LessonMeta[], LessonTasks[]]> {
+  file: File | Blob,
+): Promise<[LessonMeta[], LessonTasks[], Record<string, string>]> {
   const zip = await JSZip.loadAsync(file);
   const lessonsMap = new Map<
     string,
-    { meta: Partial<LessonMeta>; tasksMap: Map<number, Partial<TaskCode>> }
+    {
+      meta: Partial<LessonMeta>;
+      content?: string;
+      tasksMap: Map<number, Partial<TaskCode>>;
+    }
   >();
 
-  for (const [path, fileEntry] of Object.entries(zip.files)) {
+  for (const [filePath, fileEntry] of Object.entries(zip.files)) {
     if (fileEntry.dir) continue;
-    if (path.startsWith("__MACOSX/") || path.includes("/.DS_Store")) continue;
+    if (filePath.startsWith("__MACOSX/") || filePath.includes("/.DS_Store")) continue;
 
-    const splitPath = path.split("/");
+    const splitPath = filePath.split("/").filter(Boolean);
     const rootFolder = splitPath[0];
     if (!rootFolder) continue;
 
     if (!lessonsMap.has(rootFolder)) {
-      lessonsMap.set(rootFolder, { meta: {}, tasksMap: new Map() });
+      lessonsMap.set(rootFolder, {
+        meta: {},
+        tasksMap: new Map(),
+      });
     }
 
     const currentLesson = lessonsMap.get(rootFolder)!;
 
-    if (splitPath.length === 2 && splitPath[1] === `${rootFolder}.json`) {
-      const meta = await fileEntry.async("text");
-      try {
-        const json = JSON.parse(meta) as Partial<LessonMeta>;
-        currentLesson.meta = {
-          ...currentLesson.meta,
-          ...json,
-        };
-      } catch (err) {
-        console.error(`Failed to parse metadata JSON for ${rootFolder}:`, err);
+    if (splitPath.length === 2) {
+      const fileName = splitPath[1];
+
+      if (fileName.endsWith(".json")) {
+        const metaText = await fileEntry.async("text");
+        try {
+          const json = JSON.parse(metaText) as Partial<LessonMeta>;
+          currentLesson.meta = {...currentLesson.meta, ...json};
+        } catch (err) {
+          console.error(`Metadata parsing error for ${rootFolder}:`, err);
+        }
+      } else if (fileName.endsWith(".mdx")) {
+        currentLesson.content = await fileEntry.async("text");
       }
-    }
-    else if (splitPath.length >= 4 && splitPath[1] === "tasks") {
-      const taskId = parseInt(splitPath[2], 10);
+    } else if (splitPath.length >= 3) {
+      const fileName = splitPath[splitPath.length - 1];
+      const taskFolderSegment = splitPath[splitPath.length - 2];
+      const taskId = parseInt(taskFolderSegment, 10);
+
       if (isNaN(taskId)) continue;
 
       if (!currentLesson.tasksMap.has(taskId)) {
@@ -164,7 +186,6 @@ export async function parseLessonZip(
 
       const taskTarget = currentLesson.tasksMap.get(taskId)!;
       const fileContent = await fileEntry.async("text");
-      const fileName = splitPath[3];
 
       switch (fileName) {
         case "index.html":
@@ -189,7 +210,7 @@ export async function parseLessonZip(
           try {
             taskTarget.evaluation = JSON.parse(fileContent);
           } catch (err) {
-            console.error(`Failed to parse evaluation for task ${taskId}:`, err);
+            console.error(`Task parsing error for task ${taskId}:`, err);
           }
           break;
         default:
@@ -200,13 +221,12 @@ export async function parseLessonZip(
 
   const lessons: LessonMeta[] = [];
   const tasks: LessonTasks[] = [];
+  const contents: Record<string, string> = {};
 
   lessonsMap.forEach((value, folderName) => {
     const lessonId = value.meta.id || folderName;
 
-    const sortedTaskIds = Array.from(value.tasksMap.keys()).sort(
-      (a, b) => a - b,
-    );
+    const sortedTaskIds = Array.from(value.tasksMap.keys()).sort((a, b) => a - b);
     const lessonTasksList: Partial<TaskCode>[] = sortedTaskIds.map(
       (id) => value.tasksMap.get(id)!,
     );
@@ -222,6 +242,9 @@ export async function parseLessonZip(
       visualEditor: value.meta.visualEditor ?? false,
       visualPreview: value.meta.visualPreview ?? false,
       deleted: value.meta.deleted ?? false,
+      source: value.meta.source || "wda",
+      remoteId: value.meta.remoteId || folderName,
+      sha: value.meta.sha,
     };
 
     const tasksMeta: LessonTasks = {
@@ -231,7 +254,8 @@ export async function parseLessonZip(
 
     lessons.push(lessonMeta);
     tasks.push(tasksMeta);
+    contents[lessonId] = value.content || "";
   });
 
-  return [lessons, tasks];
+  return [lessons, tasks, contents];
 }
