@@ -5,7 +5,8 @@ const cookieParser = require("cookie-parser");
 const adminRouter = require('./routes/admin');
 const authRouter = require('./routes/auth');
 const githubRouter = require('./routes/github');
-const reposRouter = require('./routes/repos');
+const reposRouter = require('./routes/repositories');
+const lessonsRouter = require("./routes/lessons");
 
 const errorHandler = require('./middleware/error');
 const ServerError = require('./errors/ServerError');
@@ -35,7 +36,8 @@ app.use("/api", [verifyOrigin, apiLimiter]);
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/github", githubRouter);
-app.use("/api/repos", reposRouter);
+app.use("/api/repositories", reposRouter);
+app.use("/api/lessons", lessonsRouter);
 
 if (environment.isProduction) {
   const staticPath = path.join(__dirname, "../frontend/dist");

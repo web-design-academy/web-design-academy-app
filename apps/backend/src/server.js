@@ -1,6 +1,8 @@
 require("dotenv").config();
 const { db, initDb } = require("./config/db");
 const environment = require("./config/env");
+const {packLessons} = require("./utils/pack");
+const fs = require("fs");
 
 try {
   initDb();
@@ -9,6 +11,19 @@ try {
   console.error("Server initialization error:", error);
   process.exit(1);
 }
+
+if (!fs.existsSync(environment.lessonsPath)) {
+  fs.mkdirSync(environment.lessonsPath, {recursive: true});
+}
+
+if (!fs.existsSync(environment.cachePath)) {
+  fs.mkdirSync(environment.cachePath, {recursive: true});
+}
+
+packLessons(environment.lessonsPath, environment.cachePath).catch((error) => {
+  console.log("Error processing lessons: ", error);
+  process.exit(1);
+});
 
 const app = require("./app");
 

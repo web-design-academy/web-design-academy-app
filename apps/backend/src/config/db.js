@@ -4,13 +4,12 @@ const fs = require("fs");
 const environment = require("./env");
 
 // DB path and storage directory
-const dbPath = path.resolve(__dirname, "../../", environment.dbPath);
+const dbPath = environment.dbPath;
 const storageDir = path.dirname(dbPath);
 
 // Creating storage directory if it doesn't exist
 if (!fs.existsSync(storageDir)) {
   fs.mkdirSync(storageDir, { recursive: true });
-  console.log(`Created storage directory at: ${storageDir}`);
 }
 
 // Opening database connection

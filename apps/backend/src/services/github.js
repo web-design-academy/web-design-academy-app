@@ -4,7 +4,6 @@ const environment = require("../config/env");
 const {encrypt, decrypt} = require('../utils/encryption');
 const userRepository = require("../repositories/user");
 const ServerError = require("../errors/ServerError");
-const {response} = require("express");
 
 const auth = new OAuthApp({
   clientType: "oauth-app",

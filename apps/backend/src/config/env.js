@@ -1,3 +1,5 @@
+const {resolve} = require("node:path");
+
 /**
  * Parses a comma-separated list of emails into an array of lowercased emails.
  * @param value Value to be parsed.
@@ -60,6 +62,12 @@ const adminEmailsArray = parseToLowerCase(process.env.ADMIN_EMAILS);
 const adminEmails = new Set(adminEmailsArray);
 
 /**
+ * Encryption key for sensitive data.
+ * @type {string}
+ */
+const encryptionKey = process.env.ENCRYPTION_KEY;
+
+/**
  * Secret key for JWT authentication.
  * @type {string}
  */
@@ -70,12 +78,6 @@ const jwtSecret = process.env.JWT_SECRET;
  * @type {string}
  */
 const jwtExpiration = process.env.JWT_EXPIRATION ?? "7d";
-
-/**
- * Encryption key for sensitive data.
- * @type {string}
- */
-const encryptionKey = process.env.ENCRYPTION_KEY;
 
 /**
  * CORS origins allowed for API requests.
@@ -104,17 +106,28 @@ const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:5173";
 const port = process.env.PORT ?? 3000;
 
 /**
- * SQLite database file path.
- * Relative to the backend directory.
- * @type {string}
- */
-const dbPath = process.env.DB_PATH ?? "./storage/db.sqlite";
-
-/**
  * Name of the cookie used for session management.
  * @type {string}
  */
 const cookieName = process.env.COOKIE_NAME ?? "wda_session";
+
+/**
+ * SQLite database file path.
+ * @type {string}
+ */
+const dbPath = process.env.DB_PATH ? resolve(__dirname, "../../", dbPath) : resolve(__dirname, "../../storage/db.sqlite");
+
+/**
+ *
+ * @type {string}
+ */
+const lessonsPath = process.env.LESSONS_PATH ? resolve(__dirname, "../../", lessonsPath) : resolve(__dirname, "../../lessons");
+
+/**
+ *
+ * @type {string}
+ */
+const cachePath = process.env.LESSONS_PATH ? resolve(__dirname, "../../", cachePath) : resolve(__dirname, "../../cache");
 
 /**
  * Validates the environment variables.
@@ -162,6 +175,12 @@ function validate() {
   if (!cookieName) {
     throw new Error("COOKIE_NAME is not set");
   }
+  if (!lessonsPath) {
+    throw new Error("LESSONS_PATH is not set");
+  }
+  if (!cachePath) {
+    throw new Error("CACHE_PATH is not set");
+  }
 }
 
 module.exports = {
@@ -179,6 +198,8 @@ module.exports = {
   frontendUrl,
   port,
   dbPath,
+  lessonsPath,
+  cachePath,
   cookieName,
   validate,
 }

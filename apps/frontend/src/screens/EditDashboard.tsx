@@ -1,16 +1,5 @@
 import * as LucideIcons from "lucide-react";
-import {
-  ArrowLeft,
-  Download,
-  Edit3,
-  ExternalLink,
-  FolderPlus,
-  GripVertical,
-  Plus,
-  Search,
-  Trash2,
-  Undo2,
-} from "lucide-react";
+import {ArrowLeft, Download, Edit3, ExternalLink, GripVertical, Plus, Search, Trash2, Undo2} from "lucide-react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {
   deleteMarkedLessonsAsync,
@@ -47,7 +36,6 @@ import {
 import {generateCoursesZipAsync, parseLessonZip} from "@/lib/helpers/zipHeper";
 import {HexColorPicker} from "react-colorful";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
-import Folders from "@/components/Folders.tsx";
 
 const LESSON_COLOR_OPTIONS = [
   "oklch(64.6% 0.222 41.116)",
@@ -393,7 +381,6 @@ export default function EditDashboard() {
   const [isDownloadingLessonChanges, setIsDownloadingLessonChanges] = useState(false);
   const [iconSearch, setIconSearch] = useState("");
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [isFoldersOpen, setIsFoldersOpen] = useState(false);
 
   const closePopovers = useCallback(() => {
     setIsColorPickerOpen(false);
@@ -727,21 +714,13 @@ export default function EditDashboard() {
 
           <div className="dashboard-edit-actions-buttons">
             <button
-              className="btn-ghost"
-              onClick={() => setIsFoldersOpen(true)}
-            >
-              <FolderPlus size={16} className="icon-margin-right"/>
-              Add local folder
-            </button>
-
-            <button
               type="button"
               onClick={handleDiscardLessonChanges}
               className="btn-ghost"
-              disabled={isDownloadingLessonChanges || lessons.length == 0}
+              disabled={isDownloadingLessonChanges || lessons.filter((lesson) => lesson.deleted).length === 0}
+              title=""
             >
-              <Trash2 size={16} className="icon-margin-right" />
-              Delete all marked
+              <Trash2 size={16}/>
             </button>
 
             <button
@@ -749,15 +728,17 @@ export default function EditDashboard() {
               onClick={handleDownloadLessonChanges}
               className="btn-ghost"
               disabled={isDownloadingLessonChanges || lessons.length == 0}
+              title="Export all lessons to a .zip file"
             >
               <Download size={16} className="icon-margin-right" />
-              Download drafts
+              Download lessons .zip
             </button>
 
             <button
               type="button"
               onClick={openCreateModal}
               className="btn-primary"
+              title="Creates a new lesson"
             >
               <Plus size={16} className="icon-margin-right" />
               Create new lesson
@@ -1065,11 +1046,6 @@ export default function EditDashboard() {
           </div>
         </div>
       </Modal>
-
-      <Folders
-        isOpen={isFoldersOpen}
-        onClose={() => setIsFoldersOpen(false)}
-      />
     </main>
   );
 }

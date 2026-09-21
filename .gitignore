@@ -8,3 +8,5 @@ dist
 .env
 storage/
 /lessons/
+/apps/backend/cache/
+/apps/backend/lessons/

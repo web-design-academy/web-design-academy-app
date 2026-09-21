@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { authenticateToken } = require("../middleware/auth");
-const repository = require("../repositories/repo");
+const repository = require("../repositories/repository");
 const { getRemoteRepository } = require("../services/github");
 const asyncHandler = require("../middleware/asyncError")
 
