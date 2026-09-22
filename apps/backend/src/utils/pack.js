@@ -3,14 +3,18 @@ const fsAsync = require("node:fs/promises");
 const path = require("path");
 const {ZipArchive} = require("archiver");
 const {finished} = require("node:stream/promises");
+const crypto = require("node:crypto");
 
 async function packLesson(sourcePath, outputPath) {
   const lessonName = path.basename(sourcePath);
-  const sourceJsonPath = path.join(sourcePath, `${lessonName}.json`);
-  const targetJsonPath = outputPath.replace(/\.zip$/i, ".json");
   const output = fs.createWriteStream(outputPath);
+  const hash = crypto.createHash("sha256");
   const archive = new ZipArchive("zip", {
     zlib: 9,
+  });
+
+  archive.on("data", (data) => {
+    hash.update(data)
   });
 
   archive.on("warning", (error) => {
@@ -30,8 +34,12 @@ async function packLesson(sourcePath, outputPath) {
   ]);
 
   try {
-    await fsAsync.access(sourceJsonPath);
-    await fsAsync.copyFile(sourceJsonPath, targetJsonPath);
+    const targetJsonPath = outputPath.replace(/\.zip$/i, ".json");
+    const sourceBuffer = await fsAsync.readFile(path.join(sourcePath, `${lessonName}.json`));
+    const metadata = JSON.parse(sourceBuffer.toString());
+    metadata.sha = hash.digest("hex");
+
+    await fsAsync.writeFile(targetJsonPath, JSON.stringify(metadata));
   } catch (err) {
     console.error(`Copy error: ${err.message}`);
   }

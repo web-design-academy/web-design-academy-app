@@ -114,7 +114,7 @@ export default function Profile() {
 
   const addRemote = async (repoId: number) => {
     try {
-      const response = await fetch(`${API_BASE}/repos/${repoId}`, {
+      const response = await fetch(`${API_BASE}/repositories/${repoId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -136,7 +136,7 @@ export default function Profile() {
 
   const removeRemote = async (repoId: number) => {
     try {
-      const response = await fetch(`${API_BASE}/repos/${repoId}`, {
+      const response = await fetch(`${API_BASE}/repositories/${repoId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -187,7 +187,7 @@ export default function Profile() {
   const { data: addedData, isLoading: addedLoading, error: addedError, refetch: addedRefetch } = useQuery({
     queryKey: ["tracked"],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/repos`, {
+      const response = await fetch(`${API_BASE}/repositories`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

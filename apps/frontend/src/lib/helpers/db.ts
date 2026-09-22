@@ -128,7 +128,7 @@ export async function deleteLessonAsync(id: string): Promise<void> {
 }
 
 export async function deleteMarkedLessonsAsync(): Promise<void> {
-  await db.transaction("rw", [db.lessons, db.tasks, db.progress], async () => {
+  await db.transaction("rw", [db.lessons, db.tasks, db.progress, db.content], async () => {
     const allLessons = await db.lessons.toArray();
     const deletedLessons = allLessons.filter((lesson) => lesson.deleted || false);
 

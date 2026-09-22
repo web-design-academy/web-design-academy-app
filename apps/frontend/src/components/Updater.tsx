@@ -45,7 +45,7 @@ export default function Updater() {
   return (
     <Modal
       title="Available lesson updates"
-      isOpen={true}
+      isOpen={false}
       onClose={() => {
       }}
       children={(
