@@ -5,7 +5,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
 import LessonIcon from "@/components/LessonIcon";
 import {useAuth} from "@/lib/ctx/useAuth";
-import {ArrowRight, Pencil,} from "lucide-react";
+import {ArrowRight, Pencil, ShoppingBag,} from "lucide-react";
 import {getLessonProgressForUser, getPlayableLessonsAsync, type LessonMeta} from "@/lib/helpers/db.ts";
 import Updater from "@/components/Updater.tsx";
 
@@ -65,17 +65,29 @@ export default function Dashboard() {
         <div className="dashboard-title">
           <h1>Course dashboard</h1>
 
-          {isAuthenticated && (
+          <div className="dashboard-title-actions">
             <Link
-              to={`/edit`}
+              to={`/marketplace`}
               className="btn-ghost"
               aria-label={`Edit Mode`}
-              title="Create, edit and manage lessons"
+              title="Download new lessons"
             >
-              <Pencil size={16} className="icon-margin-right" />
-              Edit Mode
+              <ShoppingBag size="1em" className="icon-margin-right"/>
+              Marketplace
             </Link>
-          )}
+
+            {isAuthenticated && (
+              <Link
+                to={`/edit`}
+                className="btn-ghost"
+                aria-label={`Edit Mode`}
+                title="Create, edit and manage lessons"
+              >
+                <Pencil size="1em" className="icon-margin-right"/>
+                Edit Mode
+              </Link>
+            )}
+          </div>
         </div>
 
         {loading ? <LoadingSpinner/> : lessons.length === 0 ? (
@@ -134,7 +146,7 @@ export default function Dashboard() {
                             ? "Review"
                             : "Continue"
                           : "Start"}
-                        <ArrowRight size={16}/>
+                        <ArrowRight size="1em"/>
                       </Link>
                     </div>
                   </li>

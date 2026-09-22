@@ -39,6 +39,9 @@ async function packLesson(sourcePath, outputPath) {
     const metadata = JSON.parse(sourceBuffer.toString());
     metadata.sha = hash.digest("hex");
 
+    const splitPath = sourcePath.split('/');
+    metadata.id = splitPath[splitPath.length - 1];
+
     await fsAsync.writeFile(targetJsonPath, JSON.stringify(metadata));
   } catch (err) {
     console.error(`Copy error: ${err.message}`);
@@ -46,6 +49,7 @@ async function packLesson(sourcePath, outputPath) {
 }
 
 async function packLessons(sourceDir, outputDir) {
+  await fsAsync.rm(outputDir, {recursive: true, force: true});
   await fsAsync.mkdir(outputDir, {recursive: true});
   const entries = await fsAsync.readdir(sourceDir, {withFileTypes: true});
 

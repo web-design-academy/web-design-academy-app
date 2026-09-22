@@ -55,7 +55,6 @@ router.get("/callback", asyncHandler(async (req, res) => {
     parsedScopes = scopes.split(",");
   }
 
-  console.log(parsedScopes);
   await assignUser(req.user.sub, parsedScopes, token);
 
   res.json({ success: true });

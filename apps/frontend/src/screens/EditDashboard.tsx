@@ -264,7 +264,7 @@ function SortableLessonCard({
           aria-label={`Edit metadata for ${lesson.title}`}
           title="Edit metadata"
         >
-          <Edit3 size={16} />
+          <Edit3 size="1em"/>
         </button>
         {lesson.deleted ? (
           <button
@@ -274,7 +274,7 @@ function SortableLessonCard({
             aria-label={`Restore ${lesson.title}`}
             title="Restore"
           >
-            <Undo2 size={16} />
+            <Undo2 size="1em"/>
           </button>
         ) : (
           <button
@@ -284,7 +284,7 @@ function SortableLessonCard({
             aria-label={`Delete ${lesson.title}`}
             title="Delete"
           >
-            <Trash2 size={16} />
+            <Trash2 size="1em"/>
           </button>
         )}
         <Link
@@ -296,7 +296,7 @@ function SortableLessonCard({
           aria-label={`Open ${lesson.title}`}
           title="Open lesson"
         >
-          <ExternalLink size={16} />
+          <ExternalLink size="1em"/>
         </Link>
       </div>
     </article>
@@ -336,13 +336,13 @@ function LessonDragOverlayCard({
       </div>
       <div className="admin-lesson-card-actions" aria-hidden="true">
         <span className="admin-icon-button">
-          <Edit3 size={16} />
+          <Edit3 size="1em"/>
         </span>
         <span className="admin-icon-button">
-          <Trash2 size={16} />
+          <Trash2 size="1em"/>
         </span>
         <span className="admin-icon-button">
-          <ExternalLink size={16} />
+          <ExternalLink size="1em"/>
         </span>
       </div>
     </article>
@@ -645,8 +645,6 @@ export default function EditDashboard() {
   }
 
   const handleFileDrop = useCallback(async (file: File) => {
-    console.log("Loading:", file.name);
-
     if (file.name.endsWith(".zip")) {
       const [lessons, tasks] = await parseLessonZip(file);
       for (const lesson of lessons) {
@@ -685,7 +683,7 @@ export default function EditDashboard() {
             className="btn-ghost"
             aria-label={`Back to dashboard`}
           >
-            <ArrowLeft size={16} className="icon-margin-right" />
+            <ArrowLeft size="1em" className="icon-margin-right"/>
             Back to dashboard
           </Link>
         </div>
@@ -703,7 +701,7 @@ export default function EditDashboard() {
               disabled={isDownloadingLessonChanges || lessons.filter((lesson) => lesson.deleted).length === 0}
               title="Delete all lessons marked as 'Deleted'"
             >
-              <Trash2 size={16}/>
+              <Trash2 size="1em"/>
             </button>
 
             <button
@@ -713,7 +711,7 @@ export default function EditDashboard() {
               disabled={isDownloadingLessonChanges || lessons.length == 0}
               title="Export all lessons to a .zip file"
             >
-              <Download size={16} className="icon-margin-right" />
+              <Download size="1em" className="icon-margin-right"/>
               Download lessons .zip
             </button>
 
@@ -723,7 +721,7 @@ export default function EditDashboard() {
               className="btn-primary"
               title="Creates a new lesson"
             >
-              <Plus size={16} className="icon-margin-right" />
+              <Plus size="1em" className="icon-margin-right"/>
               Create new lesson
             </button>
           </div>
@@ -815,12 +813,12 @@ export default function EditDashboard() {
             >
               {lessonModalMode === "create" ? (
                 <>
-                  <Plus size={16} />
+                  <Plus size="1em"/>
                   Create
                 </>
               ) : (
                 <>
-                  <Edit3 size={16} />
+                  <Edit3 size="1em"/>
                   Save draft
                 </>
               )}

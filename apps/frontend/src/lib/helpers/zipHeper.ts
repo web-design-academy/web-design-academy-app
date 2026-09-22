@@ -6,6 +6,7 @@ import {
   type LessonMeta,
   type LessonTasks,
   slugifyTitle,
+  type Source,
 } from "@/lib/helpers/db.ts";
 import type {TaskCode} from "@/lib/helpers/tasks.ts";
 
@@ -20,7 +21,8 @@ function addCourseToZip(
 ): void {
   const slug = slugifyTitle(`${course.title}${course.remoteId ? `_${course.remoteId}` : ""}`);
   const courseFolder = zip.folder(slug);
-  if (!courseFolder) throw new Error("Failed to create zip folder");
+  if (!courseFolder)
+    throw new Error("Failed to create zip folder");
 
   const jsonContent = JSON.stringify(
     course,
@@ -131,6 +133,8 @@ export async function generateCoursesZipAsync(
 
 export async function parseLessonZip(
   file: File | Blob,
+  source: Source = "local",
+  remoteId: string | undefined = undefined
 ): Promise<[LessonMeta[], LessonTasks[], Record<string, string>]> {
   const zip = await JSZip.loadAsync(file);
   const lessonsMap = new Map<
@@ -242,8 +246,8 @@ export async function parseLessonZip(
       visualEditor: value.meta.visualEditor ?? false,
       visualPreview: value.meta.visualPreview ?? false,
       deleted: value.meta.deleted ?? false,
-      source: value.meta.source || "wda",
-      remoteId: value.meta.remoteId || folderName,
+      source: source,
+      remoteId: remoteId,
       sha: value.meta.sha,
     };
 

@@ -27,7 +27,6 @@ function getRepo(id) {
 }
 
 function createRepo(userId, repo) {
-  console.log(userId, repo.id);
   return db.prepare(`
     INSERT INTO repos (
                        id, 
@@ -87,7 +86,6 @@ function createRepo(userId, repo) {
 
 function updateRepo(userId, repoId, updates) {
   const fields = Object.keys(updates).filter((field) => updatableColumns.has(field));
-  console.log(fields);
 
   if (fields.length !== 0) {
     const set = fields.map((field) => `${field} = ?`).join(", ");

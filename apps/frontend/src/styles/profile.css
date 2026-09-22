@@ -9,7 +9,6 @@
     border: var(--border-width-thin) solid var(--color-border);
     border-radius: var(--radius-control);
     background: var(--color-card);
-    box-shadow: var(--shadow-sm);
     overflow: hidden;
 }
 

@@ -25,11 +25,6 @@ router.get("/", asyncHandler(async (req, res) => {
         const content = await fsAsync.readFile(filePath, "utf-8");
         const metadata = JSON.parse(content.toString());
 
-        console.log({
-          slug,
-          ...metadata,
-        });
-
         return {
           slug,
           ...metadata,
