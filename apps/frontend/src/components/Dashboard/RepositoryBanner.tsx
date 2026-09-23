@@ -10,6 +10,7 @@ export interface Repository {
   html_url: string;
   private: boolean;
   default_branch: string;
+  sha: string;
   created_at: string;
   pushed_at: string;
   updated_at: string;
@@ -24,7 +25,8 @@ export default function RepositoryBanner({repo, actions}: Props) {
   return (
     <div key={repo.id} className="profile-repository">
       <div className="profile-repository-info">
-        <h3><small>{repo.owner_login}</small>/{repo.name} {repo.private ? <LockIcon /> : <LockOpenIcon />}</h3>
+        <h3><small>{repo.owner_login}</small>/{repo.name} {repo.private ? <LockIcon size="1em"/> :
+          <LockOpenIcon size="1em"/>}</h3>
         <div>{repo.description}</div>
         <div>Created at: {new Date(repo.created_at).toLocaleString("cs-CZ")}</div>
         <div>Last activity at: {new Date(repo.pushed_at).toLocaleString("cs-CZ")}</div>

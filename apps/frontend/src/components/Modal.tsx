@@ -44,7 +44,7 @@ export default function Modal({
       >
         <div className="modal-header">
           <h2>{title}</h2>
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className="modal-close btn-ghost">
             &times;
           </button>
         </div>

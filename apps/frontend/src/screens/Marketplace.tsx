@@ -4,49 +4,24 @@ import {Link} from "react-router";
 import {useQuery} from "@tanstack/react-query";
 import InfoBanner from "@/components/InfoBanner.tsx";
 import {useEffect, useState} from "react";
-import {API_BASE} from "@/lib/api/client.ts";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
-import DefaultLessonBanner, {type DefaultLesson} from "@/components/Lesson/DefaultLessonBanner.tsx";
+import DefaultLessonBanner from "@/components/Lesson/DefaultLessonBanner.tsx";
 import {parseLessonsZipAsync} from "@/lib/helpers/zipHeper.ts";
+import {downloadLesson, getLesson, getLessons} from "@/lib/api/lessons.ts";
 
 export default function Marketplace() {
   const [error, setError] = useState<Error | null>(null);
 
   const {data: defaultLessons, isLoading: defaultLoading, error: defaultError, refetch: defaultRefetch} = useQuery({
     queryKey: ["default"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE}/lessons`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        }
-      });
-
-      return await response.json() as DefaultLesson[];
-    }
+    queryFn: async () => await getLessons()
   });
 
   const downloadDefault = async (id: string) => {
-    const dataResponse = await fetch(`${API_BASE}/lessons/download/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      }
-    });
+    const data = await downloadLesson(id);
+    const metadata = await getLesson(id);
 
-    const metadataResponse = await fetch(`${API_BASE}/lessons/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      }
-    });
-
-    const metadata = await metadataResponse.json();
-
-    await parseLessonsZipAsync(await dataResponse.blob(), "wda", id, metadata.sha);
+    await parseLessonsZipAsync(data, "wda", id, metadata.sha);
   };
 
   useEffect(() => {
@@ -112,7 +87,7 @@ export default function Marketplace() {
                   <button
                     className="btn-ghost"
                     title="Download lesson"
-                    onClick={() => downloadDefault(l.id)}
+                    onClick={() => downloadDefault(l.remoteId)}
                   >
                     <DownloadIcon size="1em" className="icon-margin-right"/>
                     Download

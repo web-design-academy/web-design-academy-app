@@ -26,3 +26,16 @@ export async function getGitHubRepositories() {
 
   return readResponse(response, "Failed to fetch repositories");
 }
+
+export async function getGitHubRepository(repoId: string) {
+  const response = await fetch(`${API_BASE}/github/repositories/${encodeURIComponent(repoId)}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    credentials: "include"
+  });
+
+  return readResponse(response, "Failed to fetch repository");
+}

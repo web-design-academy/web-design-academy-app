@@ -118,7 +118,7 @@ export async function saveLessonAsync(lesson: LessonMeta): Promise<void> {
 }
 
 export async function deleteLessonAsync(id: string): Promise<void> {
-  await db.transaction("rw", [db.lessons, db.tasks, db.progress], async () => {
+  await db.transaction("rw", [db.lessons, db.tasks, db.progress, db.content], async () => {
     await db.lessons.delete(id);
     await db.tasks.delete(id);
     await db.progress.where("lessonId").equals(id).delete();

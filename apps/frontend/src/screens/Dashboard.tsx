@@ -5,7 +5,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {useAuth} from "@/lib/ctx/useAuth";
-import {ArrowRight, Pencil, ShoppingBag,} from "lucide-react";
+import {ArrowRight, Pencil, RotateCcw, ShoppingBag,} from "lucide-react";
 import {getPlayableLessonsAsync, getProgressAsync, type LessonMeta} from "@/lib/helpers/db.ts";
 import Updater from "@/components/Updater.tsx";
 
@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const { user, isAuthenticated } = useAuth();
+  const [updateCheckToken, setUpdateCheckToken] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -66,11 +67,20 @@ export default function Dashboard() {
           <h1>Course dashboard</h1>
 
           <div className="dashboard-title-actions">
+            <button
+              className="btn-ghost"
+              aria-label={`Check for lesson updates`}
+              title="Check for lesson updates"
+              onClick={() => setUpdateCheckToken(updateCheckToken + 1)}
+            >
+              <RotateCcw size="1em"/>
+            </button>
+
             <Link
               to={`/marketplace`}
               className="btn-ghost"
-              aria-label={`Edit Mode`}
-              title="Download new lessons"
+              aria-label={`Marketplace`}
+              title="Find and download new lessons"
             >
               <ShoppingBag size="1em" className="icon-margin-right"/>
               Marketplace
@@ -163,7 +173,7 @@ export default function Dashboard() {
         )}
       </section>
 
-      <Updater/>
+      <Updater refresh={updateCheckToken}/>
     </main>
   );
 }

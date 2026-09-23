@@ -40,6 +40,9 @@ async function packLesson(sourcePath, outputPath) {
     const metadata = JSON.parse(sourceBuffer.toString());
     metadata.sha = hash.digest("hex");
 
+    const splitPath = sourcePath.split(path.sep);
+    metadata.remoteId = splitPath[splitPath.length - 1];
+
     await fsAsync.writeFile(targetJsonPath, JSON.stringify(metadata));
   } catch (err) {
     console.error(`Copy error: ${err.message}`);

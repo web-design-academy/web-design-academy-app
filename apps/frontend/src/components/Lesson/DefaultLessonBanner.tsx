@@ -1,7 +1,7 @@
 import React from "react";
 
 export interface DefaultLesson {
-  id: string;
+  remoteId: string;
   title: string;
   description: string;
   color: string;

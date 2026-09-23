@@ -1,0 +1,46 @@
+.updater {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    z-index: 1000;
+    margin: var(--workspace-shell-padding);
+    border: var(--border-width-thin) solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-card);
+}
+
+.updater > * {
+    padding-inline: var(--workspace-shell-padding);
+}
+
+.hidden {
+    display: none;
+}
+
+.updater-title {
+    padding-block: var(--space-4);
+    border-bottom: var(--border-width-thin) solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-8);
+    align-items: center;
+}
+
+.updater-body {
+    padding-block: var(--space-4);
+}
+
+.updater-lesson {
+    display: flex;
+    gap: var(--space-5);
+    align-items: center;
+    padding-block: var(--space-2);
+}
+
+.updater-lesson:not(:last-child) {
+    border-bottom: var(--border-width-thin) solid var(--color-border);
+}
+
+.updater-button {
+    width: 100%;
+}
