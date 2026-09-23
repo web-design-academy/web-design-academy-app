@@ -1,29 +1,14 @@
-import { Editor, type OnMount } from "@monaco-editor/react";
+import {Editor, type OnMount} from "@monaco-editor/react";
 import type {AnalysisIssue, CssEvaluationConfig} from "@wda/css-analysis";
-import {
-  useState,
-  useMemo,
-  useRef,
-  useEffect,
-  type ComponentType,
-} from "react";
-import { useAuth } from "@/lib/ctx/useAuth";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock3,
-  LoaderCircle,
-  Play,
-} from "lucide-react";
-import SubmitButton from "./SubmitButton";
-import LoadingSpinner from "./LoadingSpinner";
+import {type ComponentType, useEffect, useMemo, useRef, useState,} from "react";
+import {useAuth} from "@/lib/ctx/useAuth.ts";
+import {AlertTriangle, CheckCircle2, Clock3, LoaderCircle, Play,} from "lucide-react";
+import SubmitButton from "./SubmitButton.tsx";
+import LoadingSpinner from "../LoadingSpinner.tsx";
 import "@/styles/editor.css";
-import { useTheme } from "@/lib/ctx/useTheme";
-import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
-import {
-  canApplyStudentEdit,
-  parseReadonlyRanges,
-} from "@/lib/helpers/readonlyBlocks";
+import {useTheme} from "@/lib/ctx/useTheme.ts";
+import {useUiPreferences} from "@/lib/ctx/useUiPreferences.ts";
+import {canApplyStudentEdit, parseReadonlyRanges,} from "@/lib/helpers/readonlyBlocks.ts";
 import type {TaskCode} from "@/lib/helpers/tasks.ts";
 
 interface VisualEditorProps {

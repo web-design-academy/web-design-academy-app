@@ -1,13 +1,7 @@
-import { Resizable, type ResizeCallback } from "re-resizable";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ComponentType,
-  type ReactNode,
-} from "react";
+import {Resizable, type ResizeCallback} from "re-resizable";
+import {type ComponentType, type ReactNode, useEffect, useRef, useState,} from "react";
 
-import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
+import {useUiPreferences} from "@/lib/ctx/useUiPreferences.ts";
 
 import "@/styles/preview.css";
 

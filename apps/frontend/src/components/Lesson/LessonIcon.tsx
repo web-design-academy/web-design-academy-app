@@ -1,6 +1,6 @@
+import type {LucideProps} from "lucide-react";
 import * as LucideIcons from "lucide-react";
-import { HelpCircle } from "lucide-react";
-import type { LucideProps } from "lucide-react";
+import {HelpCircle} from "lucide-react";
 
 interface LessonIconProps {
   name: string;

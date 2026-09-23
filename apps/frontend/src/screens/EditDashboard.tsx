@@ -2,17 +2,17 @@ import * as LucideIcons from "lucide-react";
 import {ArrowLeft, Download, Edit3, ExternalLink, GripVertical, Plus, Search, Trash2, Undo2} from "lucide-react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {
-  deleteMarkedLessonsAsync,
+  deleteMarkedAsync,
   getLessonsAsync,
   type LessonMeta,
   markLessonDeletedAsync,
   markLessonRestoredAsync,
   saveLessonAsync,
-  saveLessonTasksAsync,
+  saveTasksAsync,
   slugifyTitle
 } from "@/lib/helpers/db.ts";
 import {Link} from "react-router";
-import LessonIcon from "@/components/LessonIcon.tsx";
+import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {
   arrayMove,
   SortableContext,
@@ -190,9 +190,10 @@ function emptyForm(): LessonForm {
     color: LESSON_COLOR_OPTIONS[0],
     icon: DEFAULT_ICON,
     taskCount: 0,
+    source: "local",
     deleted: false,
     visualEditor: false,
-    visualPreview: false,
+    visualPreview: false
   };
 }
 
@@ -493,7 +494,8 @@ export default function EditDashboard() {
       deleted: lesson.deleted ?? false,
       visualEditor: lesson.visualEditor ?? false,
       visualPreview: lesson.visualPreview ?? false,
-      taskCount: lesson.taskCount ?? 0
+      taskCount: lesson.taskCount ?? 0,
+      source: "local"
     });
     setHasTouchedTitle(false);
     setIsColorPickerOpen(false);
@@ -524,7 +526,7 @@ export default function EditDashboard() {
       deleted: false,
     });
 
-    await saveLessonTasksAsync(generatedId, [{
+    await saveTasksAsync(generatedId, [{
       html: "<h1>New Task</h1>\n<p>Start editing...</p>",
       css: "h1 { color: blue; }",
       js: 'console.log("Hello World");',
@@ -554,7 +556,7 @@ export default function EditDashboard() {
   const handleDiscardLessonChanges = async () => {
     if (isDownloadingLessonChanges) return;
 
-    await deleteMarkedLessonsAsync();
+    await deleteMarkedAsync();
     setLessons(await getLessonsAsync());
   };
 
@@ -652,7 +654,7 @@ export default function EditDashboard() {
       }
 
       for (const task of tasks) {
-        await saveLessonTasksAsync(task.lessonId, task.tasks);
+        await saveTasksAsync(task.lessonId, task.tasks);
       }
 
       const data = await getLessonsAsync();

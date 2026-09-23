@@ -1,8 +1,8 @@
 import JSZip from "jszip";
 import {ensureReadonlyBlockSpacing} from "./readonlyBlocks";
 import {
-  getLessonContentAsync,
-  getLessonTasksAsync,
+  getContentAsync,
+  getTasksAsync,
   type LessonMeta,
   type LessonTasks,
   slugifyTitle,
@@ -123,8 +123,8 @@ export async function generateCoursesZipAsync(
     addCourseToZip(
       zip,
       course as LessonExport,
-      await getLessonContentAsync(course.id),
-      await getLessonTasksAsync(course.id),
+      await getContentAsync(course.id),
+      await getTasksAsync(course.id),
     );
   }
 

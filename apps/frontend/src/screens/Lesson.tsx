@@ -1,52 +1,34 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Navigate, useParams, useSearchParams } from "react-router";
-import { Resizable, type ResizeCallback } from "re-resizable";
-import {
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Plus,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import {useCallback, useEffect, useRef, useState} from "react";
+import {Navigate, useParams, useSearchParams} from "react-router";
+import {Resizable, type ResizeCallback} from "re-resizable";
+import {CheckCircle2, ChevronDown, ChevronUp, Plus, RotateCcw, Trash2,} from "lucide-react";
 
 import "@/styles/lesson.css";
-import EditorPane from "@/components/EditorPane";
-import PreviewPane from "@/components/PreviewPane";
+import EditorPane from "@/components/Lesson/EditorPane.tsx";
+import PreviewPane from "@/components/Lesson/PreviewPane.tsx";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
-import LessonIcon from "@/components/LessonIcon";
-import RuntimeMdx from "@/components/RuntimeMdx";
-import {
-  getStudentLessonDraft,
-  saveStudentLessonDraft,
-} from "@/lib/helpers/studentDrafts";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
+import RuntimeMdx from "@/components/Lesson/RuntimeMdx.tsx";
+import {getStudentLessonDraft, saveStudentLessonDraft,} from "@/lib/helpers/studentDrafts";
+import {useMutation, useQuery} from "@tanstack/react-query";
 import {
   fetchLatestLessonSubmissions,
-  submitSolution,
   fetchSubmissionById,
   type SubmissionPayload,
+  submitSolution,
 } from "@/lib/api/submissions";
-import { useAuth } from "@/lib/ctx/useAuth";
-import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
-import { isOnlineMode } from "@/lib/config/config.ts";
-import { API_BASE } from "@/lib/api/client";
-import { fetchLesson } from "@/lib/api/lessons";
+import {useAuth} from "@/lib/ctx/useAuth";
+import {useUiPreferences} from "@/lib/ctx/useUiPreferences";
+import {isOnlineMode} from "@/lib/config/config.ts";
+import {API_BASE} from "@/lib/api/client";
+import {fetchLesson} from "@/lib/api/lessons";
 import EvaluationPanel from "@/features/challenge/EvaluationPanel";
-import { useTaskEvaluation } from "@/features/challenge/useTaskEvaluation";
-import type { AnalysisIssue } from "@wda/css-analysis";
+import {useTaskEvaluation} from "@/features/challenge/useTaskEvaluation";
+import type {AnalysisIssue} from "@wda/css-analysis";
 
-import {
-  getLessonByIdAsync,
-  getLessonTasksAsync,
-  type LessonMeta, saveLessonTasksAsync,
-} from "@/lib/helpers/db.ts";
-import {
-  mergeLegacyEditableSource,
-  normalizeTaskCode,
-  type TaskCode,
-} from "@/lib/helpers/tasks.ts";
+import {getLessonByIdAsync, getTasksAsync, type LessonMeta, saveTasksAsync,} from "@/lib/helpers/db.ts";
+import {mergeLegacyEditableSource, normalizeTaskCode, type TaskCode} from "@/lib/helpers/tasks.ts";
 
 type TaskFileState = Pick<Partial<TaskCode>, "html" | "css" | "js">;
 
@@ -162,7 +144,7 @@ export default function Lesson() {
         ...tasksRef.current[idx],
         ...state,
       }));
-      saveLessonTasksAsync(slug, persisted);
+      saveTasksAsync(slug, persisted);
       return;
     }
 
@@ -234,7 +216,7 @@ export default function Lesson() {
 
         if (cancelled) return;
 
-        const localTasks = (await getLessonTasksAsync(slug)).filter(
+        const localTasks = (await getTasksAsync(slug)).filter(
           (task) => isEditMode || !task.deleted,
         );
         const studentDraft =
@@ -751,7 +733,7 @@ export default function Lesson() {
         ...currentTasks[idx],
         ...state,
       }));
-      await saveLessonTasksAsync(slug, persisted);
+      await saveTasksAsync(slug, persisted);
     } else if (!isEditMode && slug && !loadedSubmission) {
       saveStudentLessonDraft(slug, updated, user?.userId);
     }
@@ -778,7 +760,7 @@ export default function Lesson() {
     setTaskStatesSnapshot(updatedTaskStates);
     setCurrentTaskIndex(updatedTasks.length - 1);
 
-    await saveLessonTasksAsync(slug, updatedTaskStates);
+    await saveTasksAsync(slug, updatedTaskStates);
     setAutosaveStatusSnapshot("saved");
   };
 
@@ -791,7 +773,7 @@ export default function Lesson() {
 
     setCurrentTaskIndex(taskIndex);
     setTaskStatesSnapshot(updatedTaskStates);
-    await saveLessonTasksAsync(slug, updatedTaskStates);
+    await saveTasksAsync(slug, updatedTaskStates);
     setAutosaveStatusSnapshot("saved");
   };
 

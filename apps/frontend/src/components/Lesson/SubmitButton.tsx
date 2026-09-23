@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Loader2, Check, X, Send, RotateCw } from "lucide-react";
+import {useState} from "react";
+import {Check, Loader2, RotateCw, Send, X} from "lucide-react";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 

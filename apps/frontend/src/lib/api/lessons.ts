@@ -1,4 +1,4 @@
-import { API_BASE } from "./client";
+import {API_BASE} from "./client";
 import type {LessonMeta} from "@/lib/helpers/db.ts";
 import type {TaskCode} from "@/lib/helpers/tasks.ts";
 

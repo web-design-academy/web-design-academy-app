@@ -4,6 +4,8 @@ const path = require("path");
 const {ZipArchive} = require("archiver");
 const {finished} = require("node:stream/promises");
 const crypto = require("node:crypto");
+const chokidar = require("chokidar");
+const {createAWSLambdaAPIGatewayV2Handler} = require("@octokit/oauth-app");
 
 async function packLesson(sourcePath, outputPath) {
   const lessonName = path.basename(sourcePath);
@@ -39,7 +41,7 @@ async function packLesson(sourcePath, outputPath) {
     const metadata = JSON.parse(sourceBuffer.toString());
     metadata.sha = hash.digest("hex");
 
-    const splitPath = sourcePath.split('/');
+    const splitPath = sourcePath.split(path.sep);
     metadata.id = splitPath[splitPath.length - 1];
 
     await fsAsync.writeFile(targetJsonPath, JSON.stringify(metadata));
@@ -66,6 +68,58 @@ async function packLessons(sourceDir, outputDir) {
   console.log("Successfully packed all lessons");
 }
 
+function watchLessons(sourceDir, outputDir, debounceMs = 500) {
+  const debounce = new Map();
+
+  const watcher = chokidar.watch(sourceDir, {
+    ignored: /(^|[\/\\])\../,
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 300,
+      pollInterval: 100,
+    },
+  });
+
+  watcher.on("all", (event, filePath) => {
+    const lessonName = path.relative(sourceDir, filePath).split(path.sep)[0];
+    if (!lessonName)
+      return;
+
+    if (debounce.has(lessonName))
+      clearTimeout(debounce.get(lessonName));
+
+    const timer = setTimeout(async () => {
+      debounce.delete(lessonName);
+
+      const sourcePath = path.join(sourceDir, lessonName);
+      const destination = path.join(outputDir, `${lessonName}`);
+
+      try {
+        const stat = await fsAsync.stat(sourcePath);
+        if (stat.isDirectory()) {
+          await packLesson(sourcePath, `${destination}.zip`);
+          console.log(`Repacked lesson ${lessonName}`);
+        }
+      } catch {
+        try {
+          await fsAsync.rm(`${destination}.zip`);
+        } catch (e) {
+        }
+
+        try {
+          await fsAsync.rm(`${destination}.json`);
+        } catch (e) {
+        }
+        console.log(`Deleted lesson ${lessonName}`);
+      }
+    }, debounceMs);
+
+    debounce.set(lessonName, timer);
+  });
+}
+
 module.exports = {
-  packLessons
+  packLessons,
+  watchLessons
 };

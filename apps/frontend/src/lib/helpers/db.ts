@@ -127,7 +127,7 @@ export async function deleteLessonAsync(id: string): Promise<void> {
   emitLessonDraftsChanged();
 }
 
-export async function deleteMarkedLessonsAsync(): Promise<void> {
+export async function deleteMarkedAsync(): Promise<void> {
   await db.transaction("rw", [db.lessons, db.tasks, db.progress, db.content], async () => {
     const allLessons = await db.lessons.toArray();
     const deletedLessons = allLessons.filter((lesson) => lesson.deleted || false);
@@ -138,36 +138,17 @@ export async function deleteMarkedLessonsAsync(): Promise<void> {
   })
 }
 
-export async function getLessonTasksAsync(id: string): Promise<Partial<TaskCode>[]> {
+export async function getTasksAsync(id: string): Promise<Partial<TaskCode>[]> {
   const record = await db.tasks.get(id);
   return record?.tasks ?? [];
 }
 
-export async function getLessonContentAsync(id: string): Promise<string> {
-  const content = await db.content.get(id)
-  return content?.content ?? "";
-}
-
-export async function getLessonProgressForUser(
-  lessonId: string,
-  userId: string,
-): Promise<UserLessonProgress | undefined> {
-  return await db.progress.get([userId, lessonId]);
-}
-
-export async function getLessonTasksCountAsync(id: string): Promise<number> {
-  const tasks = await getLessonTasksAsync(id);
+export async function getTasksCountAsync(id: string): Promise<number> {
+  const tasks = await getTasksAsync(id);
   return tasks.length;
 }
 
-export async function saveLessonContent(lessonId: string, content: string) {
-  await db.content.put({
-    lessonId,
-    content
-  });
-}
-
-export async function saveLessonTasksAsync(
+export async function saveTasksAsync(
   lessonId: string,
   tasks: Partial<TaskCode>[],
 ): Promise<void> {
@@ -181,11 +162,30 @@ export async function saveLessonTasksAsync(
   emitLessonDraftsChanged();
 }
 
-export async function deleteLessonTasksAsync(id: string): Promise<void> {
+export async function deleteTasksAsync(id: string): Promise<void> {
   await db.transaction("rw", [db.lessons, db.tasks, db.progress], async () => {
     await db.tasks.delete(id);
     await db.progress.where("lessonId").equals(id).delete();
     await db.lessons.update(id, { taskCount: 0 });
   });
   emitLessonDraftsChanged();
+}
+
+export async function getContentAsync(id: string): Promise<string> {
+  const content = await db.content.get(id)
+  return content?.content ?? "";
+}
+
+export async function saveLessonContent(lessonId: string, content: string) {
+  await db.content.put({
+    lessonId,
+    content
+  });
+}
+
+export async function getProgressAsync(
+  lessonId: string,
+  userId: string,
+): Promise<UserLessonProgress | undefined> {
+  return await db.progress.get([userId, lessonId]);
 }

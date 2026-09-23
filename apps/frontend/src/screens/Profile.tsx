@@ -1,6 +1,6 @@
 import {useAuth} from "@/lib/ctx/useAuth.ts";
-import GitHubIcon from "@/components/GitHubIcon.tsx";
-import GitHubAvatar from "@/components/GitHubAvatar.tsx";
+import GitHubIcon from "@/components/User/GitHubIcon.tsx";
+import GitHubAvatar from "@/components/User/GitHubAvatar.tsx";
 import {useCallback, useEffect, useState} from "react";
 import {Link, useNavigate} from "react-router";
 import "@/styles/profile.css"
@@ -11,7 +11,7 @@ import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import {API_BASE} from "@/lib/api/client.ts";
 import {useQuery} from "@tanstack/react-query";
 import InfoBanner from "@/components/InfoBanner.tsx";
-import RepositoryBanner, {type Repository} from "@/components/RepositoryBanner.tsx";
+import RepositoryBanner, {type Repository} from "@/components/Dashboard/RepositoryBanner.tsx";
 
 type Modals = "scopes" | "unlink" | "remote" | "none";
 

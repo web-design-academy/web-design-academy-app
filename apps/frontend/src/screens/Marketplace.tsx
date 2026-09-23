@@ -6,9 +6,9 @@ import InfoBanner from "@/components/InfoBanner.tsx";
 import {useEffect, useState} from "react";
 import {API_BASE} from "@/lib/api/client.ts";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
-import DefaultLessonBanner, {type DefaultLesson} from "@/components/DefaultLessonBanner.tsx";
+import DefaultLessonBanner, {type DefaultLesson} from "@/components/Lesson/DefaultLessonBanner.tsx";
 import {parseLessonZip} from "@/lib/helpers/zipHeper.ts";
-import {saveLessonAsync, saveLessonTasksAsync} from "@/lib/helpers/db.ts";
+import {saveLessonAsync, saveTasksAsync} from "@/lib/helpers/db.ts";
 
 export default function Marketplace() {
   const [error, setError] = useState<Error | null>(null);
@@ -43,7 +43,7 @@ export default function Marketplace() {
     }
 
     for (const task of tasks) {
-      await saveLessonTasksAsync(task.lessonId, task.tasks);
+      await saveTasksAsync(task.lessonId, task.tasks);
     }
   };
 

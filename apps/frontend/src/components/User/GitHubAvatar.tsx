@@ -1,5 +1,5 @@
 import {type CSSProperties, useState} from "react";
-import { User } from "lucide-react";
+import {User} from "lucide-react";
 
 interface UserAvatarProps {
   url?: string | null;

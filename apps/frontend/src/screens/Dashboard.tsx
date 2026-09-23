@@ -3,10 +3,10 @@ import {Link} from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
-import LessonIcon from "@/components/LessonIcon";
+import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {useAuth} from "@/lib/ctx/useAuth";
 import {ArrowRight, Pencil, ShoppingBag,} from "lucide-react";
-import {getLessonProgressForUser, getPlayableLessonsAsync, type LessonMeta} from "@/lib/helpers/db.ts";
+import {getPlayableLessonsAsync, getProgressAsync, type LessonMeta} from "@/lib/helpers/db.ts";
 import Updater from "@/components/Updater.tsx";
 
 const PAGE_SIZE = 8;
@@ -32,7 +32,7 @@ export default function Dashboard() {
       return await Promise.all(
         lessons.map(async (lesson) => ({
             ...lesson,
-            progress: user ? (await getLessonProgressForUser(lesson.id, user.userId))?.completedTasks.length ?? 0 : 0,
+          progress: user ? (await getProgressAsync(lesson.id, user.userId))?.completedTasks.length ?? 0 : 0,
             taskCount: lesson.taskCount ?? 0,
           })
         )
