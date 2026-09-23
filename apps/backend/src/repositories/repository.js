@@ -4,15 +4,30 @@ const updatableColumns = new Set([
   "name", "description", "language", "owner_login", "html_url", "private", "default_branch", "created_at", "pushed_at", "sha"
 ]);
 
-function getReposByUser(userId) {
+function getReposByUser(userId, pageSize = 0, page = 0) {
   if (!userId)
     return [];
+
+  const params = [userId];
+  if (pageSize > 0 && page >= 0)
+    params.push(pageSize, (page - 1) * pageSize);
 
   return db.prepare(`
     SELECT * 
     FROM repos 
+    WHERE user_id = ? ${pageSize > 0 && page >= 0 ? `LIMIT ? OFFSET ?` : ""}
+  `).all(...params);
+}
+
+function getReposByUserCount(userId) {
+  if (!userId)
+    return 0;
+
+  return db.prepare(`
+    SELECT COUNT(*) count
+    FROM repos
     WHERE user_id = ?
-  `).all(userId);
+  `).get(userId).count;
 }
 
 function getRepo(id) {
@@ -111,6 +126,7 @@ function deleteRepo(userId, repoId) {
 
 module.exports = {
   getReposByUser,
+  getReposByUserCount,
   getRepo,
   createRepo,
   updateRepo,

@@ -34,7 +34,7 @@ import {
   useSensor,
   useSensors
 } from "@dnd-kit/core";
-import {generateCoursesZipAsync, parseLessonZip} from "@/lib/helpers/zipHeper";
+import {packLessonsZipAsync, parseLessonsZipAsync} from "@/lib/helpers/zipHeper";
 import {HexColorPicker} from "react-colorful";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 
@@ -547,7 +547,7 @@ export default function EditDashboard() {
           .filter((lesson) => !lesson.deleted)
       );
 
-      await generateCoursesZipAsync(coursesData, "lessons.zip");
+      await packLessonsZipAsync(coursesData, "lessons.zip");
     } finally {
       setIsDownloadingLessonChanges(false);
     }
@@ -648,16 +648,7 @@ export default function EditDashboard() {
 
   const handleFileDrop = useCallback(async (file: File) => {
     if (file.name.endsWith(".zip")) {
-      const [lessons, tasks] = await parseLessonZip(file);
-      for (const lesson of lessons) {
-        await saveLessonAsync(lesson);
-      }
-
-      for (const task of tasks) {
-        await saveTasksAsync(task.lessonId, task.tasks);
-      }
-
-      const data = await getLessonsAsync();
+      const data = await parseLessonsZipAsync(file);
       setLessons(data);
     } else {
       alert("unsupported file type");

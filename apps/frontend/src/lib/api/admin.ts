@@ -1,6 +1,7 @@
-import { requireOnlineMode } from "@/lib/config/config.ts";
-import type { PaginatedResponse, UserTag } from "@/lib/api/submissions";
-import { API_BASE } from "@/lib/api/client";
+import {requireOnlineMode} from "@/lib/config/config.ts";
+import type {PaginatedResponse, UserTag} from "@/lib/api/submissions";
+import {API_BASE} from "@/lib/api/client";
+import {readResponse} from "@/lib/api/readResponse.ts";
 
 export interface AdminUser {
   id: string;
@@ -44,23 +45,11 @@ function buildQuery(query: PaginatedAdminQuery) {
   return params.toString();
 }
 
-async function readJsonResponse<T>(
-  response: Response,
-  fallbackMessage: string,
-) {
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    throw new Error(error?.error || fallbackMessage);
-  }
-
-  return response.json() as Promise<T>;
-}
-
 export async function fetchAdminTags(): Promise<AdminTag[]> {
   requireOnlineMode("Admin tags");
 
   const response = await fetch(`${API_BASE}/admin/tags`);
-  return readJsonResponse(response, "Failed to fetch tags");
+  return readResponse(response, "Failed to fetch tags");
 }
 
 export async function fetchAdminUsers(
@@ -69,7 +58,7 @@ export async function fetchAdminUsers(
   requireOnlineMode("Admin users");
 
   const response = await fetch(`${API_BASE}/admin/users?${buildQuery(query)}`);
-  return readJsonResponse(response, "Failed to fetch users");
+  return readResponse(response, "Failed to fetch users");
 }
 
 export async function addUserTag(
@@ -84,7 +73,7 @@ export async function addUserTag(
     body: JSON.stringify(payload),
   });
 
-  return readJsonResponse<{ success: true; tag: UserTag }>(
+  return readResponse<{ success: true; tag: UserTag }>(
     response,
     "Failed to add tag",
   );
@@ -102,7 +91,7 @@ export async function addTagToUsers(
     body: JSON.stringify({ ...payload, userIds }),
   });
 
-  return readJsonResponse<{ success: true; tag: UserTag }>(
+  return readResponse<{ success: true; tag: UserTag }>(
     response,
     "Failed to add tag",
   );
@@ -118,7 +107,7 @@ export async function removeUserTag(userId: string, tagId: number) {
     },
   );
 
-  return readJsonResponse<{ success: true }>(response, "Failed to remove tag");
+  return readResponse<{ success: true }>(response, "Failed to remove tag");
 }
 
 export async function removeTagFromUsers(userIds: string[], tagId: number) {
@@ -130,7 +119,7 @@ export async function removeTagFromUsers(userIds: string[], tagId: number) {
     body: JSON.stringify({ userIds }),
   });
 
-  return readJsonResponse<{ success: true }>(response, "Failed to remove tag");
+  return readResponse<{ success: true }>(response, "Failed to remove tag");
 }
 
 export async function deleteTag(tagId: number) {
@@ -140,5 +129,5 @@ export async function deleteTag(tagId: number) {
     method: "DELETE",
   });
 
-  return readJsonResponse<{ success: true }>(response, "Failed to delete tag");
+  return readResponse<{ success: true }>(response, "Failed to delete tag");
 }

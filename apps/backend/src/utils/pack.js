@@ -5,7 +5,6 @@ const {ZipArchive} = require("archiver");
 const {finished} = require("node:stream/promises");
 const crypto = require("node:crypto");
 const chokidar = require("chokidar");
-const {createAWSLambdaAPIGatewayV2Handler} = require("@octokit/oauth-app");
 
 async function packLesson(sourcePath, outputPath) {
   const lessonName = path.basename(sourcePath);
@@ -40,9 +39,6 @@ async function packLesson(sourcePath, outputPath) {
     const sourceBuffer = await fsAsync.readFile(path.join(sourcePath, `${lessonName}.json`));
     const metadata = JSON.parse(sourceBuffer.toString());
     metadata.sha = hash.digest("hex");
-
-    const splitPath = sourcePath.split(path.sep);
-    metadata.id = splitPath[splitPath.length - 1];
 
     await fsAsync.writeFile(targetJsonPath, JSON.stringify(metadata));
   } catch (err) {

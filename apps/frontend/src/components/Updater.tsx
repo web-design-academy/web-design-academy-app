@@ -19,6 +19,7 @@ export default function Updater() {
             }
           });
           const remoteLesson = await response.json();
+          console.log(remoteLesson.sha, lesson.sha)
           if (remoteLesson.sha !== lesson.sha)
             updatable.push(remoteLesson);
         } else if (lesson.source === "github") {
@@ -32,7 +33,7 @@ export default function Updater() {
           });
 
           const remoteLesson = await response.json();
-          if (remoteLesson.sha !== lesson.sha)
+          if (remoteLesson.sha === lesson.sha)
             updatable.push(remoteLesson);
         }
       }
@@ -45,12 +46,12 @@ export default function Updater() {
   return (
     <Modal
       title="Available lesson updates"
-      isOpen={false}
+      isOpen={!lessonLoading}
       onClose={() => {
       }}
-      children={(
-        <div></div>
-      )}
+      children={lessons && lessons.map((l) => (
+        <div>{l.title}</div>
+      ))}
     />
   );
 }

@@ -2,9 +2,12 @@ import JSZip from "jszip";
 import {ensureReadonlyBlockSpacing} from "./readonlyBlocks";
 import {
   getContentAsync,
+  getLessonsAsync,
   getTasksAsync,
   type LessonMeta,
   type LessonTasks,
+  saveLessonAsync,
+  saveTasksAsync,
   slugifyTitle,
   type Source,
 } from "@/lib/helpers/db.ts";
@@ -13,7 +16,7 @@ import type {TaskCode} from "@/lib/helpers/tasks.ts";
 type LessonExport = Omit<LessonMeta, "id" | "order" | "taskCount" | "deleted" | "tasks">;
 const OMIT_KEYS = new Set(["id", "order", "taskCount", "deleted", "tasks"]);
 
-function addCourseToZip(
+function packLessonAsync(
   zip: JSZip,
   course: LessonExport,
   content: string,
@@ -78,7 +81,7 @@ function addCourseToZip(
     });
 }
 
-async function downloadZip(zip: JSZip, suggestedName: string): Promise<void> {
+async function downloadZipAsync(zip: JSZip, suggestedName: string): Promise<void> {
   const blob = await zip.generateAsync({ type: "blob" });
 
   if ("showSaveFilePicker" in window) {
@@ -114,27 +117,11 @@ async function downloadZip(zip: JSZip, suggestedName: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-export async function generateCoursesZipAsync(
-  courses: LessonMeta[],
-  suggestedName: string = "lessons.zip",
-): Promise<void> {
-  const zip = new JSZip();
-  for (const course of courses) {
-    addCourseToZip(
-      zip,
-      course as LessonExport,
-      await getContentAsync(course.id),
-      await getTasksAsync(course.id),
-    );
-  }
-
-  await downloadZip(zip, suggestedName);
-}
-
-export async function parseLessonZip(
+async function parseZipAsync(
   file: File | Blob,
   source: Source = "local",
-  remoteId: string | undefined = undefined
+  remoteId: string | undefined = undefined,
+  sha: string | undefined = undefined
 ): Promise<[LessonMeta[], LessonTasks[], Record<string, string>]> {
   const zip = await JSZip.loadAsync(file);
   const lessonsMap = new Map<
@@ -147,12 +134,15 @@ export async function parseLessonZip(
   >();
 
   for (const [filePath, fileEntry] of Object.entries(zip.files)) {
-    if (fileEntry.dir) continue;
-    if (filePath.startsWith("__MACOSX/") || filePath.includes("/.DS_Store")) continue;
+    if (fileEntry.dir)
+      continue;
+    if (filePath.startsWith("__MACOSX/") || filePath.includes("/.DS_Store"))
+      continue;
 
     const splitPath = filePath.split("/").filter(Boolean);
     const rootFolder = splitPath[0];
-    if (!rootFolder) continue;
+    if (!rootFolder)
+      continue;
 
     if (!lessonsMap.has(rootFolder)) {
       lessonsMap.set(rootFolder, {
@@ -184,9 +174,8 @@ export async function parseLessonZip(
 
       if (isNaN(taskId)) continue;
 
-      if (!currentLesson.tasksMap.has(taskId)) {
+      if (!currentLesson.tasksMap.has(taskId))
         currentLesson.tasksMap.set(taskId, {});
-      }
 
       const taskTarget = currentLesson.tasksMap.get(taskId)!;
       const fileContent = await fileEntry.async("text");
@@ -228,13 +217,12 @@ export async function parseLessonZip(
   const contents: Record<string, string> = {};
 
   lessonsMap.forEach((value, folderName) => {
-    const lessonId = value.meta.id || folderName;
-
     const sortedTaskIds = Array.from(value.tasksMap.keys()).sort((a, b) => a - b);
     const lessonTasksList: Partial<TaskCode>[] = sortedTaskIds.map(
       (id) => value.tasksMap.get(id)!,
     );
 
+    const lessonId = slugifyTitle(folderName, source === "github" ? remoteId : undefined);
     const lessonMeta: LessonMeta = {
       id: lessonId,
       title: value.meta.title || folderName,
@@ -248,7 +236,7 @@ export async function parseLessonZip(
       deleted: value.meta.deleted ?? false,
       source: source,
       remoteId: remoteId,
-      sha: value.meta.sha,
+      sha: sha,
     };
 
     const tasksMeta: LessonTasks = {
@@ -262,4 +250,37 @@ export async function parseLessonZip(
   });
 
   return [lessons, tasks, contents];
+}
+
+export async function packLessonsZipAsync(
+  courses: LessonMeta[],
+  suggestedName: string = "lessons.zip",
+): Promise<void> {
+  const zip = new JSZip();
+  for (const course of courses) {
+    packLessonAsync(
+      zip,
+      course as LessonExport,
+      await getContentAsync(course.id),
+      await getTasksAsync(course.id),
+    );
+  }
+
+  await downloadZipAsync(zip, suggestedName);
+}
+
+export async function parseLessonsZipAsync(
+  file: File | Blob,
+  source: Source = "local",
+  remoteId: string | undefined = undefined,
+  sha: string | undefined = undefined
+) {
+  const [lessons, tasks] = await parseZipAsync(file, source, remoteId, sha);
+  for (const lesson of lessons) {
+    await saveLessonAsync(lesson);
+  }
+  for (const task of tasks) {
+    await saveTasksAsync(task.lessonId, task.tasks);
+  }
+  return await getLessonsAsync();
 }

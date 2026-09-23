@@ -7,8 +7,7 @@ import {useEffect, useState} from "react";
 import {API_BASE} from "@/lib/api/client.ts";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import DefaultLessonBanner, {type DefaultLesson} from "@/components/Lesson/DefaultLessonBanner.tsx";
-import {parseLessonZip} from "@/lib/helpers/zipHeper.ts";
-import {saveLessonAsync, saveTasksAsync} from "@/lib/helpers/db.ts";
+import {parseLessonsZipAsync} from "@/lib/helpers/zipHeper.ts";
 
 export default function Marketplace() {
   const [error, setError] = useState<Error | null>(null);
@@ -29,7 +28,7 @@ export default function Marketplace() {
   });
 
   const downloadDefault = async (id: string) => {
-    const response = await fetch(`${API_BASE}/lessons/${id}`, {
+    const dataResponse = await fetch(`${API_BASE}/lessons/download/${id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -37,14 +36,17 @@ export default function Marketplace() {
       }
     });
 
-    const [lessons, tasks] = await parseLessonZip(await response.blob(), "wda", id);
-    for (const lesson of lessons) {
-      await saveLessonAsync(lesson);
-    }
+    const metadataResponse = await fetch(`${API_BASE}/lessons/${id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }
+    });
 
-    for (const task of tasks) {
-      await saveTasksAsync(task.lessonId, task.tasks);
-    }
+    const metadata = await metadataResponse.json();
+
+    await parseLessonsZipAsync(await dataResponse.blob(), "wda", id, metadata.sha);
   };
 
   useEffect(() => {

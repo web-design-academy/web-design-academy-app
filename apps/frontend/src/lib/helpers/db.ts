@@ -52,10 +52,11 @@ export type LessonMeta = {
  * 4. Removing leading and trailing hyphens.
  *
  * @param {string} title - The input string to be slugified.
+ * @param {string} extension - Extension to be appended after the title.
  * @return {string} The slugified version of the input string.
  */
-export function slugifyTitle(title: string): string {
-  return title
+export function slugifyTitle(title: string, extension: string = crypto.randomUUID()): string {
+  return `${title}-${extension}`
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

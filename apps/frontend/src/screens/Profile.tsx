@@ -12,25 +12,36 @@ import {API_BASE} from "@/lib/api/client.ts";
 import {useQuery} from "@tanstack/react-query";
 import InfoBanner from "@/components/InfoBanner.tsx";
 import RepositoryBanner, {type Repository} from "@/components/Dashboard/RepositoryBanner.tsx";
-
-type Modals = "scopes" | "unlink" | "remote" | "none";
+import {getGitHubRepositories, unlinkGitHubAccount} from "@/lib/api/github.ts";
+import {addRemoteRepository, getRemoteRepositories, removeRemoteRepository} from "@/lib/api/repositories.ts";
 
 const PAGE_SIZE = 5;
+
+type Modals = "scopes" | "unlink" | "remote" | "none";
 
 export default function Profile() {
   const { user, isLoading, refresh } = useAuth();
   const navigate = useNavigate();
   const [ openModal, setOpenModal ] = useState<Modals>("none");
-  const [ remotePage, setRemotePage ] = useState<number>(1);
   const [ error, setError ] = useState<Error | null>(null);
-  const [remoteStart, setRemoteStart] = useState(0);
-  const [shownRemotes, setShownRemotes] = useState<Repository[]>([])
+
+  const [remotePage, setRemotePage] = useState<number>(1);
+
+  const [githubPage, setGithubPage] = useState<number>(1);
+  const [githubStart, setGithubStart] = useState(0);
+  const [githubVisible, setGithubVisible] = useState<Repository[]>([])
 
   const scopeDescriptions = new Map<string, string>([
     ["repo", "Read and write access to public and private repositories, including file contents, commit statuses, and collaborators."],
     ["user", "Read/write access to profile info, including public email address, followers and following."],
     ["read:user", "Read access to a user's profile info, including public email address, followers, and following."],
   ]);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/");
+    }
+  }, [user, isLoading, navigate]);
 
   const handlePopUpClose = useCallback(() => {
     setOpenModal("none");
@@ -55,7 +66,6 @@ export default function Profile() {
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
-    console.log(`${API_BASE}/github/link`)
     const popup = window.open(
       `${API_BASE}/github/link`,
       "github_oauth_popup",
@@ -92,67 +102,36 @@ export default function Profile() {
 
   const unlinkGitHub = async () => {
     try {
-      const response = await fetch(`${API_BASE}/github/link`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include"
-      });
-
-      if (!response.ok)
-        throw new Error("Failed to unlink GitHub account");
-
+      await unlinkGitHubAccount();
       await refresh();
-      setOpenModal("none");
     } catch (error) {
       setError(error as Error);
+    } finally {
       handlePopUpClose();
     }
   }
 
   const addRemote = async (repoId: number) => {
     try {
-      const response = await fetch(`${API_BASE}/repositories/${repoId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include"
-      });
-
-      if (!response.ok)
-        throw new Error("Failed to add remote repository");
+      await addRemoteRepository(repoId);
     } catch (error) {
       setError(error as Error);
       handlePopUpClose();
     } finally {
+      await githubRefetch();
       await remoteRefetch();
-      await addedRefetch();
     }
   }
 
   const removeRemote = async (repoId: number) => {
     try {
-      const response = await fetch(`${API_BASE}/repositories/${repoId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include"
-      });
-
-      if (!response.ok)
-        throw new Error("Failed to remove remote repository");
+      await removeRemoteRepository(repoId);
     } catch (error) {
       setError(error as Error);
       handlePopUpClose();
     } finally {
+      await githubRefetch();
       await remoteRefetch();
-      await addedRefetch();
     }
   }
 
@@ -178,59 +157,21 @@ export default function Profile() {
     </button>
   );
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      navigate("/");
-    }
-  }, [user, isLoading, navigate]);
-
-  const { data: addedData, isLoading: addedLoading, error: addedError, refetch: addedRefetch } = useQuery({
+  const {data: remoteData, isLoading: remoteLoading, error: remoteError, refetch: remoteRefetch} = useQuery({
     queryKey: ["tracked"],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/repositories`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include"
-      });
-
-      if (!response.ok)
-        throw new Error("Failed to fetch tracked repositories");
-
-      return await response.json() as Promise<Repository[]>;
+      return await getRemoteRepositories();
     },
     enabled: Boolean(!isLoading),
     staleTime: Infinity,
   });
-  
-  const { data: remoteData, isLoading: remoteLoading, error: remoteError, refetch: remoteRefetch } = useQuery({
-    queryKey: ["remotes"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE}/github/repositories`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include"
-      });
 
-      if (!response.ok)
-        throw new Error("Failed to fetch repositories");
-      return await response.json() as Repository[];
-    },
+  const {data: githubData, isLoading: githubLoading, error: githubError, refetch: githubRefetch} = useQuery({
+    queryKey: ["remotes"],
+    queryFn: async () => await getGitHubRepositories() as Repository[],
     enabled: Boolean(!isLoading && user?.githubId),
     staleTime: Infinity,
   });
-
-  useEffect(() => {
-    if (addedError) {
-      setError(addedError);
-      handlePopUpClose();
-    }
-  }, [handlePopUpClose, addedError]);
 
   useEffect(() => {
     if (remoteError) {
@@ -240,11 +181,18 @@ export default function Profile() {
   }, [handlePopUpClose, remoteError]);
 
   useEffect(() => {
-    if (remoteData) {
-      setRemoteStart((remotePage - 1) * PAGE_SIZE);
-      setShownRemotes(remoteData.slice(remoteStart, remoteStart + PAGE_SIZE));
+    if (githubError) {
+      setError(githubError);
+      handlePopUpClose();
     }
-  }, [remoteData, remotePage, remoteStart]);
+  }, [handlePopUpClose, githubError]);
+
+  useEffect(() => {
+    if (githubData) {
+      setGithubStart((githubPage - 1) * PAGE_SIZE);
+      setGithubVisible(githubData.slice(githubStart, githubStart + PAGE_SIZE));
+    }
+  }, [githubData, githubPage, githubStart]);
 
   return (
     <>
@@ -353,11 +301,11 @@ export default function Profile() {
                   </div>
                 )}
 
-                {addedLoading ? (
+                {remoteLoading ? (
                   <LoadingSpinner />
                 ) : (
                   <>
-                    {addedData?.length === 0 && (
+                    {remoteData?.repositories.length === 0 && (
                       <div className="profile-section-info big">
                         <h4>You have no tracked remote repositories</h4>
 
@@ -378,7 +326,7 @@ export default function Profile() {
                       </div>
                     )}
 
-                    {addedData?.map((repo: Repository) => (
+                    {remoteData?.repositories.map((repo: Repository) => (
                       <RepositoryBanner
                         key={repo.id}
                         repo={repo}
@@ -417,10 +365,10 @@ export default function Profile() {
             </div>
 
             <Pagination
-              page={1}
-              pageSize={12}
-              total={0}
-              onChange={() => {}}
+              page={remotePage}
+              pageSize={PAGE_SIZE}
+              total={remoteData?.total ?? 0}
+              onChange={(page) => setRemotePage(page)}
             />
           </div>
         </section>
@@ -482,13 +430,13 @@ export default function Profile() {
           onClose={handlePopUpClose}
           children={
             <>
-              {remoteLoading ? <LoadingSpinner /> : (
+              {githubLoading ? <LoadingSpinner/> : (
                 <div className="profile-remote-repositories">
                   <div className="profile-repositories">
-                    {shownRemotes.map((repo) => (
+                    {githubVisible.map((repo) => (
                       <RepositoryBanner
                         repo={repo}
-                        actions={addedData && addedData.some((r: Repository) =>
+                        actions={remoteData && remoteData.repositories.some((r: Repository) =>
                           Math.floor(r.id) === Math.floor(repo.id)) ? (
                           <button
                             type="button"
@@ -514,12 +462,10 @@ export default function Profile() {
                   </div>
 
                   <Pagination
-                    page={remotePage}
+                    page={githubPage}
                     pageSize={PAGE_SIZE}
-                    total={remoteData?.length || 0}
-                    onChange={(page) => {
-                      setRemotePage(page)
-                    }}
+                    total={githubData?.length || 0}
+                    onChange={(page) => setGithubPage(page)}
                   />
                 </div>
               )}

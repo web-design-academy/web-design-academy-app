@@ -46,6 +46,19 @@ router.get("/:slug", asyncHandler((req, res) => {
   if (!/^[a-zA-Z0-9_-]+$/.test(slug))
     throw new ServerError("Invalid lesson slug", 400);
 
+  const lessonPath = path.join(environment.cachePath, `${slug}.json`);
+  if (!fs.existsSync(lessonPath))
+    throw new ServerError("Lesson not found", 404);
+
+  res.download(lessonPath, `${slug}.json`);
+}));
+
+router.get("/download/:slug", asyncHandler((req, res) => {
+  const slug = req.params.slug;
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(slug))
+    throw new ServerError("Invalid lesson slug", 400);
+
   const lessonPath = path.join(environment.cachePath, `${slug}.zip`);
   if (!fs.existsSync(lessonPath))
     throw new ServerError("Lesson not found", 404);

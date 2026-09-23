@@ -7,8 +7,11 @@ const asyncHandler = require("../middleware/asyncError")
 router.use(authenticateToken);
 
 router.get("/", asyncHandler(async (req, res) => {
-  const repositories = await repository.getReposByUser(req.user.sub);
-  res.json(repositories);
+  const page = req.params.page;
+  const pageSize = req.params.pageSize;
+  const total = await repository.getReposByUserCount(req.user.sub);
+  const repositories = await repository.getReposByUser(req.user.sub, parseInt(pageSize), parseInt(page));
+  res.json({total, repositories});
 }));
 
 router.post("/:id", asyncHandler(async (req, res) => {

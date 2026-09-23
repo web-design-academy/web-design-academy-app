@@ -22,7 +22,7 @@ import {useAuth} from "@/lib/ctx/useAuth";
 import {useUiPreferences} from "@/lib/ctx/useUiPreferences";
 import {isOnlineMode} from "@/lib/config/config.ts";
 import {API_BASE} from "@/lib/api/client";
-import {fetchLesson} from "@/lib/api/lessons";
+import {downloadLesson} from "@/lib/api/lessons";
 import EvaluationPanel from "@/features/challenge/EvaluationPanel";
 import {useTaskEvaluation} from "@/features/challenge/useTaskEvaluation";
 import type {AnalysisIssue} from "@wda/css-analysis";
@@ -210,7 +210,7 @@ export default function Lesson() {
         const addedDraft = true;
 
         if (!addedDraft) {
-          const detail = await fetchLesson(slug);
+          const detail = await downloadLesson(slug);
           if (!cancelled) setLessonContent(detail.content);
         }
 
