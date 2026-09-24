@@ -1,14 +1,6 @@
 import {API_BASE} from "./client";
-import type {LessonMeta} from "@/lib/helpers/db.ts";
-import type {TaskCode} from "@/lib/helpers/tasks.ts";
 import {readResponse} from "@/lib/api/readResponse.ts";
 import type {DefaultLesson} from "@/components/Lesson/DefaultLessonBanner.tsx";
-
-export type LessonDetail = {
-  lesson: LessonMeta;
-  content: string;
-  tasks: Partial<TaskCode>[];
-};
 
 export async function getLessons() {
   const response = await fetch(`${API_BASE}/lessons`, {

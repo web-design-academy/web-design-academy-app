@@ -52,15 +52,21 @@ export type LessonMeta = {
  * 4. Removing leading and trailing hyphens.
  *
  * @param {string} title - The input string to be slugified.
- * @param {string} extension - Extension to be appended after the title.
  * @return {string} The slugified version of the input string.
  */
-export function slugifyTitle(title: string, extension: string = crypto.randomUUID()): string {
-  return `${title}-${extension}`
+export function slugifyTitle(title: string): string {
+  return title
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+export function generateId(title: string, source: Source, remoteId: string | undefined = undefined): string {
+  return slugifyTitle(`
+    ${title}_
+    ${source === "local" ? crypto.randomUUID() : remoteId ?? crypto.randomUUID()}
+  `);
 }
 
 const db = new Dexie("WDA") as Dexie & {
@@ -110,10 +116,28 @@ export async function markLessonRestoredAsync(id: string): Promise<void> {
 }
 
 export async function saveLessonAsync(lesson: LessonMeta): Promise<void> {
-  await db.lessons.put({
-    ...lesson,
-    deleted: false,
+  await db.transaction("rw", db.lessons, async () => {
+    if (lesson.order === -1) {
+      const existing = await db.lessons.toArray();
+      existing.sort((a, b) => {
+        const orderA = typeof a.order === "number" ? a.order : Number.MAX_SAFE_INTEGER;
+        const orderB = typeof b.order === "number" ? b.order : Number.MAX_SAFE_INTEGER;
+        return orderA - orderB;
+      });
+
+      existing.forEach((l, i) => {
+        l.order = i + 2;
+      });
+      await db.lessons.bulkPut(existing);
+      lesson.order = 1;
+    }
+
+    await db.lessons.put({
+      ...lesson,
+      deleted: false,
+    });
   });
+
   emitLessonDraftsChanged();
 }
 

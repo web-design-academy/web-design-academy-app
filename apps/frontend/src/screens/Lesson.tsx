@@ -22,12 +22,17 @@ import {useAuth} from "@/lib/ctx/useAuth";
 import {useUiPreferences} from "@/lib/ctx/useUiPreferences";
 import {isOnlineMode} from "@/lib/config/config.ts";
 import {API_BASE} from "@/lib/api/client";
-import {downloadLesson} from "@/lib/api/lessons";
 import EvaluationPanel from "@/features/challenge/EvaluationPanel";
 import {useTaskEvaluation} from "@/features/challenge/useTaskEvaluation";
 import type {AnalysisIssue} from "@wda/css-analysis";
 
-import {getLessonByIdAsync, getTasksAsync, type LessonMeta, saveTasksAsync,} from "@/lib/helpers/db.ts";
+import {
+  getContentAsync,
+  getLessonByIdAsync,
+  getTasksAsync,
+  type LessonMeta,
+  saveTasksAsync,
+} from "@/lib/helpers/db.ts";
 import {mergeLegacyEditableSource, normalizeTaskCode, type TaskCode} from "@/lib/helpers/tasks.ts";
 
 type TaskFileState = Pick<Partial<TaskCode>, "html" | "css" | "js">;
@@ -78,6 +83,7 @@ export default function Lesson() {
     mutationFn: (payload: SubmissionPayload) => submitSolution(payload),
   });
 
+  // TODO: Submissions as subject to change, deprecated
   const {
     data: loadedSubmission,
     isLoading: isLoadingSubmission,
@@ -85,14 +91,15 @@ export default function Lesson() {
   } = useQuery({
     queryKey: ["submission", submissionId],
     queryFn: () => fetchSubmissionById(submissionId!),
-    enabled: !!submissionId && isOnlineMode,
+    // enabled: !!submissionId && isOnlineMode,
+    enabled: false
   });
 
   const { data: latestLessonSubmissions } = useQuery({
     queryKey: ["latest-lesson-submissions", slug],
     queryFn: () => fetchLatestLessonSubmissions(slug!),
-    enabled:
-      !!slug && !submissionId && isOnlineMode && isAuthenticated && !isEditMode,
+    enabled: false
+    // !!slug && !submissionId && isOnlineMode && isAuthenticated && !isEditMode,
   });
 
   const [tasks, setTasks] = useState<Partial<TaskCode>[]>([]);
@@ -210,8 +217,7 @@ export default function Lesson() {
         const addedDraft = true;
 
         if (!addedDraft) {
-          const detail = await downloadLesson(slug);
-          if (!cancelled) setLessonContent(detail.content);
+          if (!cancelled) setLessonContent(await getContentAsync(slug));
         }
 
         if (cancelled) return;
@@ -643,7 +649,7 @@ export default function Lesson() {
 
   const srcDoc = `
   <!DOCTYPE html>
-  <html>
+  <html lang="en">
     <head>
       <base target="_blank" />
       <meta

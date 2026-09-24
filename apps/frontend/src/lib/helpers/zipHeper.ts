@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import {ensureReadonlyBlockSpacing} from "./readonlyBlocks";
 import {
+  generateId,
   getContentAsync,
   getLessonsAsync,
   getTasksAsync,
@@ -222,13 +223,13 @@ async function parseZipAsync(
       (id) => value.tasksMap.get(id)!,
     );
 
-    const lessonId = slugifyTitle(folderName, source === "github" ? remoteId : undefined);
+    const lessonId = generateId(value.meta.title || folderName, source, remoteId);
     const lessonMeta: LessonMeta = {
       id: lessonId,
       title: value.meta.title || folderName,
       description: value.meta.description || "",
       color: value.meta.color || "#f54900",
-      order: value.meta.order ?? lessons.length + 1,
+      order: -1,
       icon: value.meta.icon || "Code",
       taskCount: lessonTasksList.length,
       visualEditor: value.meta.visualEditor ?? false,

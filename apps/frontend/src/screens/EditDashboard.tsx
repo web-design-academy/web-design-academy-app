@@ -3,13 +3,13 @@ import {ArrowLeft, Download, Edit3, ExternalLink, GripVertical, Plus, Search, Tr
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {
   deleteMarkedAsync,
+  generateId,
   getLessonsAsync,
   type LessonMeta,
   markLessonDeletedAsync,
   markLessonRestoredAsync,
   saveLessonAsync,
-  saveTasksAsync,
-  slugifyTitle
+  saveTasksAsync
 } from "@/lib/helpers/db.ts";
 import {Link} from "react-router";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
@@ -175,7 +175,7 @@ function parseOklchColor(value: string): OklchColor {
   };
 }
 
-type LessonForm = Omit<LessonMeta, "id" | "order">;
+type LessonForm = Omit<LessonMeta, "id" | "order" | "deleted" | "remoteId" | "sha" | "taskCount">;
 
 /**
  * Creates and returns a new empty lesson form object with default values.
@@ -189,9 +189,7 @@ function emptyForm(): LessonForm {
     description: "",
     color: LESSON_COLOR_OPTIONS[0],
     icon: DEFAULT_ICON,
-    taskCount: 0,
     source: "local",
-    deleted: false,
     visualEditor: false,
     visualPreview: false
   };
@@ -409,7 +407,7 @@ export default function EditDashboard() {
   );
 
   const generatedId = useMemo(
-    () => slugifyTitle(formData.title),
+    () => generateId(formData.title, "local"),
     [formData.title],
   );
 
@@ -491,11 +489,9 @@ export default function EditDashboard() {
       description: lesson.description,
       color: lesson.color,
       icon: lesson.icon,
-      deleted: lesson.deleted ?? false,
       visualEditor: lesson.visualEditor ?? false,
       visualPreview: lesson.visualPreview ?? false,
-      taskCount: lesson.taskCount ?? 0,
-      source: "local"
+      source: lesson.source
     });
     setHasTouchedTitle(false);
     setIsColorPickerOpen(false);
@@ -522,8 +518,9 @@ export default function EditDashboard() {
     await saveLessonAsync({
       ...formData,
       id: generatedId,
-      order: lessons.length > 0 ? Math.max(...lessons.map((l) => l.order ?? 0)) + 1 : 1,
+      order: -1,
       deleted: false,
+      taskCount: 0,
     });
 
     await saveTasksAsync(generatedId, [{
