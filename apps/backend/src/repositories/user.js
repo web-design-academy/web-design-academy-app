@@ -1,16 +1,13 @@
 const { db } = require("../config/db");
 
 const updatableColumns = new Set([
-  "github_id", "github_login", "github_name", "github_avatar_url", "github_scopes",
-  "github_access_token", "github_refresh_token", "github_token_expiration"
+  "github_id", "github_access_token", "github_refresh_token", "github_expires_at"
 ]);
 const searchColumns = new Set([
-  "id", "name", "email", "role", "created_at",
-  "github_id", "github_login", "github_name"
+  "id", "name", "email", "role", "created_at", "github_id"
 ]);
 const selectableColumns = new Set([
-  "id", "email", "name", "role", "created_at",
-  "github_id", "github_login", "github_name", "github_avatar_url", "github_scopes"
+  "id", "email", "name", "role", "created_at", "github_id"
 ]);
 
 const sortColumns = {
@@ -20,8 +17,6 @@ const sortColumns = {
   role: (direction) => `u.role ${direction}`,
   created_at: (direction) => `u.created_at ${direction}`,
   github_id: (direction) => `u.github_id ${direction}`,
-  github_login: (direction) => `LOWER(COALESCE(NULLIF(u.github_login, ''), u.email)) ${direction}, LOWER(u.email) ${direction}`,
-  github_name: (direction) => `LOWER(COALESCE(NULLIF(u.github_name, ''), u.email)) ${direction}, LOWER(u.email) ${direction}`,
 };
 
 function resolveOrderBy(sortBy, sortDirection) {
@@ -53,8 +48,7 @@ function getUserTokensBy(value, column = "id") {
     return undefined;
 
   return db.prepare(`
-    SELECT
-        github_id, github_access_token
+    SELECT github_id, github_access_token, github_refresh_token, github_expires_at
     FROM users 
     WHERE ${column} = ?
     LIMIT 1

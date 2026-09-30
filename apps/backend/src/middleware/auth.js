@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 const environment = require("../config/env");
 const ServerError = require("../errors/ServerError");
-const userRepository = require("../repositories/user");
 
 const authenticateToken = (req, res, next) => {
   const token = req.cookies[environment.cookieName];
@@ -18,9 +17,8 @@ const authenticateToken = (req, res, next) => {
 };
 
 function requireAdmin(req, res, next) {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin")
     throw new ServerError("Forbidden", 403);
-  }
 
   next();
 }

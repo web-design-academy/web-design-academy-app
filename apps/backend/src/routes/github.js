@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const router = require("express").Router();
 const asyncHandler = require("../middleware/asyncError")
 const {
-  getOAuthUrl,
+  getAuthUrl,
   deleteAuthorization,
   exchangeCode,
   assignUser,
@@ -25,7 +25,7 @@ router.get("/link", (req, res) => {
     maxAge: 10 * 60 * 1000,
   });
 
-  res.redirect(getOAuthUrl(state));
+  res.redirect(getAuthUrl(state));
 });
 
 router.delete("/link", asyncHandler(async (req, res) => {
@@ -44,18 +44,8 @@ router.get("/callback", asyncHandler(async (req, res) => {
   if (!code)
     throw new ServerError("Authentication code is missing", 400);
 
-  const { token, scopes } = await exchangeCode(code, state);
-  let parsedScopes = [];
-  if (scopes instanceof Array) {
-    if (scopes.length === 1)
-      parsedScopes = scopes[0].split(",");
-    else
-      parsedScopes = scopes;
-  } else if (scopes instanceof String) {
-    parsedScopes = scopes.split(",");
-  }
-
-  await assignUser(req.user.sub, parsedScopes, token);
+  const {token, refreshToken, expiresAt} = await exchangeCode(code, state);
+  await assignUser(req.user.sub, token, refreshToken, expiresAt);
 
   res.json({ success: true });
 }));

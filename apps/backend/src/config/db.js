@@ -8,9 +8,8 @@ const dbPath = environment.dbPath;
 const storageDir = path.dirname(dbPath);
 
 // Creating storage directory if it doesn't exist
-if (!fs.existsSync(storageDir)) {
+if (!fs.existsSync(storageDir))
   fs.mkdirSync(storageDir, { recursive: true });
-}
 
 // Opening database connection
 const db = new Database(dbPath);
@@ -26,11 +25,9 @@ const initDb = () => {
         name TEXT NOT NULL,
         role TEXT DEFAULT 'student',
         github_id TEXT UNIQUE,
-        github_login TEXT,
-        github_name TEXT,
-        github_avatar_url TEXT,
-        github_scopes TEXT,
         github_access_token TEXT,
+        github_refresh_token TEXT,
+        github_expires_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `).run();

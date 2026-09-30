@@ -1,7 +1,9 @@
 function logger(req, res, next) {
   const url = req.url;
+
+  console.log(`--> Request to ${req.method} ${url}`);
   res.on('finish', () => {
-    console.log(`--> Request to ${req.method} ${url} with response ${res.statusCode}`);
+    console.log(`<-- Response ${res.statusCode} to ${req.method} ${url}`);
   });
   next();
 }
