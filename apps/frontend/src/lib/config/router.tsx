@@ -8,6 +8,7 @@ import {isOnlineMode} from "@/lib/config/config.ts";
 import EditDashboard from "@/screens/EditDashboard.tsx";
 import Profile from "@/screens/Profile.tsx";
 import Marketplace from "@/screens/Marketplace.tsx";
+import GitHubCallback from "@/screens/GitHubCallback.tsx";
 
 export const router = createBrowserRouter(
   [
@@ -21,6 +22,7 @@ export const router = createBrowserRouter(
           {path: "/edit", Component: EditDashboard},
           { path: "/profile", Component: Profile },
           { path: "/admin", Component: Admin },
+          {path: "/profile/callback", Component: GitHubCallback}
         ] : []),
       ],
     },

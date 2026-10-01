@@ -3,6 +3,7 @@ const router = require("express").Router();
 const asyncHandler = require("../middleware/asyncError")
 const {
   getAuthUrl,
+  getInstallUrl,
   deleteAuthorization,
   exchangeCode,
   assignUser,
@@ -28,7 +29,7 @@ router.get("/link", (req, res) => {
     maxAge: 10 * 60 * 1000,
   });
 
-  res.redirect(getAuthUrl(state));
+  res.redirect(getInstallUrl(state));
 });
 
 router.delete("/link", asyncHandler(async (req, res) => {
@@ -47,10 +48,14 @@ router.get("/callback", asyncHandler(async (req, res) => {
   if (!storedState || state !== storedState)
     throw new ServerError("State error", 400);
 
-  const {token, refreshToken, expiresAt} = await exchangeCode(code, state);
-  await assignUser(req.user.sub, token, refreshToken, expiresAt, installationId);
+  try {
+    const {token, refreshToken, expiresAt} = await exchangeCode(code, state);
+    await assignUser(req.user.sub, token, refreshToken, expiresAt, installationId);
 
-  res.json({ success: true });
+    res.redirect(`${environment.frontendUrl}/profile/callback`);
+  } catch (error) {
+    res.redirect(`${environment.frontendUrl}/profile/callback?error=auth_failed`);
+  }
 }));
 
 router.get("/me", asyncHandler(async (req, res) => {

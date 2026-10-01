@@ -76,19 +76,18 @@ export default function Profile() {
       if (event.origin !== window.location.origin)
         return;
 
-      if (event.data?.type === "GITHUB_AUTH_SUCCESS") {
+      if (event.data?.type === "GITHUB_AUTH_COMPLETED") {
         cleanup();
+        if (event.data?.error)
+          setError(new Error("GitHub account linking failed"));
         await refresh();
-      }
-
-      if (event.data?.type === "GITHUB_AUTH_ERROR") {
-        cleanup();
       }
     };
 
     const timer = setInterval(() => {
       if (popup?.closed) {
         cleanup();
+        refresh();
       }
     }, 500);
 

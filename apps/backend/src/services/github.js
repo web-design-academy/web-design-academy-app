@@ -48,8 +48,11 @@ function getAuthUrl(state) {
   }).url;
 }
 
-function getInstallUrl() {
-  return `https://github.com/apps/${environment.githubAppName}/installations/new`;
+function getInstallUrl(state) {
+  if (!state || typeof state !== "string")
+    throw new ServerError("Invalid state parameter", 500)
+
+  return `https://github.com/apps/${environment.githubAppName}/installations/new?state=${state}`;
 }
 
 async function refreshAccessToken(userId, userTokens) {
@@ -217,6 +220,7 @@ async function getRemoteRepository(userId, repoId) {
 
 module.exports = {
   getAuthUrl,
+  getInstallUrl,
   deleteAuthorization,
   exchangeCode,
   assignUser,
