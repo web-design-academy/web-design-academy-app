@@ -25,6 +25,7 @@ const initDb = () => {
         name TEXT NOT NULL,
         role TEXT DEFAULT 'student',
         github_id TEXT UNIQUE,
+        github_installation_id TEXT,
         github_access_token TEXT,
         github_refresh_token TEXT,
         github_expires_at DATETIME,
@@ -54,7 +55,7 @@ const initDb = () => {
         html_url TEXT NOT NULL,
         private INTEGER DEFAULT 0,
         default_branch TEXT DEFAULT 'main',
-        sha TEXT NOT NULL,
+        sha TEXT,
         created_at TEXT,
         pushed_at TEXT,
         UNIQUE(id, user_id)

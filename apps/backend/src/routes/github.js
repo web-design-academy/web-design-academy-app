@@ -6,21 +6,24 @@ const {
   deleteAuthorization,
   exchangeCode,
   assignUser,
-  refreshUser,
+  getProfile,
   getRemoteRepositories,
   getRemoteRepository
 } = require("../services/github");
 const { authenticateToken } = require("../middleware/auth");
 const ServerError = require("../errors/ServerError");
+const environment = require("../config/env")
+
+const STATE_COOKIE_NAME = "gh_state";
 
 router.use(authenticateToken);
 
 router.get("/link", (req, res) => {
-  const state = crypto.randomBytes(16).toString();
+  const state = crypto.randomBytes(16).toString("hex");
 
-  res.cookie("oauth_state", state, {
+  res.cookie(STATE_COOKIE_NAME, state, {
     httpOnly: true,
-    secure: true,
+    secure: environment.isProduction,
     sameSite: "lax",
     maxAge: 10 * 60 * 1000,
   });
@@ -34,24 +37,24 @@ router.delete("/link", asyncHandler(async (req, res) => {
 }));
 
 router.get("/callback", asyncHandler(async (req, res) => {
-  const { code, state } = req.query;
-  const storedState = req.cookies.oauth_state;
-  res.clearCookie("oauth_state");
+  const {code, state, installation_id: installationId} = req.query;
+  const storedState = req.cookies[STATE_COOKIE_NAME];
+  res.clearCookie(STATE_COOKIE_NAME);
 
-  if (!state || !storedState || state !== storedState)
-    throw new ServerError("CSRF token error", 400);
+  if (!code || !state)
+    throw new ServerError("Missing parameters", 400);
 
-  if (!code)
-    throw new ServerError("Authentication code is missing", 400);
+  if (!storedState || state !== storedState)
+    throw new ServerError("State error", 400);
 
   const {token, refreshToken, expiresAt} = await exchangeCode(code, state);
-  await assignUser(req.user.sub, token, refreshToken, expiresAt);
+  await assignUser(req.user.sub, token, refreshToken, expiresAt, installationId);
 
   res.json({ success: true });
 }));
 
 router.get("/me", asyncHandler(async (req, res) => {
-  const profile = await refreshUser(req.user.sub);
+  const profile = await getProfile(req.user.sub);
   res.json(profile);
 }));
 

@@ -62,8 +62,8 @@ async function refreshAccessToken(userId, userTokens) {
     });
 
     const expiresAtIso = authentication.expiresAt instanceof Date
-        ? authentication.expiresAt.toISOString()
-        : String(authentication.expiresAt);
+      ? authentication.expiresAt.toISOString()
+      : String(authentication.expiresAt);
 
     userRepository.updateUser(String(userId), {
       github_access_token: encrypt(authentication.token),
@@ -101,23 +101,23 @@ async function getOctokit(userId) {
 }
 
 async function deleteAuthorization(userId) {
-  const token = await getAccessToken(userId);
-  
   try {
+    const token = await getAccessToken(userId);
     await auth.deleteAuthorization({token});
   } catch (e) {
-    throw new ServerError("Failed to unlink GitHub account");
+    console.warn("GitHub authorization revocation failed: ", e.message);
   }
 
-  await userRepository.updateUser(String(userId), {
+  userRepository.updateUser(String(userId), {
     github_id: null,
+    github_installation_id: null,
     github_access_token: null,
     github_refresh_token: null,
     github_expires_at: null,
   })
 }
 
-async function getGitHubUser(token) {
+async function getProfileFromToken(token) {
   const octokit = new Octokit({auth: token})
 
   try {
@@ -126,6 +126,10 @@ async function getGitHubUser(token) {
   } catch (error) {
     throw new ServerError("Failed to fetch GitHub profile", 500);
   }
+}
+
+async function getProfile(userId) {
+  return await getProfileFromToken(await getAccessToken(userId));
 }
 
 async function exchangeCode(code, state) {
@@ -146,43 +150,40 @@ async function exchangeCode(code, state) {
   }
 }
 
-async function assignUser(userId, token, refreshToken, expiresAt) {
-  const profile = await getGitHubUser(token);
+async function assignUser(userId, token, refreshToken, expiresAt, installationId) {
+  const profile = await getProfileFromToken(token);
 
-  if (userRepository.getUserBy(profile.id, "github_id"))
+  const existingUser = userRepository.getUserBy(profile.github_id, "github_id");
+  if (existingUser && String(existingUser.id) !== String(userId))
     throw new ServerError("GitHub account is already linked to another account", 400);
 
   const expiresAtIso = expiresAt instanceof Date
-      ? expiresAt.toISOString()
-      : String(expiresAt);
+    ? expiresAt.toISOString()
+    : String(expiresAt);
 
-  await userRepository.updateUser(String(userId), {
+  userRepository.updateUser(String(userId), {
     github_id: String(profile.github_id),
     github_access_token: encrypt(token),
     github_refresh_token: encrypt(refreshToken),
     github_expires_at: expiresAtIso,
-  })
-}
-
-async function refreshUser(userId) {
-  const profile = await getGitHubUser(await getAccessToken(userId));
-  return mapGitHubUser(profile);
+    ...(installationId ? {github_installation_id: Number(installationId)} : {}),
+  });
 }
 
 async function getRemoteRepositories(userId) {
   const octokit = await getOctokit(userId);
 
   return await octokit.paginate(
-      octokit.rest.repos.listForAuthenticatedUser,
-      {
-        per_page: 100,
-        affiliation: "owner,collaborator,organization_member",
-        sort: "pushed",
-        direction: "desc",
-      },
-      (response) => {
-        return response.data.map(mapRepository)
-      }
+    octokit.rest.repos.listForAuthenticatedUser,
+    {
+      per_page: 100,
+      affiliation: "owner,collaborator,organization_member",
+      sort: "pushed",
+      direction: "desc",
+    },
+    (response) => {
+      return response.data.map(mapRepository)
+    }
   );
 }
 
@@ -192,15 +193,21 @@ async function getRemoteRepository(userId, repoId) {
   try {
     const {data: repo} = await octokit.request("GET /repositories/{repository_id}", {
       repository_id: repoId
-    })
-
-    const {data: refData} = await octokit.rest.git.getRef({
-      owner: repo.owner.login,
-      repo: repo.name,
-      ref: `heads/${repo.default_branch}`,
     });
 
-    repo.sha = refData.object.sha;
+    if (repo.size > 0 && repo.default_branch) {
+      try {
+        const {data: refData} = await octokit.rest.git.getRef({
+          owner: repo.owner.login,
+          repo: repo.name,
+          ref: `heads/${repo.default_branch}`,
+        });
+        repo.sha = refData.object.sha;
+      } catch (refError) {
+        repo.sha = null;
+      }
+    }
+
     return mapRepository(repo);
   } catch (error) {
     console.log(error);
@@ -210,11 +217,10 @@ async function getRemoteRepository(userId, repoId) {
 
 module.exports = {
   getAuthUrl,
-  getInstallUrl,
   deleteAuthorization,
   exchangeCode,
   assignUser,
-  refreshUser,
+  getProfile,
   getRemoteRepositories,
   getRemoteRepository
 };
