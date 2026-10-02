@@ -172,6 +172,8 @@ export default function Profile() {
     staleTime: Infinity,
   });
 
+  // const { data: githubProfile }
+
   useEffect(() => {
     if (remoteError) {
       setError(remoteError);

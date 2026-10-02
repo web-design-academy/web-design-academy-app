@@ -24,8 +24,7 @@ const initDb = () => {
         email TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
         role TEXT DEFAULT 'student',
-        github_id TEXT UNIQUE,
-        github_installation_id TEXT,
+        github_id INTEGER UNIQUE,
         github_access_token TEXT,
         github_refresh_token TEXT,
         github_expires_at DATETIME,
@@ -40,32 +39,22 @@ const initDb = () => {
     `).run();
 
     db.prepare(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email 
-      ON users(email) 
-    `).run();
-
-    db.prepare(`
-      CREATE TABLE IF NOT EXISTS repos (
-        id TEXT PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS installations
+        (
+            id           INTEGER PRIMARY KEY,
         user_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        description TEXT,
-        language TEXT,
-        owner_login TEXT NOT NULL,
-        html_url TEXT NOT NULL,
-        private INTEGER DEFAULT 0,
-        default_branch TEXT DEFAULT 'main',
-        sha TEXT,
+            github_id    INTEGER NOT NULL,
+            github_login TEXT,
+            github_type  TEXT,
+            selection    TEXT,
         created_at TEXT,
-        pushed_at TEXT,
-        UNIQUE(id, user_id)
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       )
     `).run();
 
     db.prepare(`
-      CREATE INDEX IF NOT EXISTS idx_repos_user_id 
-      ON repos(user_id)
-      WHERE user_id IS NOT NULL
+        CREATE INDEX IF NOT EXISTS idx_installations_user_id
+            ON installations (user_id)
     `).run();
 
     db.prepare(`
@@ -86,6 +75,11 @@ const initDb = () => {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
+    `).run();
+
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS idx_submissions_user_id
+            ON submissions (user_id)
     `).run();
 
     db.prepare(`
@@ -112,9 +106,15 @@ const initDb = () => {
       )
     `).run();
 
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_user_tags_tag_id ON user_tags(tag_id)").run();
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_submissions_user_timestamp ON submissions(user_id, timestamp DESC)")
-        .run();
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS idx_user_tags_tag_id
+            ON user_tags (tag_id)
+    `).run();
+
+    db.prepare(`
+        CREATE INDEX IF NOT EXISTS idx_submissions_user_timestamp
+            ON submissions (user_id, timestamp DESC)
+    `).run();
   });
 
   migration();

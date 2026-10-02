@@ -1,4 +1,4 @@
-const tagRepository = require("../repositories/tag");
+const tagRepository = require("../repositories/tags");
 const tagNamePattern = /^[\p{L}\p{N}][\p{L}\p{N}\s._-]*$/u;
 
 function parsePositiveInteger(value, fallback, max) {
@@ -65,7 +65,7 @@ function hydrateUserTags(users) {
   }
 
   const ids = users.map((user) => user.id);
-  const tags = tagRepository.getTagsByUsers(ids);
+  const tags = tagRepository.listByUsers(ids);
 
   const tagsByUser = new Map();
   tags.forEach((tag) => {
@@ -91,7 +91,7 @@ function hydrateSubmissionUserTags(submissions) {
     return submissions.map((submission) => ({ ...submission, user_tags: [] }));
   }
 
-  const tags = tagRepository.getTagsByUsers(userIds);
+  const tags = tagRepository.listByUsers(userIds);
   const tagsByUser = new Map();
   tags.forEach((tag) => {
     const list = tagsByUser.get(tag.user_id) || [];
@@ -124,10 +124,10 @@ function resolveTagFromPayload(payload) {
       return { error: "Invalid tag name" };
     }
 
-    tagRepository.createTag(name);
+    tagRepository.create(name);
   }
 
-  const tag = tagRepository.getTagBy(tagId);
+  const tag = tagRepository.getBy(tagId);
   if (!tag) {
     return { error: "Tag not found", status: 404 };
   }

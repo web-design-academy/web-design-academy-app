@@ -2,7 +2,8 @@ const { Octokit } = require("octokit");
 const { OAuthApp } = require("@octokit/oauth-app");
 const environment = require("../config/env");
 const {encrypt, decrypt} = require("../utils/encryption");
-const userRepository = require("../repositories/user");
+const userRepository = require("../repositories/users");
+const installationsRepository = require("../repositories/installations");
 const ServerError = require("../errors/ServerError");
 
 const auth = new OAuthApp({
@@ -48,11 +49,8 @@ function getAuthUrl(state) {
   }).url;
 }
 
-function getInstallUrl(state) {
-  if (!state || typeof state !== "string")
-    throw new ServerError("Invalid state parameter", 500)
-
-  return `https://github.com/apps/${environment.githubAppName}/installations/new?state=${state}`;
+function getInstallUrl() {
+  return `https://github.com/apps/${environment.githubAppName}/installations/new`;
 }
 
 async function refreshAccessToken(userId, userTokens) {
@@ -68,7 +66,7 @@ async function refreshAccessToken(userId, userTokens) {
       ? authentication.expiresAt.toISOString()
       : String(authentication.expiresAt);
 
-    userRepository.updateUser(String(userId), {
+    userRepository.update(String(userId), {
       github_access_token: encrypt(authentication.token),
       github_refresh_token: encrypt(authentication.refreshToken),
       github_expires_at: expiresAtIso,
@@ -81,7 +79,7 @@ async function refreshAccessToken(userId, userTokens) {
 }
 
 async function getAccessToken(userId) {
-  const userTokens = userRepository.getUserTokensBy(userId);
+  const userTokens = userRepository.getTokensBy(userId);
   if (!userTokens)
     throw new ServerError("User not found", 401);
   if (!userTokens.github_id || !userTokens.github_access_token)
@@ -101,23 +99,6 @@ async function getOctokit(userId) {
   return new Octokit({
     auth: await getAccessToken(userId),
   });
-}
-
-async function deleteAuthorization(userId) {
-  try {
-    const token = await getAccessToken(userId);
-    await auth.deleteAuthorization({token});
-  } catch (e) {
-    console.warn("GitHub authorization revocation failed: ", e.message);
-  }
-
-  userRepository.updateUser(String(userId), {
-    github_id: null,
-    github_installation_id: null,
-    github_access_token: null,
-    github_refresh_token: null,
-    github_expires_at: null,
-  })
 }
 
 async function getProfileFromToken(token) {
@@ -153,10 +134,10 @@ async function exchangeCode(code, state) {
   }
 }
 
-async function assignUser(userId, token, refreshToken, expiresAt, installationId) {
+async function assignUser(userId, token, refreshToken, expiresAt) {
   const profile = await getProfileFromToken(token);
 
-  const existingUser = userRepository.getUserBy(profile.github_id, "github_id");
+  const existingUser = userRepository.getBy(profile.github_id, "github_id");
   if (existingUser && String(existingUser.id) !== String(userId))
     throw new ServerError("GitHub account is already linked to another account", 400);
 
@@ -164,16 +145,31 @@ async function assignUser(userId, token, refreshToken, expiresAt, installationId
     ? expiresAt.toISOString()
     : String(expiresAt);
 
-  userRepository.updateUser(String(userId), {
+  userRepository.update(String(userId), {
     github_id: String(profile.github_id),
     github_access_token: encrypt(token),
     github_refresh_token: encrypt(refreshToken),
     github_expires_at: expiresAtIso,
-    ...(installationId ? {github_installation_id: Number(installationId)} : {}),
   });
 }
 
-async function getRemoteRepositories(userId) {
+async function deleteAuthorization(userId) {
+  try {
+    const token = await getAccessToken(userId);
+    await auth.deleteAuthorization({token});
+  } catch (e) {
+    console.warn("GitHub authorization revocation failed: ", e.message);
+  }
+
+  userRepository.update(String(userId), {
+    github_id: null,
+    github_access_token: null,
+    github_refresh_token: null,
+    github_expires_at: null,
+  })
+}
+
+async function getRepositories(userId) {
   const octokit = await getOctokit(userId);
 
   return await octokit.paginate(
@@ -190,7 +186,7 @@ async function getRemoteRepositories(userId) {
   );
 }
 
-async function getRemoteRepository(userId, repoId) {
+async function getRepository(userId, repoId) {
   const octokit = await getOctokit(userId);
 
   try {
@@ -218,6 +214,30 @@ async function getRemoteRepository(userId, repoId) {
   }
 }
 
+async function syncInstallations(userId) {
+  const octokit = await getOctokit(userId);
+  const {data} = await octokit.rest.apps.listInstallationsForAuthenticatedUser();
+
+  for (const installation of data.installations) {
+    installationsRepository.upsert({
+      id: installation.id,
+      userId: String(userId),
+      githubId: installation.account.id,
+      githubLogin: installation.account.name,
+      githubType: installation.target_type,
+      selection: installation.repository_selection,
+      createdAt: installation.created_at,
+    });
+  }
+
+  for (const installation of installationsRepository.listBy(userId)) {
+    if (!data.installations.some((i) => i.id === installation.githubId))
+      installationsRepository.remove(installation.id);
+  }
+
+  return data.installations;
+}
+
 module.exports = {
   getAuthUrl,
   getInstallUrl,
@@ -225,6 +245,7 @@ module.exports = {
   exchangeCode,
   assignUser,
   getProfile,
-  getRemoteRepositories,
-  getRemoteRepository
+  getRepositories,
+  getRepository,
+  syncInstallations
 };

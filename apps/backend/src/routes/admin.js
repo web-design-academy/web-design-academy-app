@@ -9,14 +9,14 @@ const {
   parsePositiveInteger,
   hydrateUserTags,
 } = require("../services/admin");
-const tagRepository = require("../repositories/tag");
-const userRepository = require("../repositories/user");
+const tagRepository = require("../repositories/tags");
+const userRepository = require("../repositories/users");
 const ServerError = require("../errors/ServerError");
 
 router.use(authenticateToken, requireAdmin);
 
 router.get("/tags", (_req, res) => {
-  const tags = tagRepository.getTags();
+  const tags = tagRepository.list();
   res.json(tags);
 });
 
@@ -27,7 +27,7 @@ router.delete("/tags/:tagId", (req, res) => {
       throw new ServerError("Invalid tagId", 400);
     }
 
-    tagRepository.deleteTag(tagId);
+  tagRepository.remove(tagId);
     res.json({ success: true });
   },
 );
@@ -44,13 +44,13 @@ router.post("/users/tags", (req, res) => {
       throw new ServerError(resolved.error, resolved.status || 400);
     }
 
-    const existingUsers = userRepository.getUsersBy(userIds);
+  const existingUsers = userRepository.listBy(userIds);
 
     if (!existingUsers.length) {
       throw new ServerError("Users not found", 404);
     }
 
-    tagRepository.assignTagToUsers(userIds, resolved.tag.id);
+  tagRepository.assignToUsers(userIds, resolved.tag.id);
 
     res.json({ success: true, tag: resolved.tag });
   },
@@ -68,7 +68,7 @@ router.delete("/users/tags/:tagId", (req, res) => {
       throw new ServerError("Invalid tagId", 400);
     }
 
-    tagRepository.removeTagFromUsers(userIds, tagId);
+  tagRepository.removeFromUsers(userIds, tagId);
     res.json({ success: true });
   },
 );
@@ -84,7 +84,7 @@ router.post("/users/:userId/tags", (req, res) => {
     let tag = null;
 
     if (Number.isFinite(tagId) && tagId > 0) {
-      tag = tagRepository.getTagBy(tagId);
+      tag = tagRepository.getBy(tagId);
       if (!tag)
         throw new ServerError("Tag not found", 404);
     } else {
@@ -92,12 +92,12 @@ router.post("/users/:userId/tags", (req, res) => {
       if (!name)
         throw new ServerError("Invalid tag name", 400);
 
-      tag = tagRepository.createTag(name);
+      tag = tagRepository.upsert(name);
       if (!tag)
         throw new ServerError("Failed to create tag", 500);
     }
 
-    tagRepository.assignTagToUser(user.id, tag.id);
+  tagRepository.assignToUser(user.id, tag.id);
     res.json({ success: true, tag });
   },
 );
@@ -109,7 +109,7 @@ router.delete("/users/:userId/tags/:tagId", (req, res) => {
       throw new ServerError("Invalid tagId", 400);
     }
 
-    tagRepository.removeTagFromUser(req.params.userId, tagId);
+  tagRepository.removeFromUser(req.params.userId, tagId);
     res.json({ success: true });
   },
 );
@@ -124,7 +124,7 @@ router.get("/users", (req, res) => {
     throw new ServerError("Invalid tagId", 400);
   }
 
-  const count = userRepository.getUsersCount(tagId);
+  const count = userRepository.count(tagId);
   const users = userRepository.getUsersBy({
     tagId: tagId,
     pageSize: pageSize,

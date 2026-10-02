@@ -30,7 +30,7 @@ function resolveOrderBy(sortBy, sortDirection) {
     : null;
 }
 
-function getUserBy(value, column = "id") {
+function getBy(value, column = "id") {
   if (!searchColumns.has(column))
     return undefined;
 
@@ -43,7 +43,7 @@ function getUserBy(value, column = "id") {
   `).get(value);
 }
 
-function getUserTokensBy(value, column = "id") {
+function getTokensBy(value, column = "id") {
   if (!searchColumns.has(column))
     return undefined;
 
@@ -55,7 +55,7 @@ function getUserTokensBy(value, column = "id") {
   `).get(value);
 }
 
-function getUsersBy({
+function listBy({
   values = undefined,
   column = "id",
   tagId = undefined,
@@ -92,7 +92,7 @@ function getUsersBy({
   `).all(...params);
 }
 
-function getUsersCount(tagId = undefined) {
+function count(tagId = undefined) {
   const params = [];
   if (tagId)
     params.push(tagId);
@@ -107,7 +107,7 @@ function getUsersCount(tagId = undefined) {
   `).get(...params).count;
 }
 
-function createUser({ id, email, name, role = "student" }) {
+function upsert({id, email, name, role = "student"}) {
   return db.prepare(`
     INSERT INTO users (id, email, name, role)
     VALUES (@id, @email, @name, @role)
@@ -123,7 +123,7 @@ function createUser({ id, email, name, role = "student" }) {
   });
 }
 
-function updateUser(userId, updates) {
+function update(userId, updates) {
   const fields = Object.keys(updates).filter((field) => updatableColumns.has(field));
 
   if (fields.length !== 0) {
@@ -142,10 +142,10 @@ function updateUser(userId, updates) {
 }
 
 module.exports = {
-  getUserBy,
-  getUserTokensBy,
-  getUsersBy,
-  getUsersCount,
-  createUser,
-  updateUser
+  getBy,
+  getTokensBy,
+  listBy,
+  count,
+  upsert,
+  update
 };

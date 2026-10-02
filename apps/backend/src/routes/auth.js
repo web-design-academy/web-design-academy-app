@@ -8,7 +8,7 @@ const {
   getGoogleUser,
   isAllowedUniversityEmail
 } = require("../services/auth");
-const repository = require("../repositories/user");
+const repository = require("../repositories/users");
 const ServerError = require("../errors/ServerError");
 
 router.post("/google", async (req, res) => {
@@ -33,7 +33,7 @@ router.post("/google", async (req, res) => {
   }
 
   const role = isAdmin ? "admin" : "student";
-  const user = repository.createUser({ id: uuidv4(), email, name, role });
+  const user = repository.upsert({id: uuidv4(), email, name, role});
   const token = jwt.sign(
     {
       sub: user.id,
@@ -62,7 +62,7 @@ router.post("/logout", (_req, res) => {
 });
 
 router.get("/me", authenticateToken, (req, res) => {
-  const user = repository.getUserBy(req.user.sub);
+  const user = repository.getBy(req.user.sub);
   if (!user)
     throw new ServerError("User not found", 401);
 
