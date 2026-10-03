@@ -1,18 +1,11 @@
 import {requireOnlineMode} from "@/lib/config/config.ts";
-import type {PaginatedResponse, UserTag} from "@/lib/api/submissions";
+import type {PaginatedResponse} from "@/lib/api/submissions";
 import {API_BASE} from "@/lib/api/client";
 import {readResponse} from "@/lib/api/readResponse.ts";
+import type {AdminUser} from "@/interfaces/AdminUser.ts";
+import type {Tag} from "@/interfaces/Tag.ts";
 
-export interface AdminUser {
-  id: string;
-  email: string;
-  name?: string;
-  role: "student" | "admin";
-  created_at: string;
-  tags: UserTag[];
-}
-
-export interface AdminTag extends UserTag {
+export interface AdminTag extends Tag {
   user_count: number;
 }
 
@@ -73,7 +66,7 @@ export async function addUserTag(
     body: JSON.stringify(payload),
   });
 
-  return readResponse<{ success: true; tag: UserTag }>(
+  return readResponse<{ success: true; tag: Tag }>(
     response,
     "Failed to add tag",
   );
@@ -91,7 +84,7 @@ export async function addTagToUsers(
     body: JSON.stringify({ ...payload, userIds }),
   });
 
-  return readResponse<{ success: true; tag: UserTag }>(
+  return readResponse<{ success: true; tag: Tag }>(
     response,
     "Failed to add tag",
   );

@@ -1,6 +1,7 @@
-import { requireOnlineMode } from "@/lib/config/config.ts";
-import { API_BASE } from "./client";
-import type { AnalysisIssue } from "@wda/css-analysis";
+import {requireOnlineMode} from "@/lib/config/config.ts";
+import {API_BASE} from "./client";
+import type {AnalysisIssue} from "@wda/css-analysis";
+import type {Tag} from "@/interfaces/Tag.ts";
 
 export interface SubmissionPayload {
   lessonSlug: string;
@@ -27,7 +28,7 @@ export interface SubmissionRecord {
   user_id: string;
   user_name?: string;
   user_email?: string;
-  user_tags?: UserTag[];
+  user_tags?: Tag[];
   lesson_slug: string;
   task_id: string;
   html: string;
@@ -40,11 +41,6 @@ export interface SubmissionRecord {
   evaluation_issues?: string | null;
   evaluation_version?: number | null;
   evaluation_config_hash?: string | null;
-}
-
-export interface UserTag {
-  id: number;
-  name: string;
 }
 
 export interface PaginatedResponse<T> {

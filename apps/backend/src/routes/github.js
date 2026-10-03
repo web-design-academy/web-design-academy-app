@@ -10,7 +10,8 @@ const {
   getProfile,
   getRepositories,
   getRepository,
-  syncInstallations
+  syncInstallations,
+  syncInstallation
 } = require("../services/github");
 const { authenticateToken } = require("../middleware/auth");
 const ServerError = require("../errors/ServerError");
@@ -65,30 +66,12 @@ router.get("/link/callback", asyncHandler(async (req, res) => {
 
     const installations = await syncInstallations(req.user.sub);
     if (!installations || installations.length === 0)
-      return res.redirect(getInstallUrl());
+      return res.redirect(`/api/github/installations/new`);
 
     return res.redirect(`${environment.frontendUrl}/profile/callback`);
   } catch (e) {
     return res.redirect(`${environment.frontendUrl}/profile/callback?error=${encodeURIComponent(e)}`);
   }
-}));
-
-router.get("/install", (req, res) => {
-  res.redirect(getInstallUrl());
-});
-
-router.get("/install/callback", asyncHandler(async (req, res) => {
-  const {installation_id, setup_action, error} = req.query;
-
-  if (error)
-    return res.redirect(`${environment.frontendUrl}/profile/callback?error=${encodeURIComponent(error)}`);
-
-  if (!installation_id || !setup_action)
-    return res.redirect(`${environment.frontendUrl}/profile/callback?error=${encodeURIComponent("Invalid parameters")}`);
-
-  console.log(req.user.sub);
-  await syncInstallations(req.user.sub);
-  return res.redirect(`${environment.frontendUrl}/profile/callback`);
 }));
 
 router.get("/me", asyncHandler(async (req, res) => {
@@ -104,6 +87,39 @@ router.get("/repositories/:id", asyncHandler(async (req, res) => {
   const repoId = req.params.id;
   const remote = await getRepository(req.user.sub, repoId);
   res.json(remote);
+}));
+
+router.get("/installations", asyncHandler(async (req, res) => {
+  const installations = await syncInstallations(req.user.sub);
+  console.log(installations);
+  res.json(installations);
+}));
+
+router.get("/installations/new", (req, res) => {
+  res.redirect(getInstallUrl());
+});
+
+router.get("/installations/callback", asyncHandler(async (req, res) => {
+  const {installation_id, setup_action, error} = req.query;
+
+  if (error)
+    return res.redirect(`${environment.frontendUrl}/profile/callback?error=${encodeURIComponent(error)}`);
+
+  if (!installation_id || !setup_action)
+    return res.redirect(`${environment.frontendUrl}/profile/callback?error=${encodeURIComponent("Invalid parameters")}`);
+
+  await syncInstallations(req.user.sub);
+  return res.redirect(`${environment.frontendUrl}/profile/callback`);
+}));
+
+router.get("/installations/:id", asyncHandler(async (req, res) => {
+  const installationId = req.params.id;
+  const installation = await syncInstallation(req.user.sub, installationId);
+
+  if (!installation)
+    throw new ServerError("Installation not found", 404);
+
+  res.json(installation);
 }));
 
 module.exports = router;

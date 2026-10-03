@@ -1,7 +1,7 @@
 import React, {type CSSProperties, useEffect} from "react";
 import "@/styles/modal.css";
 
-interface ModalProps {
+interface Props {
   title: string;
   isOpen: boolean;
   onClose: () => void;
@@ -19,7 +19,7 @@ export default function Modal({
   actions,
   className,
   style,
-}: ModalProps) {
+                              }: Props) {
   useEffect(() => {
     if (!isOpen) return;
 

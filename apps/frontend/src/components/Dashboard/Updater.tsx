@@ -6,7 +6,7 @@ import {useEffect, useState} from "react";
 import InfoBanner from "@/components/InfoBanner.tsx";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {downloadLesson, getLesson} from "@/lib/api/lessons.ts";
-import {getGitHubRepository} from "@/lib/api/github.ts";
+import {fetchRepository} from "@/lib/api/github.ts";
 import type {Repository} from "@/components/Dashboard/RepositoryBanner.tsx";
 import {parseLessonsZipAsync} from "@/lib/helpers/zipHeper.ts";
 
@@ -27,7 +27,7 @@ export default function Updater({refresh = 0}: Props) {
         try {
           const remoteLesson = lesson.source === "wda"
             ? await getLesson(lesson.remoteId ?? "") as LessonMeta
-            : await getGitHubRepository(lesson.remoteId ?? "") as Repository
+            : await fetchRepository(lesson.remoteId ?? "") as Repository
           ;
 
           if (remoteLesson && (remoteLesson.sha !== lesson.sha))

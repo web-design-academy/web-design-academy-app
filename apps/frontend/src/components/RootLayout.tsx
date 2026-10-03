@@ -1,16 +1,16 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
-import { useGoogleLogin } from "@react-oauth/google";
-import { useEffect, useState } from "react";
-import { Loader2, LogOut, Menu, X } from "lucide-react";
+import {Link, Outlet, useLocation, useNavigate} from "react-router";
+import {useGoogleLogin} from "@react-oauth/google";
+import {useEffect, useState} from "react";
+import {Loader2, LogOut, Menu, X} from "lucide-react";
 import "@/styles/root.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import { useAuth } from "@/lib/ctx/useAuth";
+import {useAuth} from "@/lib/ctx/useAuth";
 import Modal from "@/components/Modal";
-import { isGoogleAuthEnabled } from "@/lib/config/config.ts";
-import type { AuthData } from "@/lib/api/auth";
+import {isGoogleAuthEnabled} from "@/lib/config/config.ts";
+import type {User} from "@/interfaces/User.ts";
 
 interface GoogleSignInButtonProps {
-  onAuthenticated: (data: AuthData) => void;
+  onAuthenticated: (data: User) => void;
   onError: (message: string) => void;
 }
 

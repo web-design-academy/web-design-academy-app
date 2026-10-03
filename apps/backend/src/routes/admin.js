@@ -75,7 +75,7 @@ router.delete("/users/tags/:tagId", (req, res) => {
 
 
 router.post("/users/:userId/tags", (req, res) => {
-    const user = userRepository.getUserBy(req.params.userId)
+  const user = userRepository.getBy(req.params.userId)
 
     if (!user)
       throw new ServerError("User not found", 404);
@@ -92,7 +92,7 @@ router.post("/users/:userId/tags", (req, res) => {
       if (!name)
         throw new ServerError("Invalid tag name", 400);
 
-      tag = tagRepository.upsert(name);
+      tag = tagRepository.create(name);
       if (!tag)
         throw new ServerError("Failed to create tag", 500);
     }
@@ -124,8 +124,8 @@ router.get("/users", (req, res) => {
     throw new ServerError("Invalid tagId", 400);
   }
 
-  const count = userRepository.count(tagId);
-  const users = userRepository.getUsersBy({
+  const total = userRepository.count(tagId);
+  const users = userRepository.getBy({
     tagId: tagId,
     pageSize: pageSize,
     page: page
@@ -133,7 +133,7 @@ router.get("/users", (req, res) => {
 
   res.json({
     items: hydrateUserTags(users),
-    count,
+    total,
     page,
     pageSize,
   });

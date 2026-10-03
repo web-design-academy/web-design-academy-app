@@ -10,7 +10,6 @@ import {
   addTagToUsers,
   addUserTag,
   type AdminTag,
-  type AdminUser,
   deleteTag,
   fetchAdminTags,
   fetchAdminUsers,
@@ -21,6 +20,7 @@ import {fetchSubmissions, type PaginatedResponse, type SubmissionRecord,} from "
 import {isOnlineMode} from "@/lib/config/config.ts";
 import "@/styles/admin.css";
 import InfoBanner from "@/components/InfoBanner.tsx";
+import type {AdminUser} from "@/interfaces/AdminUser.ts";
 
 // Default values and settings
 const PAGE_SIZE = 12;
@@ -314,7 +314,9 @@ export default function Admin() {
 
   const [activeSection, setActiveSection] = useState<AdminSection>("users");
   const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(PAGE_SIZE);
   const [submissionPage, setSubmissionPage] = useState(1);
+  const [submissionPageSize, setSubmissionPageSize] = useState(PAGE_SIZE);
   const [userSort, setUserSort] = useState<SortState<UserSortKey>>({
     key: null,
     direction: null,
@@ -419,11 +421,11 @@ export default function Admin() {
     isLoading: usersLoading,
     error: usersError,
   } = useQuery({
-    queryKey: ["admin-users", userPage, userTagFilter, userSort],
+    queryKey: ["admin-users", userPage, userPageSize, userTagFilter, userSort],
     queryFn: () =>
       fetchAdminUsers({
         page: userPage,
-        pageSize: PAGE_SIZE,
+        pageSize: userPageSize,
         tagId: userTagFilter,
         sortBy: userSort.key ?? undefined,
         sortDirection: userSort.direction ?? undefined,
@@ -439,13 +441,14 @@ export default function Admin() {
     queryKey: [
       "submissions",
       submissionPage,
+      submissionPageSize,
       submissionTagFilter,
       submissionSort,
     ],
     queryFn: async () =>
       (await fetchSubmissions({
         page: submissionPage,
-        pageSize: PAGE_SIZE,
+        pageSize: submissionPageSize,
         tagId: submissionTagFilter,
         sortBy: submissionSort.key ?? undefined,
         sortDirection: submissionSort.direction ?? undefined,
@@ -458,16 +461,16 @@ export default function Admin() {
     [usersData?.items],
   );
   const visibleUserIds = useMemo(
-    () => visibleUsers.map((visibleUser) => visibleUser.id),
+    () => visibleUsers.map((visibleUser) => visibleUser.userId),
     [visibleUsers],
   );
   const selectedVisibleUsers = useMemo(
     () =>
-      visibleUsers.filter((visibleUser) => selectedUserIds.has(visibleUser.id)),
+      visibleUsers.filter((visibleUser) => selectedUserIds.has(visibleUser.userId)),
     [selectedUserIds, visibleUsers],
   );
   const selectedVisibleUserIds = useMemo(
-    () => selectedVisibleUsers.map((selectedUser) => selectedUser.id),
+    () => selectedVisibleUsers.map((selectedUser) => selectedUser.userId),
     [selectedVisibleUsers],
   );
   const selectedVisibleCount = selectedVisibleUserIds.length;
@@ -631,14 +634,14 @@ export default function Admin() {
   };
 
   const submitTag = (targetUser: AdminUser) => {
-    const draft = tagDrafts[targetUser.id] ?? { tagId: "", name: "" };
+    const draft = tagDrafts[targetUser.userId] ?? {tagId: "", name: ""};
     const tagId = draft.tagId ? Number(draft.tagId) : "";
     const name = draft.name.trim();
 
     if (!tagId && !name) return;
 
     addTagMutation.mutate({
-      userId: targetUser.id,
+      userId: targetUser.userId,
       tagId,
       name,
     });
@@ -827,19 +830,19 @@ export default function Admin() {
                     </thead>
                     <tbody>
                       {(usersData?.items ?? []).map((row) => {
-                        const draft = tagDrafts[row.id] ?? {
+                        const draft = tagDrafts[row.userId] ?? {
                           tagId: "",
                           name: "",
                         };
 
                         return (
-                          <tr key={row.id}>
+                          <tr key={row.userId}>
                             <td>
                               <input
                                 type="checkbox"
-                                checked={selectedUserIds.has(row.id)}
+                                checked={selectedUserIds.has(row.userId)}
                                 onChange={(event) =>
-                                  setUserSelected(row.id, event.target.checked)
+                                  setUserSelected(row.userId, event.target.checked)
                                 }
                                 aria-label={`Select ${row.name || row.email}`}
                               />
@@ -861,19 +864,19 @@ export default function Admin() {
                                   tags={row.tags}
                                   canRemove
                                   expanded={
-                                    openMoreTagsKey === `user-${row.id}`
+                                    openMoreTagsKey === `user-${row.userId}`
                                   }
                                   onToggleExpanded={() => {
                                     setOpenTagPopoverUserId(null);
                                     setOpenMoreTagsKey((current) =>
-                                      current === `user-${row.id}`
+                                      current === `user-${row.userId}`
                                         ? null
-                                        : `user-${row.id}`,
+                                        : `user-${row.userId}`,
                                     );
                                   }}
                                   onRemove={(tagId) =>
                                     removeTagMutation.mutate({
-                                      userId: row.id,
+                                      userId: row.userId,
                                       tagId,
                                     })
                                   }
@@ -885,19 +888,19 @@ export default function Admin() {
                                       onClick={() => {
                                         setOpenMoreTagsKey(null);
                                         setOpenTagPopoverUserId((current) =>
-                                          current === row.id ? null : row.id,
+                                          current === row.userId ? null : row.userId,
                                         );
                                       }}
                                       aria-label={`Add tag to ${
                                         row.name || row.email
                                       }`}
                                       aria-expanded={
-                                        openTagPopoverUserId === row.id
+                                        openTagPopoverUserId === row.userId
                                       }
                                     >
                                       <Plus size={14} />
                                     </button>
-                                    {openTagPopoverUserId === row.id && (
+                                    {openTagPopoverUserId === row.userId && (
                                       <UserTagPopover
                                         tags={tags}
                                         assignedTagIds={
@@ -910,7 +913,7 @@ export default function Admin() {
                                         }
                                         onSelectExisting={(tagId) =>
                                           addTagMutation.mutate({
-                                            userId: row.id,
+                                            userId: row.userId,
                                             tagId,
                                           })
                                         }
@@ -918,7 +921,7 @@ export default function Admin() {
                                           deleteTagMutation.mutate(tagId)
                                         }
                                         onDraftNameChange={(value) =>
-                                          updateTagDraft(row.id, "name", value)
+                                          updateTagDraft(row.userId, "name", value)
                                         }
                                         onCreateTag={() => submitTag(row)}
                                       />
@@ -937,8 +940,12 @@ export default function Admin() {
                 <Pagination
                   page={usersData?.page ?? userPage}
                   total={usersData?.total ?? 0}
-                  pageSize={usersData?.pageSize ?? PAGE_SIZE}
+                  pageSize={usersData?.pageSize ?? userPageSize}
                   onChange={setUserPage}
+                  onPageSizeChange={(size) => {
+                    setUserPageSize(size);
+                    setUserPage(1);
+                  }}
                 />
               </>
             )}
@@ -1053,8 +1060,12 @@ export default function Admin() {
                 <Pagination
                   page={submissionsData?.page ?? submissionPage}
                   total={submissionsData?.total ?? 0}
-                  pageSize={submissionsData?.pageSize ?? PAGE_SIZE}
+                  pageSize={submissionsData?.pageSize ?? submissionPageSize}
                   onChange={setSubmissionPage}
+                  onPageSizeChange={(size) => {
+                    setSubmissionPageSize(size);
+                    setSubmissionPage(1);
+                  }}
                 />
               </>
             )}

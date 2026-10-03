@@ -12,7 +12,8 @@ const auth = new OAuthApp({
   clientSecret: environment.githubClientSecret ?? "",
 });
 
-const TOKEN_REFRESH_MS = 5 * 60 * 1000;
+// 5 minutes before expiration, refresh the token
+const TOKEN_REFRESH_WINDOW_MS = 5 * 60 * 1000;
 
 function mapRepository(repo) {
   return {
@@ -37,6 +38,30 @@ function mapGitHubUser(user) {
     github_login: user.login,
     github_name: user.name,
     github_avatar_url: user.avatar_url,
+  }
+}
+
+function mapRemoteInstallation(installation, userId) {
+  return {
+    id: installation.id,
+    user_id: userId,
+    html_url: installation.html_url,
+    account_id: installation.account.id,
+    account_login: installation.account.login,
+    repository_selection: installation.repository_selection,
+    target_type: installation.target_type,
+    created_at: installation.created_at,
+    suspended_by: installation.suspended_by,
+    suspended_at: installation.suspended_at,
+  }
+}
+
+function mapLocalInstallation(installation, userId) {
+  return {
+    id: installation.id,
+    user_id: userId,
+    html_url: installation.html_url,
+    created_at: installation.created_at,
   }
 }
 
@@ -89,7 +114,7 @@ async function getAccessToken(userId) {
       ? new Date(userTokens.github_expires_at).getTime()
       : null;
 
-  if (!expiresAt || expiresAt - Date.now() < TOKEN_REFRESH_MS)
+  if (!expiresAt || TOKEN_REFRESH_WINDOW_MS > expiresAt - Date.now())
     return await refreshAccessToken(userId, userTokens);
 
   return decrypt(userTokens.github_access_token);
@@ -209,7 +234,6 @@ async function getRepository(userId, repoId) {
 
     return mapRepository(repo);
   } catch (error) {
-    console.log(error);
     throw new ServerError("Failed to fetch remote repository", 500);
   }
 }
@@ -217,25 +241,44 @@ async function getRepository(userId, repoId) {
 async function syncInstallations(userId) {
   const octokit = await getOctokit(userId);
   const {data} = await octokit.rest.apps.listInstallationsForAuthenticatedUser();
+  const output = [];
 
   for (const installation of data.installations) {
-    installationsRepository.upsert({
-      id: installation.id,
-      userId: String(userId),
-      githubId: installation.account.id,
-      githubLogin: installation.account.name,
-      githubType: installation.target_type,
-      selection: installation.repository_selection,
-      createdAt: installation.created_at,
-    });
+    installationsRepository.upsert(mapLocalInstallation(installation, userId));
+    output.push(mapRemoteInstallation(installation, userId));
   }
 
-  for (const installation of installationsRepository.listBy(userId)) {
-    if (!data.installations.some((i) => i.id === installation.githubId))
+  for (const installation of installationsRepository.listBy({values: [String(userId)], column: "user_id"})) {
+    if (!data.installations.some((i) => i.id === installation.id))
       installationsRepository.remove(installation.id);
   }
 
-  return data.installations;
+  console.log(output);
+  return output
+}
+
+async function syncInstallation(userId, installationId) {
+  const octokit = await getOctokit(userId);
+  try {
+    const {data: installation} = await octokit.rest.apps.getInstallation({
+      installation_id: installationId
+    });
+
+    installationsRepository.upsert({
+      id: installation.id,
+      user_id: String(userId),
+      html_url: installation.html_url,
+    });
+
+    return installation;
+  } catch (error) {
+    if (error.status === 404) {
+      installationsRepository.remove(installationId);
+      throw new ServerError("Installation not found", 404);
+    }
+
+    throw new ServerError("Failed to fetch remote installation", 500);
+  }
 }
 
 module.exports = {
@@ -247,5 +290,6 @@ module.exports = {
   getProfile,
   getRepositories,
   getRepository,
-  syncInstallations
+  syncInstallations,
+  syncInstallation
 };

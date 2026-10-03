@@ -56,6 +56,14 @@
     background: var(--color-card);
 }
 
+.profile-section-actions {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-2);
+    justify-content: flex-end;
+    padding-bottom: var(--space-2);
+}
+
 .profile-larger {
     flex: 2;
 }
@@ -79,30 +87,18 @@
     font-style: italic;
 }
 
-.profile-scopes {
-    display: flex;
-    flex-flow: column nowrap;
-    gap: var(--space-4);
+.center {
+    text-align: center;
 }
 
-.profile-scope-item {
-    display: flex;
-    flex-flow: column nowrap;
-    gap: var(--space-2);
-}
-
-.profile-scopes-footer {
+.profile-information {
     border-top: var(--border-width-thin) solid var(--color-border);
     padding-top: var(--space-4);
-    margin-top: var(--space-4);
-}
-
-.profile-repositories-header {
     display: flex;
-    flex-flow: row nowrap;
-    gap: var(--space-2);
-    align-items: center;
-    justify-content: space-between;
+    flex-flow: column nowrap;
+    flex: 1;
+    overflow: scroll;
+    max-height: 100%;
 }
 
 .profile-repositories {
@@ -154,6 +150,15 @@
     height: 80vh;
     max-height: 80vh;
     max-width: 80vw;
+}
+
+.profile-repositories {
+    border-top: var(--border-width-thin) solid var(--color-border);
+    display: flex;
+    flex-flow: column nowrap;
+    flex: 1;
+    overflow: scroll;
+    max-height: 100%;
 }
 
 .profile-remote-repositories {

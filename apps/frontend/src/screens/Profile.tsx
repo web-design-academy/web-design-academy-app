@@ -8,34 +8,71 @@ import {DownloadCloud, Pencil, Plus, Settings, X, XIcon} from "lucide-react";
 import Modal from "@/components/Modal.tsx";
 import Pagination from "@/components/Pagination.tsx";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
-import {API_BASE} from "@/lib/api/client.ts";
 import {useQuery} from "@tanstack/react-query";
 import InfoBanner from "@/components/InfoBanner.tsx";
-import RepositoryBanner, {type Repository} from "@/components/Dashboard/RepositoryBanner.tsx";
-import {getGitHubRepositories, unlinkGitHubAccount} from "@/lib/api/github.ts";
-import {addRemoteRepository, getRemoteRepositories, removeRemoteRepository} from "@/lib/api/repositories.ts";
+import RepositoryBanner from "@/components/Dashboard/RepositoryBanner.tsx";
+import {
+  fetchInstallations,
+  fetchProfile,
+  fetchRepositories,
+  installationUrl,
+  linkUrl,
+  unlinkAccount
+} from "@/lib/api/github.ts";
+import type {Repository} from "@/interfaces/Repository.ts";
+import InstallationBanner from "@/components/Dashboard/InstallationBanner.tsx";
 
-const PAGE_SIZE = 5;
+type Modals = "unlink" | "installations" | "none";
 
-type Modals = "scopes" | "unlink" | "remote" | "none";
+const sideWindow = (url: string, target: string, onClose: () => void = () => {
+}, width: number = 600, height: number = 700) => {
+  const left = window.screenX + (window.outerWidth - width) / 2;
+  const top = window.screenY + (window.outerHeight - height) / 2;
+
+  const popup = window.open(
+    url,
+    target,
+    `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`
+  );
+
+  const handleMessage = async (event: MessageEvent) => {
+    if (event.origin !== window.location.origin)
+      return;
+
+    if (event.data?.type === "GITHUB_AUTH_COMPLETED") {
+      cleanup();
+      onClose();
+      if (event.data?.error)
+        throw new Error("GitHub account linking failed");
+    }
+  };
+
+  const timer = setInterval(async () => {
+    if (popup?.closed) {
+      cleanup();
+      onClose();
+    }
+  }, 500);
+
+  const cleanup = () => {
+    clearInterval(timer);
+    window.removeEventListener("message", handleMessage);
+  };
+
+  window.addEventListener("message", handleMessage);
+}
 
 export default function Profile() {
-  const { user, isLoading, refresh } = useAuth();
+  const {user, isLoading, refresh} = useAuth();
   const navigate = useNavigate();
-  const [ openModal, setOpenModal ] = useState<Modals>("none");
-  const [ error, setError ] = useState<Error | null>(null);
+  const [openModal, setOpenModal] = useState<Modals>("none");
+  const [error, setError] = useState<Error | null>(null);
 
-  const [remotePage, setRemotePage] = useState<number>(1);
+  const [installationsPageSize, setInstallationsPageSize] = useState(4);
+  const [installationsPage, setInstallationsPage] = useState(1);
 
-  const [githubPage, setGithubPage] = useState<number>(1);
-  const [githubStart, setGithubStart] = useState(0);
-  const [githubVisible, setGithubVisible] = useState<Repository[]>([])
-
-  const scopeDescriptions = new Map<string, string>([
-    ["repo", "Read and write access to public and private repositories, including file contents, commit statuses, and collaborators."],
-    ["user", "Read/write access to profile info, including public email address, followers and following."],
-    ["read:user", "Read access to a user's profile info, including public email address, followers, and following."],
-  ]);
+  const [repositoriesPageSize, setRepositoriesPageSize] = useState(3);
+  const [repositoriesPage, setRepositoriesPage] = useState(1);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -46,6 +83,92 @@ export default function Profile() {
   const handlePopUpClose = useCallback(() => {
     setOpenModal("none");
   }, [setOpenModal]);
+
+  const linkGitHub = () => {
+    try {
+      sideWindow(linkUrl, "GitHubLink", async () => {
+        await refresh();
+        await profileRefetch();
+      });
+    } catch (error) {
+      setError(error as Error);
+    }
+  };
+
+  const unlinkGitHub = async () => {
+    try {
+      await unlinkAccount();
+      await refresh();
+    } catch (error) {
+      setError(error as Error);
+    } finally {
+      handlePopUpClose();
+    }
+  }
+
+  const addInstallation = () => {
+    try {
+      sideWindow(
+        `${installationUrl}/new`,
+        "GitHubInstall",
+        async () => {
+          await installationsRefetch();
+        }
+      );
+    } catch (error) {
+      setError(error as Error);
+    } finally {
+      handlePopUpClose();
+    }
+  };
+
+  const linkButton = () => (
+    <button
+      type="button"
+      className="btn-primary signin-button"
+      onClick={() => linkGitHub()}
+    >
+      <GitHubIcon size={18} />
+      Link GitHub
+    </button>
+  );
+
+  const manageButton = () => (
+    <button
+      type="button"
+      className="btn-ghost"
+      onClick={() => setOpenModal("installations")}
+    >
+      <GitHubIcon size="1em" className="icon-margin-right"/>
+      Manage
+    </button>
+  );
+
+  const {
+    data: installations,
+    isLoading: installationsLoading,
+    error: installationsError,
+    refetch: installationsRefetch
+  } = useQuery({
+    queryKey: ["installations"],
+    queryFn: async () => await fetchInstallations(),
+    enabled: Boolean(!isLoading && user?.githubId && openModal === "installations"),
+    staleTime: 1000 * 60 * 60 * 5,
+  });
+
+  const {data: repositories, isLoading: repositoriesLoading, error: repositoriesError} = useQuery({
+    queryKey: ["repositories"],
+    queryFn: async () => await fetchRepositories(),
+    enabled: Boolean(!isLoading && user?.githubId),
+    staleTime: 1000 * 60 * 60 * 5,
+  });
+
+  const {data: profile, isLoading: profileLoading, error: profileError, refetch: profileRefetch} = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => await fetchProfile(),
+    enabled: Boolean(!isLoading && user?.githubId),
+    staleTime: 1000 * 60 * 60 * 5,
+  });
 
   useEffect(() => {
     const handlePress = (event: KeyboardEvent) => {
@@ -60,140 +183,31 @@ export default function Profile() {
     }
   }, [handlePopUpClose]);
 
-  const linkGitHub = () => {
-    const width = 600;
-    const height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-
-    const popup = window.open(
-      `${API_BASE}/github/link`,
-      "github_oauth_popup",
-      `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`
-    );
-
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin)
-        return;
-
-      if (event.data?.type === "GITHUB_AUTH_COMPLETED") {
-        cleanup();
-        if (event.data?.error)
-          setError(new Error("GitHub account linking failed"));
-        await refresh();
-      }
-    };
-
-    const timer = setInterval(() => {
-      if (popup?.closed) {
-        cleanup();
-        refresh();
-      }
-    }, 500);
-
-    const cleanup = () => {
-      clearInterval(timer);
-      window.removeEventListener("message", handleMessage);
-    };
-
-    window.addEventListener("message", handleMessage);
-  }
-
-  const unlinkGitHub = async () => {
-    try {
-      await unlinkGitHubAccount();
-      await refresh();
-    } catch (error) {
-      setError(error as Error);
-    } finally {
+  useEffect(() => {
+    if (installationsError) {
+      setError(installationsError);
       handlePopUpClose();
     }
-  }
-
-  const addRemote = async (repoId: number) => {
-    try {
-      await addRemoteRepository(repoId);
-    } catch (error) {
-      setError(error as Error);
-      handlePopUpClose();
-    } finally {
-      await githubRefetch();
-      await remoteRefetch();
-    }
-  }
-
-  const removeRemote = async (repoId: number) => {
-    try {
-      await removeRemoteRepository(repoId);
-    } catch (error) {
-      setError(error as Error);
-      handlePopUpClose();
-    } finally {
-      await githubRefetch();
-      await remoteRefetch();
-    }
-  }
-
-  const linkGitHubButton = () => (
-    <button
-      type="button"
-      className="btn-primary signin-button"
-      onClick={() => linkGitHub()}
-    >
-      <GitHubIcon size={18} />
-      Link GitHub
-    </button>
-  );
-
-  const remoteButton = () => (
-    <button
-      type="button"
-      className="btn-primary"
-      onClick={() => setOpenModal("remote")}
-    >
-      <Plus size={16} className="icon-margin-right"/>
-      Add remote repository
-    </button>
-  );
-
-  const {data: remoteData, isLoading: remoteLoading, error: remoteError, refetch: remoteRefetch} = useQuery({
-    queryKey: ["tracked"],
-    queryFn: async () => {
-      return await getRemoteRepositories();
-    },
-    enabled: Boolean(!isLoading),
-    staleTime: Infinity,
-  });
-
-  const {data: githubData, isLoading: githubLoading, error: githubError, refetch: githubRefetch} = useQuery({
-    queryKey: ["remotes"],
-    queryFn: async () => await getGitHubRepositories() as Repository[],
-    enabled: Boolean(!isLoading && user?.githubId),
-    staleTime: Infinity,
-  });
-
-  // const { data: githubProfile }
+  }, [handlePopUpClose, installationsError]);
 
   useEffect(() => {
-    if (remoteError) {
-      setError(remoteError);
+    if (repositoriesError) {
+      setError(repositoriesError);
       handlePopUpClose();
     }
-  }, [handlePopUpClose, remoteError]);
+  }, [handlePopUpClose, repositoriesError]);
 
   useEffect(() => {
-    if (githubError) {
-      setError(githubError);
+    if (profileError) {
+      setError(profileError);
       handlePopUpClose();
     }
-  }, [handlePopUpClose, githubError]);
+  }, [handlePopUpClose, profileError]);
 
-  useEffect(() => {
-    if (githubData) {
-      setGithubStart((githubPage - 1) * PAGE_SIZE);
-      setGithubVisible(githubData.slice(githubStart, githubStart + PAGE_SIZE));
-    }
-  }, [githubData, githubPage, githubStart]);
+  const installationsStart = (installationsPage - 1) * installationsPageSize;
+  const installationsShown = installations?.slice(installationsStart, installationsStart + installationsPageSize) ?? [];
+  const repositoriesStart = (repositoriesPage - 1) * repositoriesPageSize;
+  const repositoriesShown = repositories?.slice(repositoriesStart, repositoriesStart + repositoriesPageSize) ?? [];
 
   return (
     <>
@@ -217,8 +231,8 @@ export default function Profile() {
 
       <main className="profile-page">
         <section className="profile-header">
-          {user?.githubId && (
-            <GitHubAvatar className="profile-header-avatar" imageSize={72} url={user?.githubAvatarUrl} />
+          {user?.githubId && profile && (
+            <GitHubAvatar className="profile-header-avatar" imageSize={72} url={profile.github_avatar_url}/>
           )}
 
           <div>
@@ -241,163 +255,122 @@ export default function Profile() {
           <div className="profile-section profile-section-panel">
             <h2>Account information</h2>
 
-            {isLoading ? (
-              <LoadingSpinner />
-            ) : user?.githubId ? (
-              <>
+            {isLoading || profileLoading ? (
+              <LoadingSpinner/>
+            ) : user?.githubId && profile ? (
+              <div className="profile-information">
                 <div className="profile-panel-item">
                   <span>GitHub Name:</span>
-                  <strong>{user?.githubName} <span className="italic">({user?.githubLogin})</span></strong>
+                  <strong>{profile.github_name} <span className="italic">({profile.github_login})</span></strong>
                 </div>
 
                 <div className="profile-panel-item">
                   <span>GitHub ID:</span>
-                  <strong>{user?.githubId}</strong>
+                  <strong>{profile.github_id}</strong>
                 </div>
-              </>
+              </div>
             ) : (
               <div className="profile-section-info border">
-                <h4>Link GitHub account to view more information</h4>
+                <p>Link GitHub account to view more information</p>
 
-                {linkGitHubButton()}
+                {linkButton()}
               </div>
             )}
 
             {user?.githubId && (
               <div className="profile-panel-item end">
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => setOpenModal("scopes")}
-                >
-                  View scopes
-                </button>
-
-                <button
-                  type="button"
-                  className="btn-ghost signin-button"
-                  onClick={() => {setOpenModal("unlink")}}
-                >
-                  <GitHubIcon size={18} />
-                  Unlink GitHub
-                </button>
+                {manageButton()}
               </div>
             )}
           </div>
 
           <div className="profile-section profile-larger">
             <div className="profile-section profile-section-panel">
-              <div className="profile-repositories-header">
-                <h2>Tracked repositories</h2>
+              <h2>Repositories</h2>
 
-                {user?.githubId && remoteButton()}
-              </div>
+              {!user?.githubId ? (
+                <div className="profile-section-info border">
+                  <p>Link GitHub account to access your remote repositories</p>
 
-              <div className="profile-repositories">
-                {!user?.githubId && (
-                  <div className="profile-section-info border">
-                    <h4>Link GitHub account to access your remote repositories</h4>
+                  {linkButton()}
+                </div>
+              ) : (
+                <div className="profile-repositories">
+                  {repositoriesLoading ? (
+                    <LoadingSpinner/>
+                  ) : (
+                    <>
+                      {(!repositories || repositories.length === 0) ? (
+                        <div className="profile-section-info big">
+                          <p>You have no tracked remote repositories</p>
 
-                    {linkGitHubButton()}
-                  </div>
-                )}
+                          {user?.githubId && (
+                            <>
+                              {manageButton()}
 
-                {remoteLoading ? (
-                  <LoadingSpinner />
-                ) : (
-                  <>
-                    {remoteData?.repositories.length === 0 && (
-                      <div className="profile-section-info big">
-                        <h4>You have no tracked remote repositories</h4>
+                              <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={() => navigate("/edit")}
+                              >
+                                <Plus size={16} className="icon-margin-right"/>
+                                Create and publish lesson
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ) : repositoriesShown.map((repo: Repository) => (
+                        <RepositoryBanner
+                          key={repo.id}
+                          repo={repo}
+                          actions={
+                            <>
+                              <button type="button" className="btn-primary">
+                                <DownloadCloud
+                                  size={16}
+                                  className={user?.githubId ? "" : "icon-margin-right"}
+                                />
+                                {user?.githubId ? "" : "Download"}
+                              </button>
 
-                        {user?.githubId && (
-                          <>
-                            {remoteButton()}
+                              {user?.githubId && (
+                                <>
+                                  <button type="button" className="btn-ghost">
+                                    <Pencil size={16}/>
+                                  </button>
 
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              onClick={() => navigate("/edit")}
-                            >
-                              <Plus size={16} className="icon-margin-right" />
-                              Create and publish lesson
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    {remoteData?.repositories.map((repo: Repository) => (
-                      <RepositoryBanner
-                        key={repo.id}
-                        repo={repo}
-                        actions={
-                          <>
-                            <button type="button" className="btn-primary">
-                              <DownloadCloud
-                                size={16}
-                                className={user?.githubId ? "" : "icon-margin-right"}
-                              />
-                              {user?.githubId ? "" : "Download"}
-                            </button>
-
-                            {user?.githubId && (
-                              <>
-                                <button type="button" className="btn-ghost">
-                                  <Pencil size={16} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="btn-ghost"
-                                  onClick={() => removeRemote(repo.id)}
-                                >
-                                  <X size={16} />
-                                </button>
-                              </>
-                            )}
-                          </>
-                        }
-                      />
-                    ))}
-                  </>
-                )}
-              </div>
+                                  <button
+                                    type="button"
+                                    className="btn-ghost"
+                                  >
+                                    <X size={16}/>
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          }
+                        />
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
-            <Pagination
-              page={remotePage}
-              pageSize={PAGE_SIZE}
-              total={remoteData?.total ?? 0}
-              onChange={(page) => setRemotePage(page)}
-            />
+            {user?.githubId && repositories && (
+              <Pagination
+                page={repositoriesPage}
+                pageSize={repositoriesPageSize}
+                total={repositories?.length || 0}
+                onChange={(page) => setRepositoriesPage(page)}
+                onPageSizeChange={(size) => {
+                  setRepositoriesPageSize(size);
+                  setRepositoriesPage(1);
+                }}
+              />
+            )}
           </div>
         </section>
-
-        <Modal
-          title="Available scopes"
-          isOpen={openModal === "scopes"}
-          onClose={handlePopUpClose}
-          actions={
-            <button type="button" className="btn-primary" onClick={handlePopUpClose}>
-              Close
-            </button>
-          }
-          children={
-            <div className="profile-scopes">
-              {JSON.parse(user?.githubScopes ?? "[]").map((scope: string) => (
-                <div className="profile-scope-item">
-                  <h3>{scope}</h3>
-                  <div>{scopeDescriptions.get(scope)}</div>
-                </div>
-              ))}
-
-              <div className="profile-scopes-footer">
-                For more information on scopes, see the <a href="https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps#available-scopes" target="_blank" rel="noopener noreferrer">GitHub documentation</a>.
-              </div>
-            </div>
-          }
-        />
 
         <Modal
           title="GitHub account unlinking"
@@ -419,7 +392,12 @@ export default function Profile() {
               <p>You will <strong>no longer</strong> be able to upload lessons to repositories and access your private repositories from WDA.</p>
               <p>You will still be able to download lessons in public repositories.</p>
               <p>Remote repositories and locally saved lessons will not be removed.</p>
-              <p><strong>You can link your account or a different one again anytime you want.</strong></p>
+              <p>You can link your account or a different one <strong>again anytime you want.</strong></p>
+              <p>Be sure to <strong>uninstall</strong> any installations you made to WDA with the button bellow.</p>
+
+              <div className="center">
+                {manageButton()}
+              </div>
             </div>
           }
         />
@@ -427,51 +405,57 @@ export default function Profile() {
         <Modal
           className="profile-modal-large"
           title="Remote repositories"
-          isOpen={openModal === "remote"}
+          isOpen={openModal === "installations"}
           onClose={handlePopUpClose}
-          children={
-            <>
-              {githubLoading ? <LoadingSpinner/> : (
-                <div className="profile-remote-repositories">
-                  <div className="profile-repositories">
-                    {githubVisible.map((repo) => (
-                      <RepositoryBanner
-                        repo={repo}
-                        actions={remoteData && remoteData.repositories.some((r: Repository) =>
-                          Math.floor(r.id) === Math.floor(repo.id)) ? (
-                          <button
-                            type="button"
-                            className="btn-ghost disabled"
-                            disabled
-                          >
-                            <Plus size={16} className={user?.githubId ? "" : "icon-margin-right"}/>
-                            Already added
-                          </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              onClick={() => addRemote(repo.id)}
-                            >
-                              <Plus size={16} className={user?.githubId ? "" : "icon-margin-right"}/>
-                              Add
-                            </button>
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
+          children={installationsLoading ? <LoadingSpinner/> : (
+            <div className="profile-section">
+              <div className="profile-section-actions">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={addInstallation}
+                >
+                  <Plus size="1em" className="icon-margin-right"/>
+                  Add installation
+                </button>
 
-                  <Pagination
-                    page={githubPage}
-                    pageSize={PAGE_SIZE}
-                    total={githubData?.length || 0}
-                    onChange={(page) => setGithubPage(page)}
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    setOpenModal("unlink")
+                  }}
+                >
+                  <GitHubIcon size="1em" className="icon-margin-right"/>
+                  Unlink
+                </button>
+              </div>
+
+              <div className="profile-repositories">
+                {installations?.length === 0 ? (
+                  <div className="profile-section-info">
+                    <p>No installations found.</p>
+                  </div>
+                ) : installationsShown.map((i) => (
+                  <InstallationBanner
+                    key={i.id}
+                    installation={i}
                   />
-                </div>
-              )}
-            </>
-          }
+                ))}
+              </div>
+
+              <Pagination
+                page={installationsPage}
+                pageSize={installationsPageSize}
+                total={installations?.length || 0}
+                onChange={(page) => setInstallationsPage(page)}
+                onPageSizeChange={(size) => {
+                  setInstallationsPageSize(size);
+                  setInstallationsPage(1);
+                }}
+              />
+            </div>
+          )}
         />
       </main>
     </>

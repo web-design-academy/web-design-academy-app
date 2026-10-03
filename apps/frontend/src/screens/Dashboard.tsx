@@ -7,9 +7,7 @@ import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {useAuth} from "@/lib/ctx/useAuth";
 import {ArrowRight, Pencil, RotateCcw, ShoppingBag,} from "lucide-react";
 import {getPlayableLessonsAsync, getProgressAsync, type LessonMeta} from "@/lib/helpers/db.ts";
-import Updater from "@/components/Updater.tsx";
-
-const PAGE_SIZE = 8;
+import Updater from "@/components/Dashboard/Updater.tsx";
 
 type LessonWithProgress = LessonMeta & {
   progress: number;
@@ -21,6 +19,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
   const { user, isAuthenticated } = useAuth();
   const [updateCheckToken, setUpdateCheckToken] = useState(0);
 
@@ -58,7 +57,7 @@ export default function Dashboard() {
     );
   }
 
-  const pageLessons = lessons.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageLessons = lessons.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <main className="dashboard-page">
@@ -166,8 +165,12 @@ export default function Dashboard() {
             <Pagination
               page={page}
               total={lessons.length}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               onChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
             />
           </>
         )}

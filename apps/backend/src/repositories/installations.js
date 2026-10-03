@@ -1,9 +1,7 @@
 const {db} = require("../config/db");
 
-const searchableColumns = new Set(['id', 'user_id']);
-const updatableColumns = new Set([
-  "github_id", "github_login", "github_type", "selection"
-]);
+const searchableColumns = new Set(['id', 'user_id', 'html_url']);
+const updatableColumns = new Set(['html_url']);
 
 function getBy(value, column = "id") {
   if (!searchableColumns.has(column))
@@ -47,29 +45,18 @@ function count() {
 
 function upsert({
                   id,
-                  userId,
-                  githubId,
-                  githubLogin,
-                  githubType,
-                  selection,
-                  createdAt
+                  user_id,
+                  html_url
                 }) {
   return db.prepare(`
-      INSERT INTO installations (id, user_id, github_id, github_login, github_type, selection, created_at)
-      VALUES (@id, @user_id, @github_id, @github_login, @github_type, @selection, @created_at)
-      ON CONFLICT(id) DO UPDATE SET github_id    = excluded.github_id,
-                                    github_login = excluded.github_login,
-                                    github_type  = excluded.github_type,
-                                    selection    = excluded.selection
+      INSERT INTO installations (id, user_id, html_url)
+      VALUES (@id, @user_id, @html_url)
+      ON CONFLICT(id) DO UPDATE SET html_url = excluded.html_url
       RETURNING *
   `).get({
     id,
-    user_id: userId,
-    github_id: githubId,
-    github_login: githubLogin,
-    github_type: githubType,
-    selection,
-    created_at: createdAt
+    user_id,
+    html_url
   });
 }
 

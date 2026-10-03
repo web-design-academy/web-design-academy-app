@@ -1,13 +1,13 @@
-import {useEffect, useState, type ReactNode, useCallback} from "react";
+import {type ReactNode, useCallback, useEffect, useState} from "react";
 import {
-  loginWithGoogle as apiLoginWithGoogle,
   fetchSession,
-  logoutSession,
-  type AuthData,
   type GoogleLoginPayload,
+  loginWithGoogle as apiLoginWithGoogle,
+  logoutSession,
 } from "@/lib/api/auth";
-import { isOnlineMode } from "@/lib/config/config.ts";
-import { AuthContext, type User } from "./useAuth";
+import {isOnlineMode} from "@/lib/config/config.ts";
+import {AuthContext} from "./useAuth";
+import type {User} from "@/interfaces/User.ts";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -15,7 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (
     payload: GoogleLoginPayload,
-  ): Promise<AuthData> => {
+  ): Promise<User> => {
     if (!isOnlineMode) {
       throw new Error("Authentication is available only in online mode.");
     }
@@ -27,10 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: data.name,
       email: data.email,
       githubId: data.githubId,
-      githubLogin: data.githubLogin,
-      githubName: data.githubName,
-      githubAvatarUrl: data.githubAvatarUrl,
-      githubScopes: data.githubScopes
     });
 
     return data;
@@ -58,10 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: data.name,
         email: data.email,
         githubId: data.githubId,
-        githubLogin: data.githubLogin,
-        githubName: data.githubName,
-        githubAvatarUrl: data.githubAvatarUrl,
-        githubScopes: data.githubScopes
       });
     } catch {
       setUser(null);

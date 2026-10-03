@@ -1,17 +1,6 @@
-import { requireOnlineMode } from "@/lib/config/config.ts";
-import { API_BASE } from "./client";
-
-export interface AuthData {
-  userId: string;
-  role: "student" | "admin";
-  name: string;
-  email: string;
-  githubId?: string;
-  githubLogin?: string;
-  githubName?: string;
-  githubAvatarUrl?: string;
-  githubScopes?: string;
-}
+import {requireOnlineMode} from "@/lib/config/config.ts";
+import {API_BASE} from "./client";
+import type {User} from "@/interfaces/User.ts";
 
 export type GoogleLoginPayload =
   | { idToken: string; accessToken?: never }
@@ -19,7 +8,7 @@ export type GoogleLoginPayload =
 
 export async function loginWithGoogle(
   payload: GoogleLoginPayload,
-): Promise<AuthData> {
+): Promise<User> {
   requireOnlineMode("Authentication");
 
   const response = await fetch(`${API_BASE}/auth/google`, {
@@ -36,7 +25,7 @@ export async function loginWithGoogle(
   return response.json();
 }
 
-export async function fetchSession(): Promise<AuthData | null> {
+export async function fetchSession(): Promise<User | null> {
   const response = await fetch(`${API_BASE}/auth/me`);
 
   if (response.status === 401 || response.status === 403) {

@@ -807,7 +807,7 @@
   color: var(--status-error-text);
 }
 
-.admin-tag-choice-wrap:has(.admin-tag-delete-button:hover:not(:disabled))
+.admin-tag-choice-wrap:has(.admin-tag-delete-button:hover:not(:disabled)),
   .admin-tag-choice {
   border-color: var(--status-error-text);
 }
@@ -875,6 +875,30 @@ button.admin-tag-choice:hover:not(:disabled) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.admin-pagination-size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.admin-pagination-size input {
+  box-sizing: border-box;
+  width: 4rem;
+  height: var(--size-button-height);
+  padding: 0 var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-card);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.admin-pagination-size input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .admin-icon-button {
