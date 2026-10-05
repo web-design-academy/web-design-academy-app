@@ -3,11 +3,11 @@ import {Link} from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
-import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {useAuth} from "@/lib/ctx/useAuth";
 import {ArrowRight, Pencil, RotateCcw, ShoppingBag,} from "lucide-react";
 import {getPlayableLessonsAsync, getProgressAsync, type LessonMeta} from "@/lib/helpers/db.ts";
-import Updater from "@/components/Dashboard/Updater.tsx";
+import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
+import {useDownloader} from "@/components/Downloader.tsx";
 
 type LessonWithProgress = LessonMeta & {
   progress: number;
@@ -21,7 +21,7 @@ export default function Dashboard() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const { user, isAuthenticated } = useAuth();
-  const [updateCheckToken, setUpdateCheckToken] = useState(0);
+  const {refreshUpdates} = useDownloader();
 
   useEffect(() => {
     setLoading(true);
@@ -70,7 +70,7 @@ export default function Dashboard() {
               className="btn-ghost"
               aria-label={`Check for lesson updates`}
               title="Check for lesson updates"
-              onClick={() => setUpdateCheckToken(updateCheckToken + 1)}
+              onClick={() => refreshUpdates()}
             >
               <RotateCcw size="1em"/>
             </button>
@@ -107,13 +107,7 @@ export default function Dashboard() {
               {pageLessons.map(
                 (lesson: LessonWithProgress) => (
                   <li key={lesson.id} className="course-row">
-                    <div
-                      className="course-icon"
-                      style={{background: lesson.color}}
-                      aria-hidden="true"
-                    >
-                      <LessonIcon name={lesson.icon} size={20}/>
-                    </div>
+                    <LessonIcon name={lesson.icon} size={20} color={lesson.color}/>
 
                     <div className="course-info">
                       <h2 className="course-name">
@@ -175,8 +169,6 @@ export default function Dashboard() {
           </>
         )}
       </section>
-
-      <Updater refresh={updateCheckToken}/>
     </main>
   );
 }

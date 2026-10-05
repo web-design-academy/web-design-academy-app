@@ -8,7 +8,7 @@ import EditorPane from "@/components/Lesson/EditorPane.tsx";
 import PreviewPane from "@/components/Lesson/PreviewPane.tsx";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
-import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
+import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
 import RuntimeMdx from "@/components/Lesson/RuntimeMdx.tsx";
 import {getStudentLessonDraft, saveStudentLessonDraft,} from "@/lib/helpers/studentDrafts";
 import {useMutation, useQuery} from "@tanstack/react-query";
@@ -870,7 +870,7 @@ export default function Lesson() {
                   style={{ background: lessonMeta.color }}
                   aria-hidden="true"
                 >
-                  <LessonIcon name={lessonMeta.icon} size={20} />
+                  <LucideIcon name={lessonMeta.icon} size={20}/>
                 </span>
               ) : null}
               <strong>{lessonMeta?.title ?? slug}</strong>

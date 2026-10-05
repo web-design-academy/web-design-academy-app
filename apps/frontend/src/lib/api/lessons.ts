@@ -1,8 +1,8 @@
 import {API_BASE} from "./client";
 import {readResponse} from "@/lib/api/readResponse.ts";
-import type {DefaultLesson} from "@/components/Lesson/DefaultLessonBanner.tsx";
+import type {DefaultLesson} from "@/interfaces/DefaultLesson.ts";
 
-export async function getLessons() {
+export async function fetchLessons() {
   const response = await fetch(`${API_BASE}/lessons`, {
     method: "GET",
     headers: {
@@ -14,7 +14,7 @@ export async function getLessons() {
   return await readResponse<DefaultLesson[]>(response, "Failed to load lessons");
 }
 
-export async function getLesson(lessonId: string) {
+export async function fetchLesson(lessonId: string) {
   const response = await fetch(`${API_BASE}/lessons/${encodeURIComponent(lessonId)}`, {
     method: "GET",
     headers: {

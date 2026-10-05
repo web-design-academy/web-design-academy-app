@@ -1,0 +1,31 @@
+.downloader-conflicts,
+.downloader-conflict-item,
+.downloader-conflict-info,
+.downloader-conflict-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.downloader-conflicts:not(:last-child) {
+    border-bottom: var(--border-width-thin) solid var(--color-border);
+}
+
+.downloader-conflicts {
+    flex-direction: column;
+    overflow: scroll;
+    align-items: start;
+}
+
+.downloader-conflict-item {
+    justify-content: space-between;
+    width: 100%;
+}
+
+.downloader-conflict-info {
+    flex: 1;
+}
+
+.downloader-conflict-content {
+    text-overflow: ellipsis;
+}

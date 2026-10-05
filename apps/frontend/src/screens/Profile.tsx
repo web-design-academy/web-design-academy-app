@@ -24,8 +24,15 @@ import InstallationBanner from "@/components/Dashboard/InstallationBanner.tsx";
 
 type Modals = "unlink" | "installations" | "none";
 
-const sideWindow = (url: string, target: string, onClose: () => void = () => {
-}, width: number = 600, height: number = 700) => {
+const sideWindow = (
+  url: string, target: string,
+  onSuccess: () => void = () => {
+  },
+  onError: (error: Error) => void = () => {
+  },
+  width: number = 600, height: number = 700,
+  messageType: string = "GITHUB_CALLBACK"
+) => {
   const left = window.screenX + (window.outerWidth - width) / 2;
   const top = window.screenY + (window.outerHeight - height) / 2;
 
@@ -39,19 +46,19 @@ const sideWindow = (url: string, target: string, onClose: () => void = () => {
     if (event.origin !== window.location.origin)
       return;
 
-    if (event.data?.type === "GITHUB_AUTH_COMPLETED") {
+    if (event.data?.type === messageType) {
       cleanup();
-      onClose();
+
       if (event.data?.error)
-        throw new Error("GitHub account linking failed");
+        onError(new Error(event.data.error));
+      else
+        onSuccess();
     }
   };
 
   const timer = setInterval(async () => {
-    if (popup?.closed) {
+    if (popup?.closed)
       cleanup();
-      onClose();
-    }
   }, 500);
 
   const cleanup = () => {
@@ -85,14 +92,15 @@ export default function Profile() {
   }, [setOpenModal]);
 
   const linkGitHub = () => {
-    try {
-      sideWindow(linkUrl, "GitHubLink", async () => {
+    sideWindow(
+      linkUrl,
+      "GitHubLink",
+      async () => {
         await refresh();
         await profileRefetch();
-      });
-    } catch (error) {
-      setError(error as Error);
-    }
+      },
+      (error) => setError(error)
+    );
   };
 
   const unlinkGitHub = async () => {
@@ -107,19 +115,18 @@ export default function Profile() {
   }
 
   const addInstallation = () => {
-    try {
-      sideWindow(
-        `${installationUrl}/new`,
-        "GitHubInstall",
-        async () => {
-          await installationsRefetch();
-        }
-      );
-    } catch (error) {
-      setError(error as Error);
-    } finally {
-      handlePopUpClose();
-    }
+    sideWindow(
+      `${installationUrl}/new`,
+      "GitHubInstall",
+      async () => {
+        await installationsRefetch();
+        handlePopUpClose();
+      },
+      (error) => {
+        setError(error as Error)
+        handlePopUpClose();
+      }
+    );
   };
 
   const linkButton = () => (

@@ -12,7 +12,7 @@ import {
   saveTasksAsync
 } from "@/lib/helpers/db.ts";
 import {Link} from "react-router";
-import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
+import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
 import {
   arrayMove,
   SortableContext,
@@ -34,9 +34,11 @@ import {
   useSensor,
   useSensors
 } from "@dnd-kit/core";
-import {packLessonsZipAsync, parseLessonsZipAsync} from "@/lib/helpers/zipHeper";
+import {packLessonsZipAsync} from "@/lib/helpers/zipHeper";
 import {HexColorPicker} from "react-colorful";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
+import {useDownloader} from "@/components/Downloader.tsx";
+import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 
 const LESSON_COLOR_OPTIONS = [
   "oklch(64.6% 0.222 41.116)",
@@ -240,12 +242,7 @@ function SortableLessonCard({
           aria-hidden="true"
         />
       </button>
-      <div
-        className="admin-lesson-icon"
-        style={{ backgroundColor: lesson.color }}
-      >
-        <LessonIcon name={lesson.icon} size={24} />
-      </div>
+      <LessonIcon name={lesson.icon} size={24} color={lesson.color}/>
       <div className="admin-lesson-main">
         <div className="admin-lesson-title-row">
           <h2>{lesson.title}</h2>
@@ -325,7 +322,7 @@ function LessonDragOverlayCard({
         className="admin-lesson-icon"
         style={{ backgroundColor: lesson.color }}
       >
-        <LessonIcon name={lesson.icon} size={24} />
+        <LucideIcon name={lesson.icon} size={24}/>
       </div>
       <div className="admin-lesson-main">
         <div className="admin-lesson-title-row">
@@ -349,6 +346,7 @@ function LessonDragOverlayCard({
 }
 
 export default function EditDashboard() {
+  const {processZip} = useDownloader();
   const [lessons, setLessons] = useState<LessonMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLesson, setActiveLesson] = useState<LessonMeta | null>(null);
@@ -645,12 +643,12 @@ export default function EditDashboard() {
 
   const handleFileDrop = useCallback(async (file: File) => {
     if (file.name.endsWith(".zip")) {
-      const data = await parseLessonsZipAsync(file);
-      setLessons(data);
+      await processZip(file, "local", undefined, undefined);
+      setLessons(await getLessonsAsync());
     } else {
       alert("unsupported file type");
     }
-  }, []);
+  }, [processZip]);
 
   useFileDrop(handleFileDrop);
 
@@ -931,7 +929,7 @@ export default function EditDashboard() {
                   aria-expanded={isIconPickerOpen}
                 >
                     <span className="lesson-picker-icon-preview">
-                      <LessonIcon name={formData.icon} size={24} />
+                      <LucideIcon name={formData.icon} size={24}/>
                     </span>
                   <span className="lesson-picker-icon-name">
                       {formData.icon}
@@ -969,7 +967,7 @@ export default function EditDashboard() {
                           aria-label={`Use ${icon} icon`}
                           aria-pressed={formData.icon === icon}
                         >
-                          <LessonIcon name={icon} size={22} />
+                          <LucideIcon name={icon} size={22}/>
                           <span>{icon}</span>
                         </button>
                       ))}

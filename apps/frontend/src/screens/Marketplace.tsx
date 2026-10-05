@@ -6,22 +6,22 @@ import InfoBanner from "@/components/InfoBanner.tsx";
 import {useEffect, useState} from "react";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import DefaultLessonBanner from "@/components/Lesson/DefaultLessonBanner.tsx";
-import {parseLessonsZipAsync} from "@/lib/helpers/zipHeper.ts";
-import {downloadLesson, getLesson, getLessons} from "@/lib/api/lessons.ts";
+import {downloadLesson, fetchLesson, fetchLessons} from "@/lib/api/lessons.ts";
+import {useDownloader} from "@/components/Downloader.tsx";
 
 export default function Marketplace() {
   const [error, setError] = useState<Error | null>(null);
+  const {processZip} = useDownloader();
 
   const {data: defaultLessons, isLoading: defaultLoading, error: defaultError, refetch: defaultRefetch} = useQuery({
     queryKey: ["default"],
-    queryFn: async () => await getLessons()
+    queryFn: async () => await fetchLessons()
   });
 
   const downloadDefault = async (id: string) => {
     const data = await downloadLesson(id);
-    const metadata = await getLesson(id);
-
-    await parseLessonsZipAsync(data, "wda", id, metadata.sha);
+    const metadata = await fetchLesson(id);
+    await processZip(data, "wda", id, metadata.sha);
   };
 
   useEffect(() => {
@@ -82,6 +82,7 @@ export default function Marketplace() {
             <h2>Made by WDA team</h2>
             {defaultLoading ? <LoadingSpinner/> : defaultLessons && defaultLessons.map((l) => (
               <DefaultLessonBanner
+                key={l.remoteId}
                 lesson={l}
                 actions={(
                   <button

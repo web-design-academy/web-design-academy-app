@@ -1,21 +1,19 @@
-import type {LucideProps} from "lucide-react";
-import * as LucideIcons from "lucide-react";
-import {HelpCircle} from "lucide-react";
+import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
 
-interface LessonIconProps {
+interface Props {
   name: string;
   size?: number;
+  color: string;
 }
 
-export default function LessonIcon({ name, size = 30 }: LessonIconProps) {
-  const maybeIcon = (LucideIcons as Record<string, unknown>)[name];
-
-  const isRenderableIcon =
-    maybeIcon !== null && ["function", "object"].includes(typeof maybeIcon);
-
-  const IconComponent = isRenderableIcon
-    ? (maybeIcon as React.ComponentType<LucideProps>)
-    : HelpCircle;
-
-  return <IconComponent size={size} strokeWidth={2} />;
+export default function LessonIcon({name, size = 30, color}: Props) {
+  return (
+    <div
+      className="course-icon"
+      style={{background: color}}
+      aria-hidden="true"
+    >
+      <LucideIcon name={name} size={size}/>
+    </div>
+  );
 }

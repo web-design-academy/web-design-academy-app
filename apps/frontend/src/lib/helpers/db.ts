@@ -62,11 +62,33 @@ export function slugifyTitle(title: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+// export function generateId(title: string, source: Source, remoteId: string | undefined = undefined): string {
+//   let index = 0;
+//   let id;
+//   let exists: boolean = false;
+//   do {
+//     index++;
+//     id = title;
+//
+//     if (source !== "local" && remoteId)
+//       id += `-${remoteId}`;
+//
+//     if (index > 0)
+//       id += `-${index}`;
+//
+//     existsLessonAsync(id).then((result) => {
+//       exists = result;
+//     });
+//
+//   } while (exists);
+//   return slugifyTitle(id);
+// }
+
 export function generateId(title: string, source: Source, remoteId: string | undefined = undefined): string {
-  return slugifyTitle(`
-    ${title}_
-    ${source === "local" ? crypto.randomUUID() : remoteId ?? crypto.randomUUID()}
-  `);
+  const suffix = crypto.randomUUID().slice(0, 8);
+  if (source !== "local" && remoteId)
+    return `${remoteId}-${title}-${suffix}`;
+  return slugifyTitle(`${title}-${suffix}`);
 }
 
 const db = new Dexie("WDA") as Dexie & {
@@ -103,6 +125,11 @@ export async function getPlayableLessonsAsync(): Promise<LessonMeta[]> {
 
 export async function getLessonByIdAsync(id: string): Promise<LessonMeta | undefined> {
   return await db.lessons.get(id);
+}
+
+export async function existsLessonAsync(id: string): Promise<boolean> {
+  const lesson = await db.lessons.get(id);
+  return lesson !== undefined;
 }
 
 export async function markLessonDeletedAsync(id: string): Promise<void> {
@@ -143,10 +170,9 @@ export async function saveLessonAsync(lesson: LessonMeta): Promise<void> {
 
 export async function deleteLessonAsync(id: string): Promise<void> {
   await db.transaction("rw", [db.lessons, db.tasks, db.progress, db.content], async () => {
+    await deleteTasksAsync(id);
+    await deleteLessonContentAsync(id);
     await db.lessons.delete(id);
-    await db.tasks.delete(id);
-    await db.progress.where("lessonId").equals(id).delete();
-    await db.content.delete(id);
   });
 
   emitLessonDraftsChanged();
@@ -184,6 +210,7 @@ export async function saveTasksAsync(
     });
     await db.lessons.update(lessonId, { taskCount: tasks.length });
   });
+
   emitLessonDraftsChanged();
 }
 
@@ -193,6 +220,7 @@ export async function deleteTasksAsync(id: string): Promise<void> {
     await db.progress.where("lessonId").equals(id).delete();
     await db.lessons.update(id, { taskCount: 0 });
   });
+
   emitLessonDraftsChanged();
 }
 
@@ -201,11 +229,15 @@ export async function getContentAsync(id: string): Promise<string> {
   return content?.content ?? "";
 }
 
-export async function saveLessonContent(lessonId: string, content: string) {
+export async function saveLessonContentAsync(lessonId: string, content: string) {
   await db.content.put({
     lessonId,
     content
   });
+}
+
+export async function deleteLessonContentAsync(lessonId: string) {
+  await db.content.delete(lessonId);
 }
 
 export async function getProgressAsync(
@@ -213,4 +245,23 @@ export async function getProgressAsync(
   userId: string,
 ): Promise<UserLessonProgress | undefined> {
   return await db.progress.get([userId, lessonId]);
+}
+
+export async function saveProgressAsync(
+  lessonId: string,
+  userId: string,
+  completedTasks: FinishedTaskItem[],
+): Promise<void> {
+  await db.progress.put({
+    lessonId,
+    userId,
+    completedTasks,
+  });
+}
+
+export async function deleteProgressAsync(
+  lessonId: string,
+  userId: string,
+): Promise<void> {
+  await db.progress.delete([userId, lessonId]);
 }

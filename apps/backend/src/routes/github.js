@@ -61,7 +61,6 @@ router.get("/link/callback", asyncHandler(async (req, res) => {
 
   try {
     const {token, refreshToken, expiresAt} = await exchangeCode(code, state);
-    console.log(req.user.sub);
     await assignUser(req.user.sub, token, refreshToken, expiresAt);
 
     const installations = await syncInstallations(req.user.sub);
