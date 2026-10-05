@@ -12,6 +12,7 @@ import {ThemeProvider} from "./lib/ctx/ThemeContext";
 import {AuthProvider} from "./lib/ctx/AuthContext";
 import {UiPreferencesProvider} from "./lib/ctx/UiPreferencesContext";
 import DownloaderProvider from "@/components/Downloader.tsx";
+import NotificationsProvider from "@/components/Notifications.tsx";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,9 @@ const app = (
       <UiPreferencesProvider>
         <AuthProvider>
           <DownloaderProvider>
-            <RouterProvider router={router}/>
+            <NotificationsProvider>
+              <RouterProvider router={router}/>
+            </NotificationsProvider>
           </DownloaderProvider>
         </AuthProvider>
       </UiPreferencesProvider>

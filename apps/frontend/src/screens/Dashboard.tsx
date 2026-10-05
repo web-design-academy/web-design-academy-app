@@ -8,6 +8,7 @@ import {ArrowRight, Pencil, RotateCcw, ShoppingBag,} from "lucide-react";
 import {getPlayableLessonsAsync, getProgressAsync, type LessonMeta} from "@/lib/helpers/db.ts";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {useDownloader} from "@/components/Downloader.tsx";
+import {useNotifications} from "@/components/Notifications.tsx";
 
 type LessonWithProgress = LessonMeta & {
   progress: number;
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [pageSize, setPageSize] = useState(8);
   const { user, isAuthenticated } = useAuth();
   const {refreshUpdates} = useDownloader();
+  const {pushNotification} = useNotifications();
 
   useEffect(() => {
     setLoading(true);

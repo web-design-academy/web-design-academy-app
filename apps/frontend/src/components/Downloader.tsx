@@ -149,7 +149,8 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
       {children}
 
       <div
-        className={`updater ${(visible && !updatesLoading && updates && updates.updatable.length > 0) ? "" : "hidden"}`}>
+        className={`updater ${(visible && !updatesLoading && updates && updates.updatable.length > 0) ? "" : "hidden"}`}
+      >
         <div className="updater-title">
           <h3>Lesson updates available</h3>
           <button
