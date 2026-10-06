@@ -9,7 +9,7 @@ import {
   type Source
 } from "@/lib/helpers/db.ts";
 import "@/styles/updater.css"
-import {DownloadCloud, InfoIcon} from "lucide-react";
+import {DownloadCloud} from "lucide-react";
 import {createContext, type ReactNode, useContext, useState} from "react";
 import InfoBanner from "@/components/InfoBanner.tsx";
 import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
@@ -44,7 +44,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
 
   const {data: updates, isLoading: updatesLoading, refetch: updatesRefetch} = useQuery({
-    queryKey: ["lessons"],
+    queryKey: ["downloaderUpdates"],
     queryFn: async () => {
       const lessons = await getLessonsAsync() || [];
       const updatable: LessonMeta[] = [];
@@ -149,7 +149,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
       {children}
 
       <div
-        className={`updater ${(visible && !updatesLoading && updates && updates.updatable.length > 0) ? "" : "hidden"}`}
+        className={`updater ${(visible && !updatesLoading && updates?.updatable && updates.updatable.length > 0) ? "" : "hidden"}`}
       >
         <div className="updater-title">
           <h3>Lesson updates available</h3>
@@ -162,11 +162,11 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
         </div>
 
         <div className="updater-body">
-          <InfoBanner type="warning" icon={(<InfoIcon/>)} message="Updating will rewrite said existing lessons"/>
+          <InfoBanner type="warning" message="Updating will rewrite said existing lessons"/>
         </div>
 
         <div className="updater-body">
-          {updates && updates.updatable.map((l) => (
+          {updates?.updatable && updates.updatable.map((l) => (
             <div key={l.id} className="updater-lesson">
               <div
                 className="course-icon"

@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {Link} from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -9,6 +9,7 @@ import {getPlayableLessonsAsync, getProgressAsync, type LessonMeta} from "@/lib/
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import {useDownloader} from "@/components/Downloader.tsx";
 import {useNotifications} from "@/components/Notifications.tsx";
+import {useQuery} from "@tanstack/react-query";
 
 type LessonWithProgress = LessonMeta & {
   progress: number;
@@ -16,20 +17,20 @@ type LessonWithProgress = LessonMeta & {
 };
 
 export default function Dashboard() {
-  const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const { user, isAuthenticated } = useAuth();
   const {refreshUpdates} = useDownloader();
   const {pushNotification} = useNotifications();
+  const lastErrorRef = useRef<Error | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
-    setLoadError(null);
-
-    const fetchProgress = async () : Promise<LessonWithProgress[]> => {
+  const {
+    data: lessonsData,
+    isLoading: lessonsLoading,
+    error: lessonsError
+  } = useQuery<LessonWithProgress[]>({
+    queryKey: ["dashboardLessons"],
+    queryFn: async (): Promise<LessonWithProgress[]> => {
       const lessons = await getPlayableLessonsAsync();
       return await Promise.all(
         lessons.map(async (lesson) => ({
@@ -39,27 +40,26 @@ export default function Dashboard() {
           })
         )
       );
-    };
+    },
+    staleTime: Infinity,
+    gcTime: 0
+  });
 
-    fetchProgress().then((l) => {
-      setLessons(l);
-      setLoading(false);
-    });
-  }, [isAuthenticated, user]);
+  useEffect(() => {
+    if (lessonsError && lessonsError !== lastErrorRef.current) {
+      lastErrorRef.current = lessonsError;
 
-  if (loading) return <LoadingSpinner />;
+      pushNotification({
+        type: "error",
+        message: lessonsError.message || "Failed to load lessons",
+        duration: 5,
+      });
+    }
+  }, [lessonsError, pushNotification]);
 
-  if (loadError) {
-    return (
-      <main className="dashboard-page">
-        <div className="dashboard-shell">
-          <p className="admin-error">{loadError}</p>
-        </div>
-      </main>
-    );
-  }
+  if (lessonsLoading) return <LoadingSpinner/>;
 
-  const pageLessons = lessons.slice((page - 1) * pageSize, page * pageSize);
+  const pageLessons = lessonsData ? lessonsData.slice((page - 1) * pageSize, page * pageSize) : [];
 
   return (
     <main className="dashboard-page">
@@ -75,6 +75,19 @@ export default function Dashboard() {
               onClick={() => refreshUpdates()}
             >
               <RotateCcw size="1em"/>
+            </button>
+
+            <button
+              className="btn-ghost"
+              aria-label={`Check for lesson updates`}
+              title="Check for lesson updates"
+              onClick={() => pushNotification({
+                type: "info",
+                message: "Checking for lesson updates...",
+                duration: 3
+              })}
+            >
+              TN
             </button>
 
             <Link
@@ -101,7 +114,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {loading ? <LoadingSpinner/> : lessons.length === 0 ? (
+        {lessonsLoading ? (
+          <LoadingSpinner/>
+        ) : lessonsError || !lessonsData ? (
+          <p className="admin-error">Error loading lessons</p>
+        ) : lessonsData?.length === 0 ? (
           <h3 className="dashboard-info">No lessons available</h3>
         ) : (
           <>
@@ -160,7 +177,7 @@ export default function Dashboard() {
             </ul>
             <Pagination
               page={page}
-              total={lessons.length}
+              total={lessonsData?.length || 0}
               pageSize={pageSize}
               onChange={setPage}
               onPageSizeChange={(size) => {

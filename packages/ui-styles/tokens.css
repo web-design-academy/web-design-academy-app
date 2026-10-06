@@ -46,6 +46,7 @@
   --size-button-height: 2.25rem;
 
   --border-width-thin: 1px;
+  --border-width-normal: 2px;
   --border-width-accent: 4px;
 
   --layout-max-content: 75rem;
@@ -64,12 +65,18 @@
   --editor-tab-hover-bg: rgba(255, 255, 255, 0.05);
   --editor-readonly-line-bg: rgba(148, 163, 184, 0.16);
 
-  --status-error-bg: #fee2e2;
-  --status-error-text: #b91c1c;
-  --status-warning-bg: #fef3c7;
-  --status-warning-text: #92400e;
   --status-success-bg: #d1fae5;
   --status-success-text: #065f46;
+
+  --status-info-bg: #dbeafe;
+  --status-info-text: #1d4ed8;
+
+  --status-warning-bg: #fef3c7;
+  --status-warning-text: #92400e;
+
+  --status-error-bg: #fee2e2;
+  --status-error-text: #b91c1c;
+
   --pill-info-bg: #e0f2fe;
   --pill-info-text: #0369a1;
 
@@ -117,12 +124,21 @@
   --color-text: oklch(0.85 0 0);
   --color-border: oklch(0.3 0 0);
 
-  --status-error-bg: oklch(0.324 0.098 24.431 / 0.47);
+  --status-info-bg: var(--color-card);
+  --status-info-text: var(--color-text);
+  --status-info-border: var(--color-border);
+
+  --status-success-bg: var(--color-card);
+  --status-success-text: #27b35a;
+  --status-success-border: var(--color-border);
+
+  --status-warning-bg: var(--color-card);
+  --status-warning-text: #ff9700;
+  --status-warning-border: var(--status-warning-text);
+
+  --status-error-bg: var(--color-card);
   --status-error-text: oklch(0.639 0.201 24.869);
-  --status-warning-bg: #fef3c7;
-  --status-warning-text: #92400e;
-  --status-success-bg: #d1fae5;
-  --status-success-text: #065f46;
+  --status-error-border: var(--status-error-text);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.6);

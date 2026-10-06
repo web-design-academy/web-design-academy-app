@@ -1,13 +1,14 @@
 import {Link, Outlet, useLocation, useNavigate} from "react-router";
 import {useGoogleLogin} from "@react-oauth/google";
 import {useEffect, useState} from "react";
-import {Loader2, LogOut, Menu, X} from "lucide-react";
+import {BellIcon, Loader2, LogOut, Menu, X} from "lucide-react";
 import "@/styles/root.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import {useAuth} from "@/lib/ctx/useAuth";
 import Modal from "@/components/Modal";
 import {isGoogleAuthEnabled} from "@/lib/config/config.ts";
 import type {User} from "@/interfaces/User.ts";
+import {useNotifications} from "@/components/Notifications.tsx";
 
 interface GoogleSignInButtonProps {
   onAuthenticated: (data: User) => void;
@@ -74,6 +75,7 @@ function GoogleSignInButton({
 
 export default function Root() {
   const { user, logout, isAuthenticated } = useAuth();
+  const {showNotifications} = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
@@ -208,6 +210,13 @@ export default function Root() {
               onError={handleAuthError}
             />
           ) : null}
+
+          <button
+            className={"btn-ghost"}
+            onClick={() => showNotifications()}
+          >
+            <BellIcon size={"1.2em"}/>
+          </button>
 
           <ThemeSwitcher />
         </div>

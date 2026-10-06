@@ -23,19 +23,19 @@ if (isOnlineMode && !isGoogleAuthEnabled) {
 }
 
 const app = (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <UiPreferencesProvider>
-        <AuthProvider>
-          <DownloaderProvider>
-            <NotificationsProvider>
+  <NotificationsProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <UiPreferencesProvider>
+          <AuthProvider>
+            <DownloaderProvider>
               <RouterProvider router={router}/>
-            </NotificationsProvider>
-          </DownloaderProvider>
-        </AuthProvider>
-      </UiPreferencesProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+            </DownloaderProvider>
+          </AuthProvider>
+        </UiPreferencesProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </NotificationsProvider>
 );
 
 createRoot(document.getElementById("root")!).render(
