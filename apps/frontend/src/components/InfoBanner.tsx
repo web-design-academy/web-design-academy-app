@@ -46,9 +46,11 @@ export default function InfoBanner({type = "info", message, duration, closeActio
         {message}
       </div>
 
-      <div className="info-banner-actions">
-        {actions}
-      </div>
+      {actions && (
+        <div className="info-banner-actions">
+          {actions}
+        </div>
+      )}
     </div>
   )
 }

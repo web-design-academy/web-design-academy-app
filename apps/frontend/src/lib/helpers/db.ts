@@ -1,7 +1,13 @@
 import {Dexie, type EntityTable, type Table} from "dexie";
 import type {TaskCode} from "@/lib/helpers/tasks.ts";
 
-export type Source = "local" | "github" | "wda";
+const SOURCES = ["github", "wda"] as const;
+
+export type Source = typeof SOURCES[number];
+
+function isSource(value: string): value is Source {
+  return SOURCES.includes(value as Source);
+}
 
 export type LessonTasks = {
   lessonId: string;
@@ -34,8 +40,7 @@ export type LessonMeta = {
   icon: string;
   visualPreview?: boolean;
   visualEditor?: boolean;
-  source: Source;
-  remoteId?: string;
+  slug: string; // slug:source:id
   sha?: string;
 
   order: number;
@@ -62,33 +67,37 @@ export function slugifyTitle(title: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-// export function generateId(title: string, source: Source, remoteId: string | undefined = undefined): string {
-//   let index = 0;
-//   let id;
-//   let exists: boolean = false;
-//   do {
-//     index++;
-//     id = title;
-//
-//     if (source !== "local" && remoteId)
-//       id += `-${remoteId}`;
-//
-//     if (index > 0)
-//       id += `-${index}`;
-//
-//     existsLessonAsync(id).then((result) => {
-//       exists = result;
-//     });
-//
-//   } while (exists);
-//   return slugifyTitle(id);
-// }
+export function generateId(slug: string): string {
+  return slugifyTitle(`${slug}-${crypto.randomUUID().slice(0, 8)}`);
+}
 
-export function generateId(title: string, source: Source, remoteId: string | undefined = undefined): string {
-  const suffix = crypto.randomUUID().slice(0, 8);
-  if (source !== "local" && remoteId)
-    return `${remoteId}-${title}-${suffix}`;
-  return slugifyTitle(`${title}-${suffix}`);
+export function buildSlug(slug: string, source?: Source, remoteId?: string): string {
+  const normalizedSlug = slugifyTitle(slug) || "lesson";
+
+  if (source && remoteId) {
+    const normalizedRemoteId = slugifyTitle(remoteId);
+    if (normalizedRemoteId)
+      return `${normalizedSlug}:${source}:${normalizedRemoteId}`;
+  }
+
+  return normalizedSlug;
+}
+
+export function decodeSlug(slug: string): { slug: string; source?: Source; remote?: string } {
+  const parts = slug.split(":");
+
+  if (parts.length === 3) {
+    const [lessonSlug, source, remote] = parts;
+    if (lessonSlug && remote && isSource(source)) {
+      return {
+        slug: lessonSlug,
+        source,
+        remote,
+      };
+    }
+  }
+
+  return {slug: slugifyTitle(slug) || slug};
 }
 
 const db = new Dexie("WDA") as Dexie & {

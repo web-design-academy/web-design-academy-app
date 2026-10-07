@@ -1,5 +1,5 @@
 export interface DefaultLesson {
-  remoteId: string;
+  slug: string;
   title: string;
   description: string;
   color: string;

@@ -1,31 +1,46 @@
 .downloader-conflicts,
 .downloader-conflict-item,
-.downloader-conflict-info,
-.downloader-conflict-actions {
+.downloader-conflict-details,
+.downloader-conflict-info {
     display: flex;
-    align-items: center;
-    gap: var(--space-4);
-}
-
-.downloader-conflicts:not(:last-child) {
-    border-bottom: var(--border-width-thin) solid var(--color-border);
 }
 
 .downloader-conflicts {
     flex-direction: column;
     overflow: scroll;
     align-items: start;
+    gap: var(--space-4);
 }
 
 .downloader-conflict-item {
     justify-content: space-between;
+    gap: var(--space-4);
     width: 100%;
 }
 
+.downloader-conflict-item:not(:last-child) {
+    border-bottom: var(--border-width-thin) solid var(--color-border);
+    padding-bottom: var(--space-4);
+}
+
 .downloader-conflict-info {
+    flex-direction: column;
+    min-width: 0;
     flex: 1;
 }
 
+.downloader-conflict-details {
+    flex: 1;
+    gap: var(--space-4);
+    align-items: center;
+}
+
 .downloader-conflict-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.downloader-conflict-text {
+    min-width: 0;
     text-overflow: ellipsis;
 }

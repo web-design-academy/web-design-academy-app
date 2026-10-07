@@ -41,7 +41,7 @@ async function packLesson(sourcePath, outputPath) {
     metadata.sha = hash.digest("hex");
 
     const splitPath = sourcePath.split(path.sep);
-    metadata.remoteId = splitPath[splitPath.length - 1];
+    metadata.slug = splitPath[splitPath.length - 1];
 
     await fsAsync.writeFile(targetJsonPath, JSON.stringify(metadata));
   } catch (err) {

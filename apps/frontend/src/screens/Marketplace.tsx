@@ -23,6 +23,11 @@ export default function Marketplace() {
     const data = await downloadLesson(id);
     const metadata = await fetchLesson(id);
     await processZip(data, "wda", id, metadata.sha);
+    pushNotification({
+      type: "success",
+      message: `Lesson ${metadata.title} downloaded successfully`,
+      duration: 3,
+    });
   };
 
   useEffect(() => {
@@ -71,13 +76,13 @@ export default function Marketplace() {
           <h2>Made by WDA team</h2>
           {defaultLoading ? <LoadingSpinner/> : defaultLessons && defaultLessons.map((l) => (
             <DefaultLessonBanner
-              key={l.remoteId}
+              key={l.slug}
               lesson={l}
               actions={(
                 <button
                   className="btn-ghost"
                   title="Download lesson"
-                  onClick={() => downloadDefault(l.remoteId)}
+                  onClick={() => downloadDefault(l.slug)}
                 >
                   <DownloadIcon size="1em" className="icon-margin-right"/>
                   Download

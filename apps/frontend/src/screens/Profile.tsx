@@ -21,6 +21,7 @@ import {
 import type {Repository} from "@/interfaces/Repository.ts";
 import InstallationBanner from "@/components/Dashboard/InstallationBanner.tsx";
 import {useNotifications} from "@/components/Notifications.tsx";
+import InfoBanner from "@/components/InfoBanner.tsx";
 
 type Modals = "unlink" | "installations" | "none";
 
@@ -98,6 +99,11 @@ export default function Profile() {
       async () => {
         await refresh();
         await profileRefetch();
+        pushNotification({
+          type: "success",
+          message: "GitHub account linked successfully",
+          duration: 5
+        });
       },
       (error) => pushNotification({
         type: "error",
@@ -109,8 +115,20 @@ export default function Profile() {
 
   const unlinkGitHub = async () => {
     try {
+      if (installations && installations?.length > 0)
+        pushNotification({
+          type: "warning",
+          message: "You have installations linked to your account. Be sure to uninstall them in GitHub settings.",
+          duration: 10
+        });
+
       await unlinkAccount();
       await refresh();
+      pushNotification({
+        type: "success",
+        message: "GitHub account unlinked successfully",
+        duration: 5
+      });
     } catch (error) {
       pushNotification({
         type: "error",
@@ -171,7 +189,7 @@ export default function Profile() {
   } = useQuery({
     queryKey: ["installations"],
     queryFn: async () => await fetchInstallations(),
-    enabled: Boolean(!isLoading && user?.githubId && openModal === "installations"),
+    enabled: Boolean(!isLoading && user?.githubId && (openModal === "installations" || openModal === "unlink")),
     staleTime: 1000 * 60 * 60 * 5,
   });
 
@@ -415,11 +433,16 @@ export default function Profile() {
             <p>You will still be able to download lessons in public repositories.</p>
             <p>Remote repositories and locally saved lessons will not be removed.</p>
             <p>You can link your account or a different one <strong>again anytime you want.</strong></p>
-            <p>Be sure to <strong>uninstall</strong> any installations you made to WDA with the button bellow.</p>
 
-            <div className="center">
-              {manageButton()}
-            </div>
+            {installations && installations.length > 0 && (
+              <>
+                <InfoBanner
+                  type="warning"
+                  message="You have installations linked to your account. Be sure to uninstall them with button below."
+                  actions={manageButton()}
+                />
+              </>
+            )}
           </div>
         }
       />

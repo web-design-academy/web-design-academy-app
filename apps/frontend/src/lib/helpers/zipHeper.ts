@@ -1,15 +1,12 @@
 import JSZip from "jszip";
 import {ensureReadonlyBlockSpacing} from "./readonlyBlocks";
 import {
+  buildSlug,
+  decodeSlug,
   generateId,
   getContentAsync,
-  getLessonsAsync,
   getTasksAsync,
   type LessonMeta,
-  saveLessonAsync,
-  saveLessonContentAsync,
-  saveTasksAsync,
-  slugifyTitle,
   type Source,
 } from "@/lib/helpers/db.ts";
 import type {TaskCode} from "@/lib/helpers/tasks.ts";
@@ -23,7 +20,7 @@ function packLessonAsync(
   content: string,
   courseTasks: Partial<TaskCode>[],
 ): void {
-  const slug = slugifyTitle(`${course.title}${course.remoteId ? `_${course.remoteId}` : ""}`);
+  const slug = decodeSlug(course.slug).slug;
   const courseFolder = zip.folder(slug);
   if (!courseFolder)
     throw new Error("Failed to create zip folder");
@@ -137,9 +134,8 @@ export async function packLessonsZipAsync(
 
 export async function parseZipAsync(
   file: Blob,
-  source: Source = "local",
-  remoteId: string | undefined = undefined,
-  sha: string | undefined = undefined
+  slugComponents?: { source: Source; remote: string },
+  sha?: string
 ): Promise<NewLesson[]> {
   const zip = await JSZip.loadAsync(file);
   const lessonsMap = new Map<
@@ -238,7 +234,11 @@ export async function parseZipAsync(
       (id) => value.tasksMap.get(id)!,
     );
 
-    const lessonId = generateId(value.meta.title || folderName, source, remoteId);
+    const slug = slugComponents
+      ? buildSlug(decodeSlug(value.meta.slug || folderName).slug, slugComponents.source, slugComponents.remote)
+      : undefined;
+
+    const lessonId = generateId(value.meta.slug || folderName);
     const lessonMeta: LessonMeta = {
       id: lessonId,
       title: value.meta.title || folderName,
@@ -250,8 +250,7 @@ export async function parseZipAsync(
       visualEditor: value.meta.visualEditor ?? false,
       visualPreview: value.meta.visualPreview ?? false,
       deleted: value.meta.deleted ?? false,
-      source: value.meta.source || source,
-      remoteId: value.meta.remoteId || remoteId,
+      slug: slug ?? buildSlug(value.meta.slug ?? value.meta.title ?? folderName),
       sha: value.meta.sha || sha,
     };
 
@@ -263,20 +262,4 @@ export async function parseZipAsync(
   }
 
   return lessons;
-}
-
-export async function parseAndSaveZipAsync(
-  file: File | Blob,
-  source: Source = "local",
-  remoteId: string | undefined = undefined,
-  sha: string | undefined = undefined
-) {
-  const lessons = await parseZipAsync(file, source, remoteId, sha);
-  for (const l of lessons) {
-    await saveLessonAsync(l.lesson);
-    await saveLessonContentAsync(l.lesson.id, l.content || "");
-    await saveTasksAsync(l.lesson.id, l.tasks);
-  }
-
-  return await getLessonsAsync();
 }

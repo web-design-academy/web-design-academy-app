@@ -2,6 +2,7 @@ import * as LucideIcons from "lucide-react";
 import {ArrowLeft, Download, Edit3, ExternalLink, GripVertical, Plus, Search, Trash2, Undo2} from "lucide-react";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {
+  buildSlug,
   deleteMarkedAsync,
   generateId,
   getLessonsAsync,
@@ -177,7 +178,7 @@ function parseOklchColor(value: string): OklchColor {
   };
 }
 
-type LessonForm = Omit<LessonMeta, "id" | "order" | "deleted" | "remoteId" | "sha" | "taskCount">;
+type LessonForm = Omit<LessonMeta, "id" | "order" | "deleted" | "slug" | "sha" | "taskCount">;
 
 /**
  * Creates and returns a new empty lesson form object with default values.
@@ -191,9 +192,8 @@ function emptyForm(): LessonForm {
     description: "",
     color: LESSON_COLOR_OPTIONS[0],
     icon: DEFAULT_ICON,
-    source: "local",
     visualEditor: false,
-    visualPreview: false
+    visualPreview: false,
   };
 }
 
@@ -405,7 +405,7 @@ export default function EditDashboard() {
   );
 
   const generatedId = useMemo(
-    () => generateId(formData.title, "local"),
+    () => generateId(formData.title),
     [formData.title],
   );
 
@@ -488,8 +488,7 @@ export default function EditDashboard() {
       color: lesson.color,
       icon: lesson.icon,
       visualEditor: lesson.visualEditor ?? false,
-      visualPreview: lesson.visualPreview ?? false,
-      source: lesson.source
+      visualPreview: lesson.visualPreview ?? false
     });
     setHasTouchedTitle(false);
     setIsColorPickerOpen(false);
@@ -519,6 +518,7 @@ export default function EditDashboard() {
       order: -1,
       deleted: false,
       taskCount: 0,
+      slug: buildSlug(formData.title)
     });
 
     await saveTasksAsync(generatedId, [{
@@ -580,6 +580,7 @@ export default function EditDashboard() {
       icon: formData.icon,
       visualEditor: formData.visualEditor,
       visualPreview: formData.visualPreview,
+      slug: editingLesson.slug || buildSlug(formData.title),
     });
 
     setLessons(await getLessonsAsync());
@@ -643,7 +644,7 @@ export default function EditDashboard() {
 
   const handleFileDrop = useCallback(async (file: File) => {
     if (file.name.endsWith(".zip")) {
-      await processZip(file, "local", undefined, undefined);
+      await processZip(file);
       setLessons(await getLessonsAsync());
     } else {
       alert("unsupported file type");
