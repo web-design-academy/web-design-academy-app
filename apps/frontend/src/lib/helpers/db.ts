@@ -40,7 +40,7 @@ export type LessonMeta = {
   icon: string;
   visualPreview?: boolean;
   visualEditor?: boolean;
-  slug: string; // slug:source:id
+  slug: string; // slug:source:id or slug
   sha?: string;
 
   order: number;
@@ -59,7 +59,7 @@ export type LessonMeta = {
  * @param {string} title - The input string to be slugified.
  * @return {string} The slugified version of the input string.
  */
-export function slugifyTitle(title: string): string {
+function slugifyTitle(title: string): string {
   return title
     .trim()
     .toLowerCase()
@@ -116,7 +116,7 @@ db.version(1).stores({
 
 export { db };
 
-function emitLessonDraftsChanged() {
+export function emitLessonDraftsChanged() {
   window.dispatchEvent(new Event("lessonsChanged"));
 }
 
@@ -143,12 +143,12 @@ export async function existsLessonAsync(id: string): Promise<boolean> {
 
 export async function markLessonDeletedAsync(id: string): Promise<void> {
   await db.lessons.update(id, { deleted: true });
-  emitLessonDraftsChanged();
+  // emitLessonDraftsChanged();
 }
 
 export async function markLessonRestoredAsync(id: string): Promise<void> {
   await db.lessons.update(id, { deleted: false });
-  emitLessonDraftsChanged();
+  // emitLessonDraftsChanged();
 }
 
 export async function saveLessonAsync(lesson: LessonMeta): Promise<void> {
@@ -174,7 +174,7 @@ export async function saveLessonAsync(lesson: LessonMeta): Promise<void> {
     });
   });
 
-  emitLessonDraftsChanged();
+  // emitLessonDraftsChanged();
 }
 
 export async function deleteLessonAsync(id: string): Promise<void> {
@@ -184,7 +184,7 @@ export async function deleteLessonAsync(id: string): Promise<void> {
     await db.lessons.delete(id);
   });
 
-  emitLessonDraftsChanged();
+  // emitLessonDraftsChanged();
 }
 
 export async function deleteMarkedAsync(): Promise<void> {
@@ -220,7 +220,7 @@ export async function saveTasksAsync(
     await db.lessons.update(lessonId, { taskCount: tasks.length });
   });
 
-  emitLessonDraftsChanged();
+  // emitLessonDraftsChanged();
 }
 
 export async function deleteTasksAsync(id: string): Promise<void> {
@@ -230,7 +230,7 @@ export async function deleteTasksAsync(id: string): Promise<void> {
     await db.lessons.update(id, { taskCount: 0 });
   });
 
-  emitLessonDraftsChanged();
+  // emitLessonDraftsChanged();
 }
 
 export async function getContentAsync(id: string): Promise<string> {

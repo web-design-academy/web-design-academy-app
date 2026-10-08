@@ -14,6 +14,9 @@ import type {NewLesson} from "@/interfaces/NewLesson.ts";
 
 const OMIT_KEYS = new Set(["id", "order", "taskCount", "deleted", "tasks"]);
 
+const DEFAULT_COLOR = "#00b4ff";
+const DEFAULT_ICON = "Download";
+
 function packLessonAsync(
   zip: JSZip,
   course: LessonMeta,
@@ -31,7 +34,7 @@ function packLessonAsync(
     2,
   );
 
-  courseFolder.file(`${slug}.json`, jsonContent);
+  courseFolder.file(`${slug}.wdal.json`, jsonContent);
   courseFolder.file(`${slug}.mdx`, content ?? "");
 
   courseTasks
@@ -100,8 +103,8 @@ async function downloadZipAsync(zip: JSZip, suggestedName: string): Promise<void
       await writable.close();
       return;
     } catch (error) {
-      if ((error as DOMException)?.name === "AbortError") return;
-      console.warn("SaveFilePicker failed, using fallback download link", error);
+      if ((error as DOMException)?.name === "AbortError")
+        return;
     }
   }
 
@@ -132,134 +135,136 @@ export async function packLessonsZipAsync(
   await downloadZipAsync(zip, suggestedName);
 }
 
+function validateMeta(meta: Partial<LessonMeta>, slugComponents?: {
+  source: Source;
+  remote: string
+}, sha?: string): LessonMeta {
+  if (!meta.title || !meta.color || !meta.icon || !meta.slug)
+    throw new Error("Lesson metadata is missing required fields");
+
+  const slug = slugComponents
+    ? buildSlug(decodeSlug(meta.slug).slug, slugComponents.source, slugComponents.remote)
+    : undefined;
+
+  return {
+    id: generateId(meta.slug),
+    title: meta.title,
+    description: meta.description || "",
+    color: meta.color || DEFAULT_COLOR,
+    icon: meta.icon || DEFAULT_ICON,
+    visualPreview: meta.visualPreview ?? false,
+    visualEditor: meta.visualEditor ?? false,
+    slug: slug || buildSlug(meta.slug || meta.title),
+    sha: sha || meta.sha,
+    order: -1,
+    taskCount: 0,
+    deleted: false,
+  };
+}
+
+function addTaskFileToMap(tasksMap: Map<number, TaskCode>, taskId: number, fileName: string, fileContent: string) {
+  if (!tasksMap.has(taskId)) {
+    tasksMap.set(taskId, {
+      html: "",
+      css: "",
+      js: "",
+    });
+  }
+
+  const task = tasksMap.get(taskId)!;
+
+  switch (fileName) {
+    case "index.html":
+      task.html = fileContent;
+      break;
+    case "solution.html":
+      task.solutionHtml = fileContent;
+      break;
+    case "styles.css":
+      task.css = fileContent;
+      break;
+    case "solution.css":
+      task.solutionCss = fileContent;
+      break;
+    case "script.js":
+      task.js = fileContent;
+      break;
+    case "solution.js":
+      task.solutionJs = fileContent;
+      break;
+    case "evaluation.json":
+      task.evaluation = JSON.parse(fileContent);
+      break;
+    default:
+      throw new Error(`Unrecognized file ${fileName} for task ${taskId}`);
+  }
+}
+
 export async function parseZipAsync(
   file: Blob,
   slugComponents?: { source: Source; remote: string },
   sha?: string
-): Promise<NewLesson[]> {
-  const zip = await JSZip.loadAsync(file);
-  const lessonsMap = new Map<
-    string,
-    {
-      meta: Partial<LessonMeta>;
-      content?: string;
-      tasksMap: Map<number, Partial<TaskCode>>;
-    }
-  >();
-
-  for (const [filePath, fileEntry] of Object.entries(zip.files)) {
-    if (fileEntry.dir)
-      continue;
-    if (filePath.startsWith("__MACOSX/") || filePath.includes("/.DS_Store"))
-      continue;
-
-    const splitPath = filePath.split("/").filter(Boolean);
-    const rootFolder = splitPath[0];
-    if (!rootFolder)
-      continue;
-
-    if (!lessonsMap.has(rootFolder)) {
-      lessonsMap.set(rootFolder, {
-        meta: {},
-        tasksMap: new Map(),
-      });
-    }
-
-    const currentLesson = lessonsMap.get(rootFolder)!;
-
-    if (splitPath.length === 2) {
-      const fileName = splitPath[1];
-
-      if (fileName.endsWith(".json")) {
-        const metaText = await fileEntry.async("text");
-        try {
-          const json = JSON.parse(metaText) as Partial<LessonMeta>;
-          currentLesson.meta = {...currentLesson.meta, ...json};
-        } catch (err) {
-          console.error(`Metadata parsing error for ${rootFolder}:`, err);
-        }
-      } else if (fileName.endsWith(".mdx")) {
-        currentLesson.content = await fileEntry.async("text");
-      }
-    } else if (splitPath.length >= 3) {
-      const fileName = splitPath[splitPath.length - 1];
-      const taskFolderSegment = splitPath[splitPath.length - 2];
-      const taskId = parseInt(taskFolderSegment, 10);
-
-      if (isNaN(taskId)) continue;
-
-      if (!currentLesson.tasksMap.has(taskId))
-        currentLesson.tasksMap.set(taskId, {});
-
-      const taskTarget = currentLesson.tasksMap.get(taskId)!;
-      const fileContent = await fileEntry.async("text");
-
-      switch (fileName) {
-        case "index.html":
-          taskTarget.html = fileContent;
-          break;
-        case "solution.html":
-          taskTarget.solutionHtml = fileContent;
-          break;
-        case "styles.css":
-          taskTarget.css = fileContent;
-          break;
-        case "solution.css":
-          taskTarget.solutionCss = fileContent;
-          break;
-        case "script.js":
-          taskTarget.js = fileContent;
-          break;
-        case "solution.js":
-          taskTarget.solutionJs = fileContent;
-          break;
-        case "evaluation.json":
-          try {
-            taskTarget.evaluation = JSON.parse(fileContent);
-          } catch (err) {
-            console.error(`Task parsing error for task ${taskId}:`, err);
-          }
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
+): Promise<{ lessons: NewLesson[]; errors: string[] }> {
   const lessons: NewLesson[] = [];
+  const errors: string[] = [];
+  const zip = await JSZip.loadAsync(file);
 
-  for (const [folderName, value] of lessonsMap.entries()) {
-    const sortedTaskIds = Array.from(value.tasksMap.keys()).sort((a, b) => a - b);
-    const lessonTasksList: Partial<TaskCode>[] = sortedTaskIds.map(
-      (id) => value.tasksMap.get(id)!,
+  const metadataEntries = zip
+    .file(/\.wdal\.json$/i)
+    .filter((entry) => !entry.name.startsWith("__MACOSX/") && !entry.name.includes("/.DS_Store")
     );
 
-    const slug = slugComponents
-      ? buildSlug(decodeSlug(value.meta.slug || folderName).slug, slugComponents.source, slugComponents.remote)
-      : undefined;
+  for (const entry of metadataEntries) {
+    try {
+      const slashIndex = entry.name.lastIndexOf("/");
+      const folder = slashIndex !== -1 ? entry.name.slice(0, slashIndex + 1) : "";
 
-    const lessonId = generateId(value.meta.slug || folderName);
-    const lessonMeta: LessonMeta = {
-      id: lessonId,
-      title: value.meta.title || folderName,
-      description: value.meta.description || "",
-      color: value.meta.color || "#f54900",
-      order: -1,
-      icon: value.meta.icon || "Code",
-      taskCount: lessonTasksList.length,
-      visualEditor: value.meta.visualEditor ?? false,
-      visualPreview: value.meta.visualPreview ?? false,
-      deleted: value.meta.deleted ?? false,
-      slug: slug ?? buildSlug(value.meta.slug ?? value.meta.title ?? folderName),
-      sha: value.meta.sha || sha,
-    };
+      const parsedMeta = JSON.parse(await entry.async("text")) as Partial<LessonMeta>;
+      const lesson: NewLesson = {
+        lesson: validateMeta(parsedMeta, slugComponents, sha),
+        tasks: [],
+      };
 
-    lessons.push({
-      lesson: lessonMeta,
-      tasks: lessonTasksList,
-      content: value.content || "",
-    });
+      const tasksMap = new Map<number, TaskCode>();
+
+      const lessonFiles = Object.values(zip.files).filter((file) =>
+        !file.dir &&
+        file.name.startsWith(folder) &&
+        !file.name.startsWith("__MACOSX/") &&
+        !file.name.includes("/.DS_Store")
+      );
+
+      for (const file of lessonFiles) {
+        try {
+          const filePath = file.name.slice(folder.length);
+          const splitPath = filePath.split("/").filter(Boolean);
+
+          if (splitPath.length === 1 && filePath.endsWith(".mdx")) {
+            lesson.content = await file.async("text");
+          } else if (splitPath.length >= 2) {
+            const taskId = parseInt(splitPath[0], 10);
+            if (isNaN(taskId))
+              continue;
+
+            const fileName = splitPath[splitPath.length - 1];
+            addTaskFileToMap(tasksMap, taskId, fileName, await file.async("text"));
+          }
+        } catch (error) {
+          console.error(`Error parsing file ${file.name} for lesson ${lesson.lesson.title}:`, error);
+          errors.push(`Error parsing file ${file.name} for lesson ${lesson.lesson.title}: ${error}`);
+        }
+      }
+
+      lesson.tasks = Array.from(tasksMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([, task]) => task);
+
+      lessons.push(lesson);
+    } catch (err) {
+      console.error(`Error parsing ${entry.name}:`, err);
+      errors.push(`Error parsing ${entry.name}: ${err}`);
+    }
   }
 
-  return lessons;
+  return {lessons, errors};
 }

@@ -4,24 +4,27 @@ import GitHubAvatar from "@/components/User/GitHubAvatar.tsx";
 import {useCallback, useEffect, useState} from "react";
 import {Link, useNavigate} from "react-router";
 import "@/styles/profile.css"
-import {DownloadCloud, Pencil, Plus, Settings, X} from "lucide-react";
+import {DownloadCloud, ExternalLink, Pencil, Plus, Settings} from "lucide-react";
 import Modal from "@/components/Modal.tsx";
 import Pagination from "@/components/Pagination.tsx";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import {useQuery} from "@tanstack/react-query";
 import RepositoryBanner from "@/components/Dashboard/RepositoryBanner.tsx";
 import {
+  downloadRepositoryArchive,
   fetchInstallations,
   fetchProfile,
   fetchRepositories,
-  installationUrl,
+  fetchRepositorySha,
   linkUrl,
+  newInstallationUrl,
   unlinkAccount
 } from "@/lib/api/github.ts";
 import type {Repository} from "@/interfaces/Repository.ts";
 import InstallationBanner from "@/components/Dashboard/InstallationBanner.tsx";
 import {useNotifications} from "@/components/Notifications.tsx";
 import InfoBanner from "@/components/InfoBanner.tsx";
+import {useDownloader} from "@/components/Downloader.tsx";
 
 type Modals = "unlink" | "installations" | "none";
 
@@ -73,6 +76,7 @@ const sideWindow = (
 export default function Profile() {
   const {user, isLoading, refresh} = useAuth();
   const {pushNotification} = useNotifications();
+  const {processZip} = useDownloader();
   const navigate = useNavigate();
   const [openModal, setOpenModal] = useState<Modals>("none");
 
@@ -142,7 +146,7 @@ export default function Profile() {
 
   const addInstallation = () => {
     sideWindow(
-      `${installationUrl}/new`,
+      `${newInstallationUrl}`,
       "GitHubInstall",
       async () => {
         await installationsRefetch();
@@ -158,6 +162,32 @@ export default function Profile() {
       }
     );
   };
+
+  const downloadRepo = async (repo: Repository) => {
+    pushNotification({
+      type: "info",
+      message: `Downloading repository ${repo.owner_login}/${repo.name}...`,
+      duration: 5
+    });
+
+    try {
+      const blob = await downloadRepositoryArchive(repo.owner_login, repo.name);
+      const sha = await fetchRepositorySha(repo.owner_login, repo.name, repo.default_branch);
+      await processZip(blob, "github", repo.id.toString(), sha);
+
+      pushNotification({
+        type: "success",
+        message: `Repository ${repo.owner_login}/${repo.name} downloaded successfully`,
+        duration: 5
+      });
+    } catch (error) {
+      pushNotification({
+        type: "error",
+        message: `Failed to download repository ${repo.owner_login}/${repo.name}: ${(error as Error).message}`,
+        duration: 15
+      });
+    }
+  }
 
   const linkButton = () => (
     <button
@@ -347,14 +377,15 @@ export default function Profile() {
                           <>
                             {manageButton()}
 
-                            <button
-                              type="button"
+                            <Link
+                              to={"/edit"}
                               className="btn-primary"
-                              onClick={() => navigate("/edit")}
+                              aria-label={"Create and publish lesson"}
+                              title="Create and publish a new lesson"
                             >
                               <Plus size={16} className="icon-margin-right"/>
                               Create and publish lesson
-                            </button>
+                            </Link>
                           </>
                         )}
                       </div>
@@ -364,28 +395,38 @@ export default function Profile() {
                         repo={repo}
                         actions={
                           <>
-                            <button type="button" className="btn-primary">
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              aria-label={`Download repository ${repo.owner_login}/${repo.name}`}
+                              title={`Download repository ${repo.owner_login}/${repo.name}`}
+                              onClick={() => downloadRepo(repo)}
+                            >
                               <DownloadCloud
-                                size={16}
+                                size={"1em"}
                                 className={user?.githubId ? "" : "icon-margin-right"}
                               />
-                              {user?.githubId ? "" : "Download"}
                             </button>
 
-                            {user?.githubId && (
-                              <>
-                                <button type="button" className="btn-ghost">
-                                  <Pencil size={16}/>
-                                </button>
+                            <button
+                              type="button"
+                              className="btn-ghost"
+                              aria-label={`Edit repository ${repo.owner_login}/${repo.name}`}
+                              title={`Edit repository ${repo.owner_login}/${repo.name}`}
+                            >
+                              <Pencil size={"1em"}/>
+                            </button>
 
-                                <button
-                                  type="button"
-                                  className="btn-ghost"
-                                >
-                                  <X size={16}/>
-                                </button>
-                              </>
-                            )}
+                            <Link
+                              to={repo.html_url}
+                              target={"_blank"}
+                              type="button"
+                              className="btn-ghost"
+                              aria-label={`Open repository ${repo.owner_login}/${repo.name} in GitHub`}
+                              title={`Open repository ${repo.owner_login}/${repo.name} in GitHub`}
+                            >
+                              <ExternalLink size={"1em"}/>
+                            </Link>
                           </>
                         }
                       />

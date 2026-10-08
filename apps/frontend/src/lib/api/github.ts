@@ -43,6 +43,42 @@ export async function fetchRepository(repoId: string) {
   return readResponse<Repository>(response, "Failed to fetch repository");
 }
 
+export async function fetchRepositorySha(owner: string, name: string, branch: string) {
+  const response = await fetch(
+    `${API_BASE}/github/repositories/sha/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${encodeURIComponent(branch)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      credentials: "include"
+    }
+  );
+
+  return readResponse<string>(response, "Failed to fetch repository SHA");
+}
+
+export async function downloadRepositoryArchive(owner: string, name: string) {
+  const response = await fetch(
+    `${API_BASE}/github/repositories/download/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/zip",
+      },
+      credentials: "include"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to download repository zip: ${response.statusText}`);
+  }
+
+  return await response.blob();
+}
+
 export const installationUrl = `${API_BASE}/github/installations`;
 export const newInstallationUrl = `${installationUrl}/new`;
 

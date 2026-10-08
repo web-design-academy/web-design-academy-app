@@ -10,8 +10,10 @@ const {
   getProfile,
   getRepositories,
   getRepository,
+  getRepositorySha,
   syncInstallations,
-  syncInstallation
+  syncInstallation,
+  downloadRepository
 } = require("../services/github");
 const { authenticateToken } = require("../middleware/auth");
 const ServerError = require("../errors/ServerError");
@@ -86,6 +88,20 @@ router.get("/repositories/:id", asyncHandler(async (req, res) => {
   const repoId = req.params.id;
   const remote = await getRepository(req.user.sub, repoId);
   res.json(remote);
+}));
+
+router.get("/repositories/sha/:owner/:repo/:branch", asyncHandler(async (req, res) => {
+  const {owner, repo, branch} = req.params;
+  const sha = await getRepositorySha(req.user.sub, owner, repo, branch);
+  res.json(sha);
+}));
+
+router.get("/repositories/download/:owner/:repo", asyncHandler(async (req, res) => {
+  const {owner, repo} = req.params;
+  const data = await downloadRepository(req.user.sub, owner, repo);
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${repo}.zip"`);
+  res.send(data);
 }));
 
 router.get("/installations", asyncHandler(async (req, res) => {

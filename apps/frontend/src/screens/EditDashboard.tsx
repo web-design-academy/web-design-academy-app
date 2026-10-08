@@ -40,6 +40,7 @@ import {HexColorPicker} from "react-colorful";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import {useDownloader} from "@/components/Downloader.tsx";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
+import {useNotifications} from "@/components/Notifications";
 
 const LESSON_COLOR_OPTIONS = [
   "oklch(64.6% 0.222 41.116)",
@@ -347,6 +348,7 @@ function LessonDragOverlayCard({
 
 export default function EditDashboard() {
   const {processZip} = useDownloader();
+  const {pushNotification} = useNotifications();
   const [lessons, setLessons] = useState<LessonMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLesson, setActiveLesson] = useState<LessonMeta | null>(null);
@@ -543,6 +545,18 @@ export default function EditDashboard() {
       );
 
       await packLessonsZipAsync(coursesData, "lessons.zip");
+      pushNotification({
+        type: "success",
+        message: "Lessons exported successfully.",
+        duration: 3,
+      });
+    } catch (error) {
+      console.log("Error exporting lessons:", error);
+      pushNotification({
+        type: "error",
+        message: "An error occurred while exporting lessons.",
+        duration: 3,
+      });
     } finally {
       setIsDownloadingLessonChanges(false);
     }
@@ -553,6 +567,12 @@ export default function EditDashboard() {
 
     await deleteMarkedAsync();
     setLessons(await getLessonsAsync());
+
+    pushNotification({
+      type: "success",
+      message: "All marked lessons have been deleted.",
+      duration: 3,
+    });
   };
 
   const openCreateModal = () => {
@@ -659,6 +679,21 @@ export default function EditDashboard() {
       setLessons(data);
       setLoading(false);
     });
+  }, []);
+
+  useEffect(() => {
+    const handleLessonsChanged = async () => {
+      setLoading(true);
+      const data = await getLessonsAsync();
+      setLessons(data);
+      setLoading(false);
+    }
+
+    window.addEventListener("lessonsChanged", handleLessonsChanged);
+
+    return () => {
+      window.removeEventListener("lessonsChanged", handleLessonsChanged);
+    }
   }, []);
 
   return (

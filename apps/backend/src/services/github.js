@@ -227,8 +227,7 @@ async function getRepository(userId, repoId) {
           ref: `heads/${repo.default_branch}`,
         });
         repo.sha = refData.object.sha;
-      } catch (refError) {
-        repo.sha = null;
+      } catch (e) {
       }
     }
 
@@ -236,6 +235,33 @@ async function getRepository(userId, repoId) {
   } catch (error) {
     throw new ServerError("Failed to fetch remote repository", 500);
   }
+}
+
+async function getRepositorySha(userId, owner, repo, branch) {
+  const octokit = await getOctokit(userId);
+
+  try {
+    const {data: refData} = await octokit.rest.git.getRef({
+      owner,
+      repo,
+      ref: `heads/${branch}`,
+    });
+    return refData.object.sha;
+  } catch (error) {
+    console.log(error);
+    throw new ServerError("Failed to fetch repository reference", 500);
+  }
+}
+
+async function downloadRepository(userId, owner, repo) {
+  const octokit = await getOctokit(userId);
+
+  const response = await octokit.rest.repos.downloadZipballArchive({
+    owner,
+    repo,
+  });
+
+  return Buffer.from(response.data);
 }
 
 async function syncInstallations(userId) {
@@ -290,6 +316,8 @@ module.exports = {
   getProfile,
   getRepositories,
   getRepository,
+  getRepositorySha,
+  downloadRepository,
   syncInstallations,
   syncInstallation
 };

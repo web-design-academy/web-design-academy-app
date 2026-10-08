@@ -77,24 +77,11 @@ export default function Dashboard() {
               <RotateCcw size="1em"/>
             </button>
 
-            <button
-              className="btn-ghost"
-              aria-label={`Check for lesson updates`}
-              title="Check for lesson updates"
-              onClick={() => pushNotification({
-                type: "info",
-                message: "Checking for lesson updates...",
-                duration: 3
-              })}
-            >
-              TN
-            </button>
-
             <Link
-              to={`/marketplace`}
               className="btn-ghost"
               aria-label={`Marketplace`}
               title="Find and download new lessons"
+              to={`/marketplace`}
             >
               <ShoppingBag size="1em" className="icon-margin-right"/>
               Marketplace

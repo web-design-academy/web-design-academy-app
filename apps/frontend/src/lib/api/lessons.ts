@@ -26,7 +26,7 @@ export async function fetchLesson(lessonId: string) {
   return await readResponse<DefaultLesson>(response, "Failed to load lesson");
 }
 
-export async function downloadLesson(id: string) {
+export async function downloadLessonArchive(id: string) {
   const response = await fetch(
     `${API_BASE}/lessons/download/${encodeURIComponent(id)}`,
   );

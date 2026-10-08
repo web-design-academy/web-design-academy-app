@@ -36,7 +36,7 @@ async function packLesson(sourcePath, outputPath) {
 
   try {
     const targetJsonPath = outputPath.replace(/\.zip$/i, ".json");
-    const sourceBuffer = await fsAsync.readFile(path.join(sourcePath, `${lessonName}.json`));
+    const sourceBuffer = await fsAsync.readFile(path.join(sourcePath, `${lessonName}.wdal.json`));
     const metadata = JSON.parse(sourceBuffer.toString());
     metadata.sha = hash.digest("hex");
 

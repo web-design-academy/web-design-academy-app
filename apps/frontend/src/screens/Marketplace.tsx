@@ -5,7 +5,7 @@ import {useQuery} from "@tanstack/react-query";
 import {useEffect, useRef} from "react";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import DefaultLessonBanner from "@/components/Lesson/DefaultLessonBanner.tsx";
-import {downloadLesson, fetchLesson, fetchLessons} from "@/lib/api/lessons.ts";
+import {downloadLessonArchive, fetchLesson, fetchLessons} from "@/lib/api/lessons.ts";
 import {useDownloader} from "@/components/Downloader.tsx";
 import {useNotifications} from "@/components/Notifications.tsx";
 
@@ -20,7 +20,7 @@ export default function Marketplace() {
   });
 
   const downloadDefault = async (id: string) => {
-    const data = await downloadLesson(id);
+    const data = await downloadLessonArchive(id);
     const metadata = await fetchLesson(id);
     await processZip(data, "wda", id, metadata.sha);
     pushNotification({
