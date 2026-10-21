@@ -1,24 +1,21 @@
-import {Link, Outlet, useLocation, useNavigate} from "react-router";
-import {useGoogleLogin} from "@react-oauth/google";
-import {useEffect, useState} from "react";
-import {BellIcon, Loader2, LogOut, Menu, X} from "lucide-react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { useGoogleLogin } from "@react-oauth/google";
+import { useEffect, useState } from "react";
+import { BellIcon, Loader2, LogOut, Menu, X } from "lucide-react";
 import "@/styles/root.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import {useAuth} from "@/lib/ctx/useAuth";
+import { useAuth } from "@/lib/ctx/useAuth";
 import Modal from "@/components/Modal";
-import {isGoogleAuthEnabled} from "@/lib/config/config.ts";
-import type {User} from "@/interfaces/User.ts";
-import {useNotifications} from "@/components/Notifications.tsx";
+import { isGoogleAuthEnabled } from "@/lib/config/config.ts";
+import type { User } from "@/interfaces/User.ts";
+import { useNotifications } from "@/components/Notifications.tsx";
 
 interface GoogleSignInButtonProps {
   onAuthenticated: (data: User) => void;
   onError: (message: string) => void;
 }
 
-function GoogleSignInButton({
-  onAuthenticated,
-  onError,
-}: GoogleSignInButtonProps) {
+function GoogleSignInButton({ onAuthenticated, onError }: GoogleSignInButtonProps) {
   const { loginWithGoogle } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -75,7 +72,7 @@ function GoogleSignInButton({
 
 export default function Root() {
   const { user, logout, isAuthenticated } = useAuth();
-  const {showNotifications} = useNotifications();
+  const { showNotifications } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
@@ -188,9 +185,7 @@ export default function Root() {
         <button
           className="icon-button hamburger-toggle"
           onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-          aria-label={
-            isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
-          }
+          aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
           aria-expanded={isMobileMenuOpen}
         >
           <Menu size={20} />
@@ -205,17 +200,11 @@ export default function Root() {
               </button>
             </>
           ) : isGoogleAuthEnabled && !isMobileViewport ? (
-            <GoogleSignInButton
-              onAuthenticated={handleAuthenticated}
-              onError={handleAuthError}
-            />
+            <GoogleSignInButton onAuthenticated={handleAuthenticated} onError={handleAuthError} />
           ) : null}
 
-          <button
-            className={"btn-ghost"}
-            onClick={() => showNotifications()}
-          >
-            <BellIcon size={"1.2em"}/>
+          <button className={"btn-ghost"} onClick={() => showNotifications()}>
+            <BellIcon size={"1.2em"} />
           </button>
 
           <ThemeSwitcher />
@@ -248,10 +237,7 @@ export default function Root() {
             </div>
           ) : isGoogleAuthEnabled && isMobileViewport && isMobileMenuOpen ? (
             <div className="mobile-row">
-              <GoogleSignInButton
-                onAuthenticated={handleAuthenticated}
-                onError={handleAuthError}
-              />
+              <GoogleSignInButton onAuthenticated={handleAuthenticated} onError={handleAuthError} />
             </div>
           ) : null}
 
@@ -275,9 +261,7 @@ export default function Root() {
 
       <footer className="app-footer">
         <span>&copy; {new Date().getFullYear()} Web Design Academy</span>
-        <a href="mailto:support@webdesignacademy.org">
-          support@webdesignacademy.org
-        </a>
+        <a href="mailto:support@webdesignacademy.org">support@webdesignacademy.org</a>
       </footer>
     </div>
   );

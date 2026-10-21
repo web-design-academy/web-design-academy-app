@@ -21,9 +21,7 @@
       (() => {
         const key = "preferred-theme";
         const savedTheme = localStorage.getItem(key);
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         const theme =
           savedTheme === "light" || savedTheme === "dark"
             ? savedTheme

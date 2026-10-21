@@ -1,6 +1,6 @@
-import {useEffect, useMemo, useState} from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as monaco from "monaco-editor";
-import {useTheme} from "@/lib/ctx/useTheme";
+import { useTheme } from "@/lib/ctx/useTheme";
 
 interface Props {
   l: "css" | "html" | "js" | "javascript";
@@ -22,9 +22,7 @@ export default function C({ l, children }: Props) {
       .colorize(children, lang, {})
       .then((html) => {
         if (!cancelled) {
-          setHighlightedHtml(
-            html.replace(/\r?\n/g, "").replace(/<br\s*\/?>/gi, ""),
-          );
+          setHighlightedHtml(html.replace(/\r?\n/g, "").replace(/<br\s*\/?>/gi, ""));
         }
       })
       .catch(() => {
@@ -39,9 +37,7 @@ export default function C({ l, children }: Props) {
   }, [children, lang, monacoTheme]);
 
   if (!highlightedHtml) {
-    return (
-      <code className={`monaco-inline-code lang-${lang}`}>{children}</code>
-    );
+    return <code className={`monaco-inline-code lang-${lang}`}>{children}</code>;
   }
 
   return (

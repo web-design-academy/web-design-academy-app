@@ -6,14 +6,10 @@ interface Props {
   color: string;
 }
 
-export default function LessonIcon({name, size = 30, color}: Props) {
+export default function LessonIcon({ name, size = 30, color }: Props) {
   return (
-    <div
-      className="course-icon"
-      style={{background: color}}
-      aria-hidden="true"
-    >
-      <LucideIcon name={name} size={size}/>
+    <div className="course-icon" style={{ background: color }} aria-hidden="true">
+      <LucideIcon name={name} size={size} />
     </div>
   );
 }

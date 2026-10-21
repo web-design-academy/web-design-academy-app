@@ -1,7 +1,7 @@
-import {requireOnlineMode} from "@/lib/config/config.ts";
-import {API_BASE} from "./client";
-import type {AnalysisIssue} from "@wda/css-analysis";
-import type {Tag} from "@/interfaces/Tag.ts";
+import { requireOnlineMode } from "@/lib/config/config.ts";
+import { API_BASE } from "./client";
+import type { AnalysisIssue } from "@wda/css-analysis";
+import type { Tag } from "@/interfaces/Tag.ts";
 
 export interface SubmissionPayload {
   lessonSlug: string;
@@ -58,9 +58,7 @@ export interface SubmissionQuery {
   sortDirection?: "asc" | "desc";
 }
 
-export async function submitSolution(
-  payload: SubmissionPayload,
-): Promise<SubmissionResponse> {
+export async function submitSolution(payload: SubmissionPayload): Promise<SubmissionResponse> {
   requireOnlineMode("Submissions");
 
   const response = await fetch(`${API_BASE}/submissions`, {
@@ -103,9 +101,7 @@ export async function fetchSubmissions(
   return response.json();
 }
 
-export async function fetchSubmissionById(
-  id: string,
-): Promise<SubmissionRecord> {
+export async function fetchSubmissionById(id: string): Promise<SubmissionRecord> {
   requireOnlineMode("Submissions");
 
   const response = await fetch(`${API_BASE}/submissions/${id}`);

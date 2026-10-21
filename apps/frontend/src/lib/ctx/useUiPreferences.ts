@@ -9,16 +9,13 @@ interface UiPreferencesContextValue {
   setVisualEditorAvailable: (available: boolean) => void;
 }
 
-export const UiPreferencesContext =
-  createContext<UiPreferencesContextValue | null>(null);
+export const UiPreferencesContext = createContext<UiPreferencesContextValue | null>(null);
 
 export function useUiPreferences() {
   const ctx = useContext(UiPreferencesContext);
 
   if (!ctx) {
-    throw new Error(
-      "useUiPreferences must be used within UiPreferencesProvider",
-    );
+    throw new Error("useUiPreferences must be used within UiPreferencesProvider");
   }
 
   return ctx;

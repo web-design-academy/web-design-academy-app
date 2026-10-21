@@ -1,8 +1,8 @@
 const fs = require("node:fs");
 const fsAsync = require("node:fs/promises");
 const path = require("path");
-const {ZipArchive} = require("archiver");
-const {finished} = require("node:stream/promises");
+const { ZipArchive } = require("archiver");
+const { finished } = require("node:stream/promises");
 const crypto = require("node:crypto");
 const chokidar = require("chokidar");
 
@@ -15,7 +15,7 @@ async function packLesson(sourcePath, outputPath) {
   });
 
   archive.on("data", (data) => {
-    hash.update(data)
+    hash.update(data);
   });
 
   archive.on("warning", (error) => {
@@ -29,10 +29,7 @@ async function packLesson(sourcePath, outputPath) {
   archive.pipe(output);
   archive.directory(sourcePath, lessonName);
 
-  await Promise.all([
-    archive.finalize(),
-    finished(output)
-  ]);
+  await Promise.all([archive.finalize(), finished(output)]);
 
   try {
     const targetJsonPath = outputPath.replace(/\.zip$/i, ".json");
@@ -50,13 +47,11 @@ async function packLesson(sourcePath, outputPath) {
 }
 
 async function packLessons(sourceDir, outputDir) {
-  await fsAsync.rm(outputDir, {recursive: true, force: true});
-  await fsAsync.mkdir(outputDir, {recursive: true});
-  const entries = await fsAsync.readdir(sourceDir, {withFileTypes: true});
+  await fsAsync.rm(outputDir, { recursive: true, force: true });
+  await fsAsync.mkdir(outputDir, { recursive: true });
+  const entries = await fsAsync.readdir(sourceDir, { withFileTypes: true });
 
-  const directories = entries.filter(
-    (entry) => entry.isDirectory() && !entry.name.startsWith(".")
-  );
+  const directories = entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
 
   for (const directory of directories) {
     const currentPath = path.join(sourceDir, directory.name);
@@ -82,11 +77,9 @@ function watchLessons(sourceDir, outputDir, debounceMs = 500) {
 
   watcher.on("all", (event, filePath) => {
     const lessonName = path.relative(sourceDir, filePath).split(path.sep)[0];
-    if (!lessonName)
-      return;
+    if (!lessonName) return;
 
-    if (debounce.has(lessonName))
-      clearTimeout(debounce.get(lessonName));
+    if (debounce.has(lessonName)) clearTimeout(debounce.get(lessonName));
 
     const timer = setTimeout(async () => {
       debounce.delete(lessonName);
@@ -103,13 +96,11 @@ function watchLessons(sourceDir, outputDir, debounceMs = 500) {
       } catch {
         try {
           await fsAsync.rm(`${destination}.zip`);
-        } catch (e) {
-        }
+        } catch (e) {}
 
         try {
           await fsAsync.rm(`${destination}.json`);
-        } catch (e) {
-        }
+        } catch (e) {}
         console.log(`Deleted lesson ${lessonName}`);
       }
     }, debounceMs);
@@ -120,5 +111,5 @@ function watchLessons(sourceDir, outputDir, debounceMs = 500) {
 
 module.exports = {
   packLessons,
-  watchLessons
+  watchLessons,
 };

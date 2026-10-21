@@ -5,8 +5,7 @@ const ServerError = require("../errors/ServerError");
 const authenticateToken = (req, res, next) => {
   const token = req.cookies[environment.cookieName];
 
-  if (!token)
-    throw new ServerError("No token provided", 401);
+  if (!token) throw new ServerError("No token provided", 401);
 
   try {
     req.user = jwt.verify(token, environment.jwtSecret);
@@ -17,13 +16,12 @@ const authenticateToken = (req, res, next) => {
 };
 
 function requireAdmin(req, res, next) {
-  if (req.user.role !== "admin")
-    throw new ServerError("Forbidden", 403);
+  if (req.user.role !== "admin") throw new ServerError("Forbidden", 403);
 
   next();
 }
 
 module.exports = {
   authenticateToken,
-  requireAdmin
+  requireAdmin,
 };

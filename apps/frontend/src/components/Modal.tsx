@@ -1,4 +1,4 @@
-import React, {type CSSProperties, useEffect} from "react";
+import React, { type CSSProperties, useEffect } from "react";
 import "@/styles/modal.css";
 
 interface Props {
@@ -19,7 +19,7 @@ export default function Modal({
   actions,
   className,
   style,
-                              }: Props) {
+}: Props) {
   useEffect(() => {
     if (!isOpen) return;
 
@@ -36,7 +36,7 @@ export default function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose} >
+    <div className="modal-overlay" onClick={onClose}>
       <div
         className={`modal-content ${className || ""}`}
         style={style}

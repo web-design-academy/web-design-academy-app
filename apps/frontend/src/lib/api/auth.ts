@@ -1,14 +1,12 @@
-import {requireOnlineMode} from "@/lib/config/config.ts";
-import {API_BASE} from "./client";
-import type {User} from "@/interfaces/User.ts";
+import { requireOnlineMode } from "@/lib/config/config.ts";
+import { API_BASE } from "./client";
+import type { User } from "@/interfaces/User.ts";
 
 export type GoogleLoginPayload =
   | { idToken: string; accessToken?: never }
   | { accessToken: string; idToken?: never };
 
-export async function loginWithGoogle(
-  payload: GoogleLoginPayload,
-): Promise<User> {
+export async function loginWithGoogle(payload: GoogleLoginPayload): Promise<User> {
   requireOnlineMode("Authentication");
 
   const response = await fetch(`${API_BASE}/auth/google`, {

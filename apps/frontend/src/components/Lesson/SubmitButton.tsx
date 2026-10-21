@@ -1,5 +1,5 @@
-import {useState} from "react";
-import {Check, Loader2, RotateCw, Send, X} from "lucide-react";
+import { useState } from "react";
+import { Check, Loader2, RotateCw, Send, X } from "lucide-react";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 
@@ -57,8 +57,7 @@ export default function SubmitButton({
               : isSubmitted
                 ? "#10b981"
                 : "var(--color-primary)",
-        cursor:
-          status === "loading" ? "wait" : disabled ? "not-allowed" : "pointer",
+        cursor: status === "loading" ? "wait" : disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.55 : 1,
       }}
     >

@@ -18,8 +18,7 @@ export const isOnlineMode = normalizedMode === "online";
 /**
  * Google client ID for OAuth authentication.
  */
-export const googleClientId =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ?? "";
+export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ?? "";
 
 /**
  * Indicates whether Google OAuth authentication is enabled.

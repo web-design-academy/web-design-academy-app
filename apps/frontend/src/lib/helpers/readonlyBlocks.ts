@@ -27,10 +27,7 @@ export function getReadonlyMarkers(language: TaskLanguage) {
   return markers[language];
 }
 
-export function ensureReadonlyBlockSpacing(
-  source: string,
-  language: TaskLanguage,
-) {
+export function ensureReadonlyBlockSpacing(source: string, language: TaskLanguage) {
   const normalized = source.replace(/\r\n/g, "\n");
 
   try {
@@ -46,19 +43,13 @@ export function ensureReadonlyBlockSpacing(
   lines.forEach((line, index) => {
     const trimmed = line.trim();
 
-    if (
-      trimmed === start &&
-      (spacedLines.length === 0 || spacedLines.at(-1)?.trim() !== "")
-    ) {
+    if (trimmed === start && (spacedLines.length === 0 || spacedLines.at(-1)?.trim() !== "")) {
       spacedLines.push("");
     }
 
     spacedLines.push(line);
 
-    if (
-      trimmed === end &&
-      (index === lines.length - 1 || lines[index + 1]?.trim() !== "")
-    ) {
+    if (trimmed === end && (index === lines.length - 1 || lines[index + 1]?.trim() !== "")) {
       spacedLines.push("");
     }
   });
@@ -66,10 +57,7 @@ export function ensureReadonlyBlockSpacing(
   return spacedLines.join("\n");
 }
 
-export function parseReadonlyRanges(
-  source: string,
-  language: TaskLanguage,
-): ReadonlyRange[] {
+export function parseReadonlyRanges(source: string, language: TaskLanguage): ReadonlyRange[] {
   const normalized = source.replace(/\r\n/g, "\n");
   const lines = normalized.split("\n");
   const { start, end } = markers[language];
@@ -96,9 +84,7 @@ export function parseReadonlyRanges(
 
     if (trimmed === end) {
       if (startIndex === null) {
-        throw new Error(
-          `Readonly block ends without a start at line ${index + 1}`,
-        );
+        throw new Error(`Readonly block ends without a start at line ${index + 1}`);
       }
 
       ranges.push({
@@ -113,9 +99,7 @@ export function parseReadonlyRanges(
   });
 
   if (startIndex !== null) {
-    throw new Error(
-      `Readonly block starting at line ${startIndex + 1} has no end`,
-    );
+    throw new Error(`Readonly block starting at line ${startIndex + 1} has no end`);
   }
 
   return ranges;
@@ -132,9 +116,7 @@ export function preservesReadonlyBlocks(
 
     return (
       previousBlocks.length === nextBlocks.length &&
-      previousBlocks.every(
-        (block, index) => block.content === nextBlocks[index]?.content,
-      )
+      previousBlocks.every((block, index) => block.content === nextBlocks[index]?.content)
     );
   } catch {
     return false;
@@ -152,10 +134,7 @@ export function canApplyStudentEdit(
   return preservesReadonlyBlocks(previous, next, language);
 }
 
-export function hasReadonlyBlocks(
-  source: string | undefined,
-  language: TaskLanguage,
-) {
+export function hasReadonlyBlocks(source: string | undefined, language: TaskLanguage) {
   if (!source) return false;
 
   try {

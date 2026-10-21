@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from "react";
-import type {AnalysisIssue, EvaluationResult} from "@wda/css-analysis";
-import type {TaskCode} from "@/lib/helpers/tasks";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { AnalysisIssue, EvaluationResult } from "@wda/css-analysis";
+import type { TaskCode } from "@/lib/helpers/tasks";
 
 type AnalyzerModule = typeof import("@wda/css-analysis");
 
@@ -19,28 +19,15 @@ function formatIssue(
 
   let message = "";
   if (issue.messageCode === "ignoredProp") {
-    const reason = translate(
-      "en",
-      "rules",
-      String(issue.msgParams?.reasonCode ?? ""),
-    );
+    const reason = translate("en", "rules", String(issue.msgParams?.reasonCode ?? ""));
     message = translate("en", "linter", "ignoredProp", {
       prop: String(issue.msgParams?.prop ?? ""),
       reason,
     });
   } else if (issue.messageCode === "specialRule") {
-    message = translate(
-      "en",
-      "rules",
-      String(issue.msgParams?.reasonCode ?? ""),
-    );
+    message = translate("en", "rules", String(issue.msgParams?.reasonCode ?? ""));
   } else {
-    message = translate(
-      "en",
-      issue.category,
-      issue.messageCode,
-      issue.msgParams,
-    );
+    message = translate("en", issue.category, issue.messageCode, issue.msgParams);
   }
 
   return { ...issue, message: message || issue.messageCode };
@@ -76,10 +63,7 @@ export function useTaskEvaluation(
   }, [taskKey]);
 
   useEffect(() => {
-    if (
-      resultRef.current &&
-      evaluatedFingerprintRef.current !== inputFingerprint
-    ) {
+    if (resultRef.current && evaluatedFingerprintRef.current !== inputFingerprint) {
       setIsResultStale(true);
     }
   }, [inputFingerprint]);
@@ -95,19 +79,10 @@ export function useTaskEvaluation(
     const timer = window.setTimeout(() => {
       void loadAnalyzer().then((analyzer) => {
         if (runId !== evaluationRunRef.current) return;
-        const doc = new DOMParser().parseFromString(
-          task.html ?? "",
-          "text/html",
-        );
+        const doc = new DOMParser().parseFromString(task.html ?? "", "text/html");
         const issues = analyzer
-          .lintCssAst(
-            task.css ?? "",
-            doc,
-            task.evaluation?.targetSelectors ?? [],
-          )
-          .map((issue) =>
-            formatIssue(issue, analyzer.translateAnalyzerMessage),
-          );
+          .lintCssAst(task.css ?? "", doc, task.evaluation?.targetSelectors ?? [])
+          .map((issue) => formatIssue(issue, analyzer.translateAnalyzerMessage));
         setLiveIssues(issues);
       });
     }, 350);

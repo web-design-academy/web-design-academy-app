@@ -808,7 +808,7 @@
 }
 
 .admin-tag-choice-wrap:has(.admin-tag-delete-button:hover:not(:disabled)),
-  .admin-tag-choice {
+.admin-tag-choice {
   border-color: var(--status-error-text);
 }
 

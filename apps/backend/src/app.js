@@ -1,28 +1,27 @@
-const express = require('express');
-const path = require('path');
+const express = require("express");
+const path = require("path");
 const cookieParser = require("cookie-parser");
 
-const adminRouter = require('./routes/admin');
-const authRouter = require('./routes/auth');
-const githubRouter = require('./routes/github');
+const adminRouter = require("./routes/admin");
+const authRouter = require("./routes/auth");
+const githubRouter = require("./routes/github");
 const lessonsRouter = require("./routes/lessons");
 
-const errorHandler = require('./middleware/error');
-const ServerError = require('./errors/ServerError');
+const errorHandler = require("./middleware/error");
+const ServerError = require("./errors/ServerError");
 
 const {
   corsMiddleware,
   helmetMiddleware,
   verifyOrigin,
-  apiLimiter
-} = require('./middleware/security');
-const logger = require('./middleware/logger');
+  apiLimiter,
+} = require("./middleware/security");
+const logger = require("./middleware/logger");
 
 const app = express();
-const environment = require('./config/env');
+const environment = require("./config/env");
 
-if (environment.isProduction)
-  app.set("trust proxy", 1);
+if (environment.isProduction) app.set("trust proxy", 1);
 
 app.use(logger);
 app.use(corsMiddleware);

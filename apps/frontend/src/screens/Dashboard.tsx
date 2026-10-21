@@ -1,15 +1,15 @@
-import {useEffect, useRef, useState} from "react";
-import {Link} from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import "@/styles/dashboard.css";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
-import {useAuth} from "@/lib/ctx/useAuth";
-import {ArrowRight, Pencil, RotateCcw, ShoppingBag,} from "lucide-react";
-import {getPlayableLessonsAsync, getProgressAsync, type LessonMeta} from "@/lib/helpers/db.ts";
+import { useAuth } from "@/lib/ctx/useAuth";
+import { ArrowRight, Pencil, RotateCcw, ShoppingBag } from "lucide-react";
+import { getPlayableLessonsAsync, getProgressAsync, type LessonMeta } from "@/lib/helpers/db.ts";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
-import {useDownloader} from "@/components/Downloader.tsx";
-import {useNotifications} from "@/components/Notifications.tsx";
-import {useQuery} from "@tanstack/react-query";
+import { useDownloader } from "@/components/Downloader.tsx";
+import { useNotifications } from "@/components/Notifications.tsx";
+import { useQuery } from "@tanstack/react-query";
 
 type LessonWithProgress = LessonMeta & {
   progress: number;
@@ -20,29 +20,30 @@ export default function Dashboard() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const { user, isAuthenticated } = useAuth();
-  const {refreshUpdates} = useDownloader();
-  const {pushNotification} = useNotifications();
+  const { refreshUpdates } = useDownloader();
+  const { pushNotification } = useNotifications();
   const lastErrorRef = useRef<Error | null>(null);
 
   const {
     data: lessonsData,
     isLoading: lessonsLoading,
-    error: lessonsError
+    error: lessonsError,
   } = useQuery<LessonWithProgress[]>({
     queryKey: ["dashboardLessons"],
     queryFn: async (): Promise<LessonWithProgress[]> => {
       const lessons = await getPlayableLessonsAsync();
       return await Promise.all(
         lessons.map(async (lesson) => ({
-            ...lesson,
-          progress: user ? (await getProgressAsync(lesson.id, user.userId))?.completedTasks.length ?? 0 : 0,
-            taskCount: lesson.taskCount ?? 0,
-          })
-        )
+          ...lesson,
+          progress: user
+            ? ((await getProgressAsync(lesson.id, user.userId))?.completedTasks.length ?? 0)
+            : 0,
+          taskCount: lesson.taskCount ?? 0,
+        })),
       );
     },
     staleTime: Infinity,
-    gcTime: 0
+    gcTime: 0,
   });
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function Dashboard() {
     }
   }, [lessonsError, pushNotification]);
 
-  if (lessonsLoading) return <LoadingSpinner/>;
+  if (lessonsLoading) return <LoadingSpinner />;
 
   const pageLessons = lessonsData ? lessonsData.slice((page - 1) * pageSize, page * pageSize) : [];
 
@@ -74,7 +75,7 @@ export default function Dashboard() {
               title="Check for lesson updates"
               onClick={() => refreshUpdates()}
             >
-              <RotateCcw size="1em"/>
+              <RotateCcw size="1em" />
             </button>
 
             <Link
@@ -83,7 +84,7 @@ export default function Dashboard() {
               title="Find and download new lessons"
               to={`/marketplace`}
             >
-              <ShoppingBag size="1em" className="icon-margin-right"/>
+              <ShoppingBag size="1em" className="icon-margin-right" />
               Marketplace
             </Link>
 
@@ -94,7 +95,7 @@ export default function Dashboard() {
                 aria-label={`Edit Mode`}
                 title="Create, edit and manage lessons"
               >
-                <Pencil size="1em" className="icon-margin-right"/>
+                <Pencil size="1em" className="icon-margin-right" />
                 Edit Mode
               </Link>
             )}
@@ -102,7 +103,7 @@ export default function Dashboard() {
         </div>
 
         {lessonsLoading ? (
-          <LoadingSpinner/>
+          <LoadingSpinner />
         ) : lessonsError || !lessonsData ? (
           <p className="admin-error">Error loading lessons</p>
         ) : lessonsData?.length === 0 ? (
@@ -110,57 +111,53 @@ export default function Dashboard() {
         ) : (
           <>
             <ul className="course-list">
-              {pageLessons.map(
-                (lesson: LessonWithProgress) => (
-                  <li key={lesson.id} className="course-row">
-                    <LessonIcon name={lesson.icon} size={20} color={lesson.color}/>
+              {pageLessons.map((lesson: LessonWithProgress) => (
+                <li key={lesson.id} className="course-row">
+                  <LessonIcon name={lesson.icon} size={20} color={lesson.color} />
 
-                    <div className="course-info">
-                      <h2 className="course-name">
-                        {lesson.title}
-                      </h2>
-                      <p className="course-description">{lesson.description}</p>
-                    </div>
+                  <div className="course-info">
+                    <h2 className="course-name">{lesson.title}</h2>
+                    <p className="course-description">{lesson.description}</p>
+                  </div>
 
-                    <div className="course-right">
-                      <span className="course-task-count">
-                        {lesson.taskCount} {lesson.taskCount === 1 ? "task" : "tasks"}
-                      </span>
+                  <div className="course-right">
+                    <span className="course-task-count">
+                      {lesson.taskCount} {lesson.taskCount === 1 ? "task" : "tasks"}
+                    </span>
 
-                      {isAuthenticated && (
-                        <div className="course-progress">
-                          <div className="course-progress-bar-bg">
-                            <div
-                              className="course-progress-bar-fill"
-                              style={{
-                                width: `${lesson.progress}%`,
-                                background: lesson.color,
-                              }}
-                            />
-                          </div>
-                          <span className="course-progress-label">{lesson.progress}%</span>
+                    {isAuthenticated && (
+                      <div className="course-progress">
+                        <div className="course-progress-bar-bg">
+                          <div
+                            className="course-progress-bar-fill"
+                            style={{
+                              width: `${lesson.progress}%`,
+                              background: lesson.color,
+                            }}
+                          />
                         </div>
-                      )}
+                        <span className="course-progress-label">{lesson.progress}%</span>
+                      </div>
+                    )}
 
-                      <Link
-                        to={{
-                          pathname: `/lessons/${lesson.id}`,
-                          search: "?mode=play",
-                        }}
-                        className="btn-primary"
-                        aria-label={`Open lesson "${lesson.title}"`}
-                      >
-                        {isAuthenticated && lesson.progress > 0
-                          ? lesson.progress === 100
-                            ? "Review"
-                            : "Continue"
-                          : "Start"}
-                        <ArrowRight size="1em"/>
-                      </Link>
-                    </div>
-                  </li>
-                ),
-              )}
+                    <Link
+                      to={{
+                        pathname: `/lessons/${lesson.id}`,
+                        search: "?mode=play",
+                      }}
+                      className="btn-primary"
+                      aria-label={`Open lesson "${lesson.title}"`}
+                    >
+                      {isAuthenticated && lesson.progress > 0
+                        ? lesson.progress === 100
+                          ? "Review"
+                          : "Continue"
+                        : "Start"}
+                      <ArrowRight size="1em" />
+                    </Link>
+                  </div>
+                </li>
+              ))}
             </ul>
             <Pagination
               page={page}

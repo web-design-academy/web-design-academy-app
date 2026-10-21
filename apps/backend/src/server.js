@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { db, initDb } = require("./config/db");
 const environment = require("./config/env");
-const {packLessons, watchLessons} = require("./utils/pack");
+const { packLessons, watchLessons } = require("./utils/pack");
 const fs = require("fs");
 
 try {
@@ -14,11 +14,11 @@ try {
 
 async function bootstrap() {
   if (!fs.existsSync(environment.lessonsPath)) {
-    fs.mkdirSync(environment.lessonsPath, {recursive: true});
+    fs.mkdirSync(environment.lessonsPath, { recursive: true });
   }
 
   if (!fs.existsSync(environment.cachePath)) {
-    fs.mkdirSync(environment.cachePath, {recursive: true});
+    fs.mkdirSync(environment.cachePath, { recursive: true });
   }
 
   await packLessons(environment.lessonsPath, environment.cachePath).catch((error) => {
@@ -42,12 +42,12 @@ async function bootstrap() {
         console.error("Error closing database:", error);
       }
       process.exit(0);
-    })
+    });
 
     setTimeout(() => {
       console.error("Force shutdown");
       process.exit(1);
-    }, 5000)
+    }, 5000);
   }
 
   process.on("SIGTERM", shutdown);
@@ -55,4 +55,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

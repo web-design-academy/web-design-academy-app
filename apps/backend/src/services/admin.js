@@ -49,8 +49,7 @@ function getOrderBy(sortBy, sortDirection, sortColumns) {
  * @returns {string|null}
  */
 function normalizeTagName(value) {
-  const name =
-    typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+  const name = typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
 
   if (name.length > 32 || !tagNamePattern.test(name)) {
     return null;
@@ -82,9 +81,7 @@ function hydrateUserTags(users) {
 
 function hydrateSubmissionUserTags(submissions) {
   const userIds = Array.from(
-    new Set(
-      submissions.map((submission) => submission.user_id).filter(Boolean),
-    ),
+    new Set(submissions.map((submission) => submission.user_id).filter(Boolean)),
   );
 
   if (userIds.length === 0) {
@@ -108,9 +105,7 @@ function hydrateSubmissionUserTags(submissions) {
 function parseUserIdList(value) {
   if (!Array.isArray(value)) return null;
 
-  const ids = [
-    ...new Set(value.map((id) => String(id).trim()).filter(Boolean)),
-  ];
+  const ids = [...new Set(value.map((id) => String(id).trim()).filter(Boolean))];
   return ids.length ? ids : null;
 }
 
@@ -143,5 +138,5 @@ module.exports = {
   hydrateUserTags,
   hydrateSubmissionUserTags,
   parseUserIdList,
-  resolveTagFromPayload
-}
+  resolveTagFromPayload,
+};

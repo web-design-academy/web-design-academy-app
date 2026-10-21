@@ -1,12 +1,12 @@
 import React from "react";
-import type {DefaultLesson} from "@/interfaces/DefaultLesson.ts";
+import type { DefaultLesson } from "@/interfaces/DefaultLesson.ts";
 
 interface Props {
   lesson: DefaultLesson;
   actions: React.ReactNode;
 }
 
-export default function DefaultLessonBanner({lesson, actions}: Props) {
+export default function DefaultLessonBanner({ lesson, actions }: Props) {
   return (
     <div key={lesson.title} className="profile-repository">
       <div className="profile-repository-info">
@@ -14,9 +14,7 @@ export default function DefaultLessonBanner({lesson, actions}: Props) {
         <div>{lesson.description}</div>
       </div>
 
-      <div className="profile-repository-actions">
-        {actions}
-      </div>
+      <div className="profile-repository-actions">{actions}</div>
     </div>
   );
 }

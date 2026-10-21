@@ -1,22 +1,27 @@
-import "@/styles/marketplace.css"
-import {ArrowLeft, DownloadIcon, RotateCcw} from "lucide-react";
-import {Link} from "react-router";
-import {useQuery} from "@tanstack/react-query";
-import {useEffect, useRef} from "react";
+import "@/styles/marketplace.css";
+import { ArrowLeft, DownloadIcon, RotateCcw } from "lucide-react";
+import { Link } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
 import DefaultLessonBanner from "@/components/Lesson/DefaultLessonBanner.tsx";
-import {downloadLessonArchive, fetchLesson, fetchLessons} from "@/lib/api/lessons.ts";
-import {useDownloader} from "@/components/Downloader.tsx";
-import {useNotifications} from "@/components/Notifications.tsx";
+import { downloadLessonArchive, fetchLesson, fetchLessons } from "@/lib/api/lessons.ts";
+import { useDownloader } from "@/components/Downloader.tsx";
+import { useNotifications } from "@/components/Notifications.tsx";
 
 export default function Marketplace() {
-  const {processZip} = useDownloader();
-  const {pushNotification} = useNotifications();
+  const { processZip } = useDownloader();
+  const { pushNotification } = useNotifications();
   const lastErrorRef = useRef<Error | null>(null);
 
-  const {data: defaultLessons, isLoading: defaultLoading, error: defaultError, refetch: defaultRefetch} = useQuery({
+  const {
+    data: defaultLessons,
+    isLoading: defaultLoading,
+    error: defaultError,
+    refetch: defaultRefetch,
+  } = useQuery({
     queryKey: ["marketplaceDefaultLessons"],
-    queryFn: async () => await fetchLessons()
+    queryFn: async () => await fetchLessons(),
   });
 
   const downloadDefault = async (id: string) => {
@@ -56,16 +61,12 @@ export default function Marketplace() {
             title="Refresh lessons"
             onClick={() => defaultRefetch()}
           >
-            <RotateCcw size="1em" className="icon-margin-right"/>
+            <RotateCcw size="1em" className="icon-margin-right" />
             Refresh
           </button>
 
-          <Link
-            to={`/`}
-            className="btn-ghost"
-            aria-label={`Back to dashboard`}
-          >
-            <ArrowLeft size="1em" className="icon-margin-right"/>
+          <Link to={`/`} className="btn-ghost" aria-label={`Back to dashboard`}>
+            <ArrowLeft size="1em" className="icon-margin-right" />
             Back to dashboard
           </Link>
         </div>
@@ -74,22 +75,27 @@ export default function Marketplace() {
       <section className="marketplace-panel">
         <div className="marketplace-section marketplace-section-panel">
           <h2>Made by WDA team</h2>
-          {defaultLoading ? <LoadingSpinner/> : defaultLessons && defaultLessons.map((l) => (
-            <DefaultLessonBanner
-              key={l.slug}
-              lesson={l}
-              actions={(
-                <button
-                  className="btn-ghost"
-                  title="Download lesson"
-                  onClick={() => downloadDefault(l.slug)}
-                >
-                  <DownloadIcon size="1em" className="icon-margin-right"/>
-                  Download
-                </button>
-              )}
-            />
-          ))}
+          {defaultLoading ? (
+            <LoadingSpinner />
+          ) : (
+            defaultLessons &&
+            defaultLessons.map((l) => (
+              <DefaultLessonBanner
+                key={l.slug}
+                lesson={l}
+                actions={
+                  <button
+                    className="btn-ghost"
+                    title="Download lesson"
+                    onClick={() => downloadDefault(l.slug)}
+                  >
+                    <DownloadIcon size="1em" className="icon-margin-right" />
+                    Download
+                  </button>
+                }
+              />
+            ))
+          )}
         </div>
 
         {/*<div className="marketplace-section marketplace-section-panel">*/}

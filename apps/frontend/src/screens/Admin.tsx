@@ -1,11 +1,11 @@
-import type {ReactNode} from "react";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {ArrowDown, ArrowUp, ArrowUpDown, Plus, Send, Tags, Users, X,} from "lucide-react";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {Link, useNavigate} from "react-router";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Send, Tags, Users, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Pagination from "@/components/Pagination";
-import {useAuth} from "@/lib/ctx/useAuth";
+import { useAuth } from "@/lib/ctx/useAuth";
 import {
   addTagToUsers,
   addUserTag,
@@ -16,11 +16,15 @@ import {
   removeTagFromUsers,
   removeUserTag,
 } from "@/lib/api/admin";
-import {fetchSubmissions, type PaginatedResponse, type SubmissionRecord,} from "@/lib/api/submissions";
-import {isOnlineMode} from "@/lib/config/config.ts";
+import {
+  fetchSubmissions,
+  type PaginatedResponse,
+  type SubmissionRecord,
+} from "@/lib/api/submissions";
+import { isOnlineMode } from "@/lib/config/config.ts";
 import "@/styles/admin.css";
 import InfoBanner from "@/components/InfoBanner.tsx";
-import type {AdminUser} from "@/interfaces/AdminUser.ts";
+import type { AdminUser } from "@/interfaces/AdminUser.ts";
 
 // Default values and settings
 const PAGE_SIZE = 12;
@@ -66,11 +70,7 @@ function SortableHeader<T extends string>({
   onSortChange: (sort: SortState<T>) => void;
 }) {
   const isActive = sort.key === column;
-  const Icon = isActive
-    ? sort.direction === "asc"
-      ? ArrowUp
-      : ArrowDown
-    : ArrowUpDown;
+  const Icon = isActive ? (sort.direction === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
   const nextSort: SortState<T> =
     !isActive || sort.direction === null
       ? { key: column, direction: "asc" }
@@ -111,9 +111,7 @@ function TagFilter({
       <select
         className="form-select-control"
         value={value}
-        onChange={(event) =>
-          onChange(event.target.value ? Number(event.target.value) : "")
-        }
+        onChange={(event) => onChange(event.target.value ? Number(event.target.value) : "")}
       >
         <option value="">All tags</option>
         {tags.map((tag) => (
@@ -262,9 +260,7 @@ function CompactTags({
   const renderTag = (tag: UserTag) =>
     canRemove && onRemove ? (
       <span key={tag.id} className="admin-tag-choice-wrap">
-        <span className="admin-tag-choice admin-tag-choice-label">
-          {tag.name}
-        </span>
+        <span className="admin-tag-choice admin-tag-choice-label">{tag.name}</span>
         <button
           type="button"
           className="admin-tag-delete-button"
@@ -321,25 +317,17 @@ export default function Admin() {
     key: null,
     direction: null,
   });
-  const [submissionSort, setSubmissionSort] = useState<
-    SortState<SubmissionSortKey>
-  >({
+  const [submissionSort, setSubmissionSort] = useState<SortState<SubmissionSortKey>>({
     key: null,
     direction: null,
   });
   const [userTagFilter, setUserTagFilter] = useState<number | "">("");
-  const [submissionTagFilter, setSubmissionTagFilter] = useState<number | "">(
-    "",
-  );
+  const [submissionTagFilter, setSubmissionTagFilter] = useState<number | "">("");
   const [tagDrafts, setTagDrafts] = useState<TagDraft>({});
   const [bulkTagDraft, setBulkTagDraft] = useState({ tagId: "", name: "" });
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(() => new Set());
   const [isBulkTagPopoverOpen, setIsBulkTagPopoverOpen] = useState(false);
-  const [openTagPopoverUserId, setOpenTagPopoverUserId] = useState<
-    string | null
-  >(null);
+  const [openTagPopoverUserId, setOpenTagPopoverUserId] = useState<string | null>(null);
   const [openMoreTagsKey, setOpenMoreTagsKey] = useState<string | null>(null);
   const closePopovers = useCallback(() => {
     setIsBulkTagPopoverOpen(false);
@@ -361,29 +349,21 @@ export default function Admin() {
     setUserPage(1);
   }, []);
 
-  const updateSubmissionSort = useCallback(
-    (sort: SortState<SubmissionSortKey>) => {
-      setSubmissionSort(sort);
-      setSubmissionPage(1);
-    },
-    [],
-  );
+  const updateSubmissionSort = useCallback((sort: SortState<SubmissionSortKey>) => {
+    setSubmissionSort(sort);
+    setSubmissionPage(1);
+  }, []);
 
   useEffect(() => {
     const hasOpenPopover =
-      isBulkTagPopoverOpen ||
-      openTagPopoverUserId !== null ||
-      openMoreTagsKey !== null;
+      isBulkTagPopoverOpen || openTagPopoverUserId !== null || openMoreTagsKey !== null;
 
     if (!hasOpenPopover) return;
 
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
 
-      if (
-        target instanceof Element &&
-        target.closest(POPOVER_BOUNDARY_SELECTOR)
-      ) {
+      if (target instanceof Element && target.closest(POPOVER_BOUNDARY_SELECTOR)) {
         return;
       }
 
@@ -403,12 +383,7 @@ export default function Admin() {
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [
-    closePopovers,
-    isBulkTagPopoverOpen,
-    openMoreTagsKey,
-    openTagPopoverUserId,
-  ]);
+  }, [closePopovers, isBulkTagPopoverOpen, openMoreTagsKey, openTagPopoverUserId]);
 
   const { data: tags = [], error: tagsError } = useQuery({
     queryKey: ["admin-tags"],
@@ -456,17 +431,13 @@ export default function Admin() {
     enabled: isOnlineMode && user?.role === "admin",
   });
 
-  const visibleUsers = useMemo(
-    () => usersData?.items ?? [],
-    [usersData?.items],
-  );
+  const visibleUsers = useMemo(() => usersData?.items ?? [], [usersData?.items]);
   const visibleUserIds = useMemo(
     () => visibleUsers.map((visibleUser) => visibleUser.userId),
     [visibleUsers],
   );
   const selectedVisibleUsers = useMemo(
-    () =>
-      visibleUsers.filter((visibleUser) => selectedUserIds.has(visibleUser.userId)),
+    () => visibleUsers.filter((visibleUser) => selectedUserIds.has(visibleUser.userId)),
     [selectedUserIds, visibleUsers],
   );
   const selectedVisibleUserIds = useMemo(
@@ -477,8 +448,7 @@ export default function Admin() {
   const isAllVisibleUsersSelected =
     visibleUserIds.length > 0 &&
     visibleUserIds.every((visibleUserId) => selectedUserIds.has(visibleUserId));
-  const isSomeVisibleUsersSelected =
-    selectedVisibleCount > 0 && !isAllVisibleUsersSelected;
+  const isSomeVisibleUsersSelected = selectedVisibleCount > 0 && !isAllVisibleUsersSelected;
   const commonSelectedTags = useMemo(() => {
     if (!selectedVisibleUsers.length) return [];
 
@@ -503,15 +473,8 @@ export default function Admin() {
   );
 
   const addTagMutation = useMutation({
-    mutationFn: ({
-      userId,
-      tagId,
-      name,
-    }: {
-      userId: string;
-      tagId?: number | "";
-      name?: string;
-    }) => addUserTag(userId, { tagId, name }),
+    mutationFn: ({ userId, tagId, name }: { userId: string; tagId?: number | ""; name?: string }) =>
+      addUserTag(userId, { tagId, name }),
     onSuccess: (_data, variables) => {
       setTagDrafts((prev) => ({
         ...prev,
@@ -574,9 +537,7 @@ export default function Admin() {
   useEffect(() => {
     setSelectedUserIds((current) => {
       const visibleUserIdSet = new Set(visibleUserIds);
-      const next = new Set(
-        [...current].filter((userId) => visibleUserIdSet.has(userId)),
-      );
+      const next = new Set([...current].filter((userId) => visibleUserIdSet.has(userId)));
 
       return next.size === current.size ? current : next;
     });
@@ -618,11 +579,7 @@ export default function Admin() {
     });
   };
 
-  const updateTagDraft = (
-    userId: string,
-    field: "tagId" | "name",
-    value: string,
-  ) => {
+  const updateTagDraft = (userId: string, field: "tagId" | "name", value: string) => {
     setTagDrafts((prev) => ({
       ...prev,
       [userId]: {
@@ -634,7 +591,7 @@ export default function Admin() {
   };
 
   const submitTag = (targetUser: AdminUser) => {
-    const draft = tagDrafts[targetUser.userId] ?? {tagId: "", name: ""};
+    const draft = tagDrafts[targetUser.userId] ?? { tagId: "", name: "" };
     const tagId = draft.tagId ? Number(draft.tagId) : "";
     const name = draft.name.trim();
 
@@ -689,9 +646,7 @@ export default function Admin() {
               <button
                 key={item.key}
                 type="button"
-                className={`admin-nav-item ${
-                  activeSection === item.key ? "is-active" : ""
-                }`}
+                className={`admin-nav-item ${activeSection === item.key ? "is-active" : ""}`}
                 onClick={() => setActiveSection(item.key as AdminSection)}
               >
                 <Icon size={18} />
@@ -704,7 +659,11 @@ export default function Admin() {
 
       <section className="admin-workspace">
         {error && (
-          <InfoBanner type="error" icon={(<X/>)} message={error?.message ?? "An unknown error occurred"}/>
+          <InfoBanner
+            type="error"
+            icon={<X />}
+            message={error?.message ?? "An unknown error occurred"}
+          />
         )}
 
         {activeSection === "users" && (
@@ -716,9 +675,7 @@ export default function Admin() {
               </div>
               <div className="admin-table-toolbar">
                 {selectedVisibleCount > 0 && (
-                  <span className="admin-selection-count">
-                    {selectedVisibleCount} selected
-                  </span>
+                  <span className="admin-selection-count">{selectedVisibleCount} selected</span>
                 )}
                 <span className="admin-tag-add-anchor admin-popover-boundary">
                   <button
@@ -740,9 +697,7 @@ export default function Admin() {
                   {isBulkTagPopoverOpen && (
                     <div className="lesson-picker-popover admin-tag-popover admin-bulk-tag-popover">
                       <div className="admin-tag-popover-section">
-                        <div className="admin-tag-popover-heading">
-                          Common tags
-                        </div>
+                        <div className="admin-tag-popover-heading">Common tags</div>
                         <CompactTags
                           tags={commonSelectedTags}
                           canRemove
@@ -778,11 +733,7 @@ export default function Admin() {
                     </div>
                   )}
                 </span>
-                <TagFilter
-                  value={userTagFilter}
-                  onChange={setUserTagFilter}
-                  tags={tags}
-                />
+                <TagFilter value={userTagFilter} onChange={setUserTagFilter} tags={tags} />
               </div>
             </div>
 
@@ -849,23 +800,17 @@ export default function Admin() {
                             </td>
                             <td>
                               <strong>{row.name || "Unnamed user"}</strong>
-                              <span className="admin-cell-subtitle">
-                                {row.email}
-                              </span>
+                              <span className="admin-cell-subtitle">{row.email}</span>
                             </td>
                             <td>
-                              <span className="admin-role-pill">
-                                {row.role}
-                              </span>
+                              <span className="admin-role-pill">{row.role}</span>
                             </td>
                             <td>
                               <div className="admin-tags-cell">
                                 <CompactTags
                                   tags={row.tags}
                                   canRemove
-                                  expanded={
-                                    openMoreTagsKey === `user-${row.userId}`
-                                  }
+                                  expanded={openMoreTagsKey === `user-${row.userId}`}
                                   onToggleExpanded={() => {
                                     setOpenTagPopoverUserId(null);
                                     setOpenMoreTagsKey((current) =>
@@ -891,25 +836,18 @@ export default function Admin() {
                                           current === row.userId ? null : row.userId,
                                         );
                                       }}
-                                      aria-label={`Add tag to ${
-                                        row.name || row.email
-                                      }`}
-                                      aria-expanded={
-                                        openTagPopoverUserId === row.userId
-                                      }
+                                      aria-label={`Add tag to ${row.name || row.email}`}
+                                      aria-expanded={openTagPopoverUserId === row.userId}
                                     >
                                       <Plus size={14} />
                                     </button>
                                     {openTagPopoverUserId === row.userId && (
                                       <UserTagPopover
                                         tags={tags}
-                                        assignedTagIds={
-                                          new Set(row.tags.map((tag) => tag.id))
-                                        }
+                                        assignedTagIds={new Set(row.tags.map((tag) => tag.id))}
                                         draftName={draft.name}
                                         isPending={
-                                          addTagMutation.isPending ||
-                                          deleteTagMutation.isPending
+                                          addTagMutation.isPending || deleteTagMutation.isPending
                                         }
                                         onSelectExisting={(tagId) =>
                                           addTagMutation.mutate({
@@ -917,9 +855,7 @@ export default function Admin() {
                                             tagId,
                                           })
                                         }
-                                        onDeleteTag={(tagId) =>
-                                          deleteTagMutation.mutate(tagId)
-                                        }
+                                        onDeleteTag={(tagId) => deleteTagMutation.mutate(tagId)}
                                         onDraftNameChange={(value) =>
                                           updateTagDraft(row.userId, "name", value)
                                         }
@@ -1017,16 +953,12 @@ export default function Admin() {
                           <td className="font-mono">#{sub.id}</td>
                           <td>
                             <strong>{sub.user_name || "Anonymous"}</strong>
-                            <span className="admin-cell-subtitle">
-                              {sub.user_email}
-                            </span>
+                            <span className="admin-cell-subtitle">{sub.user_email}</span>
                           </td>
                           <td>
                             <CompactTags
                               tags={sub.user_tags ?? []}
-                              expanded={
-                                openMoreTagsKey === `submission-${sub.id}`
-                              }
+                              expanded={openMoreTagsKey === `submission-${sub.id}`}
                               onToggleExpanded={() => {
                                 setOpenTagPopoverUserId(null);
                                 setOpenMoreTagsKey((current) =>
@@ -1038,9 +970,7 @@ export default function Admin() {
                             />
                           </td>
                           <td>
-                            <span className="pill pill-blue">
-                              {sub.lesson_slug}
-                            </span>
+                            <span className="pill pill-blue">{sub.lesson_slug}</span>
                           </td>
                           <td>Task {sub.task_id}</td>
                           <td>{formatDate(sub.timestamp)}</td>

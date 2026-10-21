@@ -1,6 +1,16 @@
 import * as LucideIcons from "lucide-react";
-import {ArrowLeft, Download, Edit3, ExternalLink, GripVertical, Plus, Search, Trash2, Undo2} from "lucide-react";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {
+  ArrowLeft,
+  Download,
+  Edit3,
+  ExternalLink,
+  GripVertical,
+  Plus,
+  Search,
+  Trash2,
+  Undo2,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   buildSlug,
   deleteMarkedAsync,
@@ -10,19 +20,19 @@ import {
   markLessonDeletedAsync,
   markLessonRestoredAsync,
   saveLessonAsync,
-  saveTasksAsync
+  saveTasksAsync,
 } from "@/lib/helpers/db.ts";
-import {Link} from "react-router";
+import { Link } from "react-router";
 import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import {converter, formatHex, parse} from "culori";
-import {CSS} from "@dnd-kit/utilities";
+import { converter, formatHex, parse } from "culori";
+import { CSS } from "@dnd-kit/utilities";
 import Modal from "@/components/Modal.tsx";
 import {
   closestCenter,
@@ -33,14 +43,14 @@ import {
   KeyboardSensor,
   PointerSensor,
   useSensor,
-  useSensors
+  useSensors,
 } from "@dnd-kit/core";
-import {packLessonsZipAsync} from "@/lib/helpers/zipHeper";
-import {HexColorPicker} from "react-colorful";
+import { packLessonsZipAsync } from "@/lib/helpers/zipHeper";
+import { HexColorPicker } from "react-colorful";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
-import {useDownloader} from "@/components/Downloader.tsx";
+import { useDownloader } from "@/components/Downloader.tsx";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
-import {useNotifications} from "@/components/Notifications";
+import { useNotifications } from "@/components/Notifications";
 
 const LESSON_COLOR_OPTIONS = [
   "oklch(64.6% 0.222 41.116)",
@@ -166,9 +176,7 @@ function oklchFromHex(value: string): string {
  * as numbers. Returns a default value if parsing fails.
  */
 function parseOklchColor(value: string): OklchColor {
-  const match = value.match(
-    /oklch\(\s*([\d.]+)%?\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*\)/i,
-  );
+  const match = value.match(/oklch\(\s*([\d.]+)%?\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*\)/i);
 
   if (!match) return DEFAULT_OKLCH;
 
@@ -199,11 +207,11 @@ function emptyForm(): LessonForm {
 }
 
 function SortableLessonCard({
-                              lesson,
-                              onEdit,
-                              onDelete,
-                              onRestore,
-                            }: {
+  lesson,
+  onEdit,
+  onDelete,
+  onRestore,
+}: {
   lesson: LessonMeta;
   onEdit: (lesson: LessonMeta) => void;
   onDelete: (lesson: LessonMeta) => void;
@@ -237,19 +245,13 @@ function SortableLessonCard({
         {...listeners}
       >
         <span className="admin-lesson-order-number">{lesson.order}</span>
-        <GripVertical
-          className="admin-lesson-order-drag-icon"
-          size={24}
-          aria-hidden="true"
-        />
+        <GripVertical className="admin-lesson-order-drag-icon" size={24} aria-hidden="true" />
       </button>
-      <LessonIcon name={lesson.icon} size={24} color={lesson.color}/>
+      <LessonIcon name={lesson.icon} size={24} color={lesson.color} />
       <div className="admin-lesson-main">
         <div className="admin-lesson-title-row">
           <h2>{lesson.title}</h2>
-          {lesson.deleted && (
-            <span className="admin-change-tag is-deleted">Deleted</span>
-          )}
+          {lesson.deleted && <span className="admin-change-tag is-deleted">Deleted</span>}
         </div>
         <p className="admin-lesson-description">{lesson.description}</p>
       </div>
@@ -261,7 +263,7 @@ function SortableLessonCard({
           aria-label={`Edit metadata for ${lesson.title}`}
           title="Edit metadata"
         >
-          <Edit3 size="1em"/>
+          <Edit3 size="1em" />
         </button>
         {lesson.deleted ? (
           <button
@@ -271,7 +273,7 @@ function SortableLessonCard({
             aria-label={`Restore ${lesson.title}`}
             title="Restore"
           >
-            <Undo2 size="1em"/>
+            <Undo2 size="1em" />
           </button>
         ) : (
           <button
@@ -281,7 +283,7 @@ function SortableLessonCard({
             aria-label={`Delete ${lesson.title}`}
             title="Delete"
           >
-            <Trash2 size="1em"/>
+            <Trash2 size="1em" />
           </button>
         )}
         <Link
@@ -293,37 +295,24 @@ function SortableLessonCard({
           aria-label={`Open ${lesson.title}`}
           title="Open lesson"
         >
-          <ExternalLink size="1em"/>
+          <ExternalLink size="1em" />
         </Link>
       </div>
     </article>
   );
 }
 
-function LessonDragOverlayCard({
-                                 lesson,
-                                 width,
-                               }: {
-  lesson: LessonMeta;
-  width: number | null;
-}) {
+function LessonDragOverlayCard({ lesson, width }: { lesson: LessonMeta; width: number | null }) {
   return (
     <article
       className="admin-lesson-card admin-lesson-card-overlay"
       style={width ? { width } : undefined}
     >
       <div className="admin-lesson-drag-handle" aria-hidden="true">
-        <GripVertical
-          className="admin-lesson-order-drag-icon"
-          size={24}
-          aria-hidden="true"
-        />
+        <GripVertical className="admin-lesson-order-drag-icon" size={24} aria-hidden="true" />
       </div>
-      <div
-        className="admin-lesson-icon"
-        style={{ backgroundColor: lesson.color }}
-      >
-        <LucideIcon name={lesson.icon} size={24}/>
+      <div className="admin-lesson-icon" style={{ backgroundColor: lesson.color }}>
+        <LucideIcon name={lesson.icon} size={24} />
       </div>
       <div className="admin-lesson-main">
         <div className="admin-lesson-title-row">
@@ -333,13 +322,13 @@ function LessonDragOverlayCard({
       </div>
       <div className="admin-lesson-card-actions" aria-hidden="true">
         <span className="admin-icon-button">
-          <Edit3 size="1em"/>
+          <Edit3 size="1em" />
         </span>
         <span className="admin-icon-button">
-          <Trash2 size="1em"/>
+          <Trash2 size="1em" />
         </span>
         <span className="admin-icon-button">
-          <ExternalLink size="1em"/>
+          <ExternalLink size="1em" />
         </span>
       </div>
     </article>
@@ -347,8 +336,8 @@ function LessonDragOverlayCard({
 }
 
 export default function EditDashboard() {
-  const {processZip} = useDownloader();
-  const {pushNotification} = useNotifications();
+  const { processZip } = useDownloader();
+  const { pushNotification } = useNotifications();
   const [lessons, setLessons] = useState<LessonMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLesson, setActiveLesson] = useState<LessonMeta | null>(null);
@@ -374,18 +363,13 @@ export default function EditDashboard() {
     [formData.color],
   );
 
-  const currentHexColor = useMemo(
-    () => hexFromOklch(formData.color),
-    [formData.color],
-  );
+  const currentHexColor = useMemo(() => hexFromOklch(formData.color), [formData.color]);
 
   const filteredIconNames = useMemo(() => {
     const normalizedSearch = iconSearch.trim().toLowerCase();
     if (!normalizedSearch) return ALL_LUCIDE_ICON_NAMES;
 
-    return ALL_LUCIDE_ICON_NAMES.filter((name) =>
-      name.toLowerCase().includes(normalizedSearch),
-    );
+    return ALL_LUCIDE_ICON_NAMES.filter((name) => name.toLowerCase().includes(normalizedSearch));
   }, [iconSearch]);
 
   const setActiveLessonFunction = (lessonId: string | null) => {
@@ -399,38 +383,24 @@ export default function EditDashboard() {
     } else {
       setActiveLesson(null);
     }
-  }
+  };
 
-  const lessonIds = useMemo(
-    () => lessons.map((lesson) => lesson.id),
-    [lessons],
-  );
+  const lessonIds = useMemo(() => lessons.map((lesson) => lesson.id), [lessons]);
 
-  const generatedId = useMemo(
-    () => generateId(formData.title),
-    [formData.title],
-  );
+  const generatedId = useMemo(() => generateId(formData.title), [formData.title]);
 
   const titleValidationError = useMemo(() => {
     if (!formData.title.trim()) return "Title is required.";
 
     if (lessonModalMode === "edit") return "";
 
-    if (!generatedId)
-      return "Title must contain at least one letter or number.";
+    if (!generatedId) return "Title must contain at least one letter or number.";
 
     const idExists = lessons.some(
-      (lesson) =>
-        lesson.id === generatedId && lesson.id !== editingLesson?.id,
+      (lesson) => lesson.id === generatedId && lesson.id !== editingLesson?.id,
     );
     return idExists ? "A lesson with this title already exists." : "";
-  }, [
-    editingLesson?.id,
-    formData.title,
-    generatedId,
-    lessonModalMode,
-    lessons,
-  ]);
+  }, [editingLesson?.id, formData.title, generatedId, lessonModalMode, lessons]);
 
   const lessonDragSensors = useSensors(
     useSensor(PointerSensor, {
@@ -452,14 +422,12 @@ export default function EditDashboard() {
     setActiveLessonFunction(null);
     setActiveLessonWidth(null);
 
-    if (!over || active.id === over.id)
-      return;
+    if (!over || active.id === over.id) return;
 
     const oldIndex = lessons.findIndex((lesson) => lesson.id === active.id);
     const newIndex = lessons.findIndex((lesson) => lesson.id === over.id);
 
-    if (oldIndex < 0 || newIndex < 0)
-      return;
+    if (oldIndex < 0 || newIndex < 0) return;
 
     const reordered = arrayMove(lessons, oldIndex, newIndex);
 
@@ -490,7 +458,7 @@ export default function EditDashboard() {
       color: lesson.color,
       icon: lesson.icon,
       visualEditor: lesson.visualEditor ?? false,
-      visualPreview: lesson.visualPreview ?? false
+      visualPreview: lesson.visualPreview ?? false,
     });
     setHasTouchedTitle(false);
     setIsColorPickerOpen(false);
@@ -520,14 +488,16 @@ export default function EditDashboard() {
       order: -1,
       deleted: false,
       taskCount: 0,
-      slug: buildSlug(formData.title)
+      slug: buildSlug(formData.title),
     });
 
-    await saveTasksAsync(generatedId, [{
-      html: "<h1>New Task</h1>\n<p>Start editing...</p>",
-      css: "h1 { color: blue; }",
-      js: 'console.log("Hello World");',
-    }])
+    await saveTasksAsync(generatedId, [
+      {
+        html: "<h1>New Task</h1>\n<p>Start editing...</p>",
+        css: "h1 { color: blue; }",
+        js: 'console.log("Hello World");',
+      },
+    ]);
 
     setLessons(await getLessonsAsync());
     setIsModalOpen(false);
@@ -539,10 +509,7 @@ export default function EditDashboard() {
     setIsDownloadingLessonChanges(true);
 
     try {
-      const coursesData = await Promise.all(
-        lessons
-          .filter((lesson) => !lesson.deleted)
-      );
+      const coursesData = await Promise.all(lessons.filter((lesson) => !lesson.deleted));
 
       await packLessonsZipAsync(coursesData, "lessons.zip");
       pushNotification({
@@ -662,14 +629,17 @@ export default function EditDashboard() {
     }, [onFileDrop]);
   }
 
-  const handleFileDrop = useCallback(async (file: File) => {
-    if (file.name.endsWith(".zip")) {
-      await processZip(file);
-      setLessons(await getLessonsAsync());
-    } else {
-      alert("unsupported file type");
-    }
-  }, [processZip]);
+  const handleFileDrop = useCallback(
+    async (file: File) => {
+      if (file.name.endsWith(".zip")) {
+        await processZip(file);
+        setLessons(await getLessonsAsync());
+      } else {
+        alert("unsupported file type");
+      }
+    },
+    [processZip],
+  );
 
   useFileDrop(handleFileDrop);
 
@@ -687,13 +657,13 @@ export default function EditDashboard() {
       const data = await getLessonsAsync();
       setLessons(data);
       setLoading(false);
-    }
+    };
 
     window.addEventListener("lessonsChanged", handleLessonsChanged);
 
     return () => {
       window.removeEventListener("lessonsChanged", handleLessonsChanged);
-    }
+    };
   }, []);
 
   return (
@@ -702,30 +672,27 @@ export default function EditDashboard() {
         <div className={`dashboard-title`}>
           <h1>Course editing</h1>
 
-          <Link
-            to={`/`}
-            className="btn-ghost"
-            aria-label={`Back to dashboard`}
-          >
-            <ArrowLeft size="1em" className="icon-margin-right"/>
+          <Link to={`/`} className="btn-ghost" aria-label={`Back to dashboard`}>
+            <ArrowLeft size="1em" className="icon-margin-right" />
             Back to dashboard
           </Link>
         </div>
 
         <div className="dashboard-edit-actions">
-          <div className="dashboard-edit-actions-count">
-            {lessons.length} lessons available
-          </div>
+          <div className="dashboard-edit-actions-count">{lessons.length} lessons available</div>
 
           <div className="dashboard-edit-actions-buttons">
             <button
               type="button"
               onClick={handleDiscardLessonChanges}
               className="btn-ghost"
-              disabled={isDownloadingLessonChanges || lessons.filter((lesson) => lesson.deleted).length === 0}
+              disabled={
+                isDownloadingLessonChanges ||
+                lessons.filter((lesson) => lesson.deleted).length === 0
+              }
               title="Delete all lessons marked as 'Deleted'"
             >
-              <Trash2 size="1em"/>
+              <Trash2 size="1em" />
             </button>
 
             <button
@@ -735,7 +702,7 @@ export default function EditDashboard() {
               disabled={isDownloadingLessonChanges || lessons.length == 0}
               title="Export all lessons to a .zip file"
             >
-              <Download size="1em" className="icon-margin-right"/>
+              <Download size="1em" className="icon-margin-right" />
               Download lessons .zip
             </button>
 
@@ -745,13 +712,15 @@ export default function EditDashboard() {
               className="btn-primary"
               title="Creates a new lesson"
             >
-              <Plus size="1em" className="icon-margin-right"/>
+              <Plus size="1em" className="icon-margin-right" />
               Create new lesson
             </button>
           </div>
         </div>
 
-        {loading ? (<LoadingSpinner/>) : lessons.length === 0 ? (
+        {loading ? (
+          <LoadingSpinner />
+        ) : lessons.length === 0 ? (
           <h3 className="dashboard-info">No lessons available</h3>
         ) : (
           <DndContext
@@ -761,15 +730,8 @@ export default function EditDashboard() {
             onDragEnd={handleLessonDragEnd}
             onDragCancel={handleLessonDragCancel}
           >
-            <SortableContext
-              items={lessonIds}
-              strategy={verticalListSortingStrategy}
-            >
-              <div
-                className={`admin-lesson-grid ${
-                  activeLesson ? "is-dragging" : ""
-                }`}
-              >
+            <SortableContext items={lessonIds} strategy={verticalListSortingStrategy}>
+              <div className={`admin-lesson-grid ${activeLesson ? "is-dragging" : ""}`}>
                 {lessons.map((lesson) => (
                   <SortableLessonCard
                     key={lesson.id}
@@ -783,10 +745,7 @@ export default function EditDashboard() {
             </SortableContext>
             <DragOverlay zIndex={10000}>
               {activeLesson ? (
-                <LessonDragOverlayCard
-                  lesson={activeLesson}
-                  width={activeLessonWidth}
-                />
+                <LessonDragOverlayCard lesson={activeLesson} width={activeLessonWidth} />
               ) : null}
             </DragOverlay>
           </DndContext>
@@ -803,11 +762,7 @@ export default function EditDashboard() {
       )}
 
       <Modal
-        title={
-          lessonModalMode === "create"
-            ? "Create new lesson"
-            : "Edit lesson metadata"
-        }
+        title={lessonModalMode === "create" ? "Create new lesson" : "Edit lesson metadata"}
         isOpen={isModalOpen}
         onClose={() => {
           closePopovers();
@@ -828,21 +783,19 @@ export default function EditDashboard() {
             <button
               type="button"
               onClick={
-                lessonModalMode === "create"
-                  ? handleCreateCourse
-                  : handleSaveEditedLessonMetadata
+                lessonModalMode === "create" ? handleCreateCourse : handleSaveEditedLessonMetadata
               }
               className="btn-primary"
               disabled={Boolean(titleValidationError)}
             >
               {lessonModalMode === "create" ? (
                 <>
-                  <Plus size="1em"/>
+                  <Plus size="1em" />
                   Create
                 </>
               ) : (
                 <>
-                  <Edit3 size="1em"/>
+                  <Edit3 size="1em" />
                   Save draft
                 </>
               )}
@@ -873,9 +826,7 @@ export default function EditDashboard() {
             <label>Description</label>
             <textarea
               value={formData.description}
-              onChange={(event) =>
-                setFormData({ ...formData, description: event.target.value })
-              }
+              onChange={(event) => setFormData({ ...formData, description: event.target.value })}
               className="admin-input"
             />
           </div>
@@ -892,14 +843,12 @@ export default function EditDashboard() {
                   }}
                   aria-expanded={isColorPickerOpen}
                 >
-                    <span
-                      className="lesson-picker-color-preview"
-                      style={{ backgroundColor: formData.color }}
-                      aria-hidden="true"
-                    />
-                  <span className="lesson-picker-button-text">
-                      {formData.color}
-                    </span>
+                  <span
+                    className="lesson-picker-color-preview"
+                    style={{ backgroundColor: formData.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="lesson-picker-button-text">{formData.color}</span>
                 </button>
                 {isColorPickerOpen && (
                   <div className="lesson-picker-popover color" role="dialog">
@@ -928,12 +877,8 @@ export default function EditDashboard() {
                       ))}
                     </div>
                     <div className="lesson-color-meta">
-                        <span>
-                          L {formatNumber(currentOklchColor.lightness, 1)}%
-                        </span>
-                      <span>
-                          C {formatNumber(currentOklchColor.chroma, 3)}
-                        </span>
+                      <span>L {formatNumber(currentOklchColor.lightness, 1)}%</span>
+                      <span>C {formatNumber(currentOklchColor.chroma, 3)}</span>
                       <span>H {formatNumber(currentOklchColor.hue, 1)}</span>
                     </div>
                     <input
@@ -964,12 +909,10 @@ export default function EditDashboard() {
                   }}
                   aria-expanded={isIconPickerOpen}
                 >
-                    <span className="lesson-picker-icon-preview">
-                      <LucideIcon name={formData.icon} size={24}/>
-                    </span>
-                  <span className="lesson-picker-icon-name">
-                      {formData.icon}
-                    </span>
+                  <span className="lesson-picker-icon-preview">
+                    <LucideIcon name={formData.icon} size={24} />
+                  </span>
+                  <span className="lesson-picker-icon-name">{formData.icon}</span>
                 </button>
                 {isIconPickerOpen && (
                   <div className="lesson-picker-popover icon" role="dialog">
@@ -978,16 +921,12 @@ export default function EditDashboard() {
                       <input
                         type="search"
                         value={iconSearch}
-                        onChange={(event) =>
-                          setIconSearch(event.target.value)
-                        }
+                        onChange={(event) => setIconSearch(event.target.value)}
                         placeholder="Search Lucide icons"
                         autoFocus
                       />
                     </label>
-                    <div className="lesson-icon-result-count">
-                      {filteredIconNames.length} icons
-                    </div>
+                    <div className="lesson-icon-result-count">{filteredIconNames.length} icons</div>
                     <div className="lesson-icon-options">
                       {filteredIconNames.map((icon) => (
                         <button
@@ -1003,7 +942,7 @@ export default function EditDashboard() {
                           aria-label={`Use ${icon} icon`}
                           aria-pressed={formData.icon === icon}
                         >
-                          <LucideIcon name={icon} size={22}/>
+                          <LucideIcon name={icon} size={22} />
                           <span>{icon}</span>
                         </button>
                       ))}
@@ -1014,9 +953,9 @@ export default function EditDashboard() {
             </div>
           </div>
           <div className="admin-switch-row">
-              <span>
-                <strong>Visual editor</strong>
-              </span>
+            <span>
+              <strong>Visual editor</strong>
+            </span>
             <button
               type="button"
               role="switch"
@@ -1033,9 +972,9 @@ export default function EditDashboard() {
             </button>
           </div>
           <div className="admin-switch-row">
-              <span>
-                <strong>Visual preview and evaluation</strong>
-              </span>
+            <span>
+              <strong>Visual preview and evaluation</strong>
+            </span>
             <button
               type="button"
               role="switch"

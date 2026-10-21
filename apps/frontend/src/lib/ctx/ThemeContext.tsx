@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ThemeContext, type Theme } from "./useTheme";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type Theme, ThemeContext } from "./useTheme";
 
 const THEME_KEY = "preferred-theme";
 
 function getSystemTheme(): Theme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function getInitialTheme(): Theme {
@@ -27,8 +25,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (localStorage.getItem(THEME_KEY)) return;
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = (e: MediaQueryListEvent) =>
-      setTheme(e.matches ? "dark" : "light");
+    const handler = (e: MediaQueryListEvent) => setTheme(e.matches ? "dark" : "light");
 
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
@@ -42,7 +39,5 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [theme],
   );
 
-  return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

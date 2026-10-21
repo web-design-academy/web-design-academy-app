@@ -1,7 +1,7 @@
 const { Octokit } = require("octokit");
 const { OAuthApp } = require("@octokit/oauth-app");
 const environment = require("../config/env");
-const {encrypt, decrypt} = require("../utils/encryption");
+const { encrypt, decrypt } = require("../utils/encryption");
 const userRepository = require("../repositories/users");
 const installationsRepository = require("../repositories/installations");
 const ServerError = require("../errors/ServerError");
@@ -28,8 +28,8 @@ function mapRepository(repo) {
     sha: repo.sha,
     created_at: repo.created_at,
     pushed_at: repo.pushed_at,
-    updated_at: repo.updated_at
-  }
+    updated_at: repo.updated_at,
+  };
 }
 
 function mapGitHubUser(user) {
@@ -38,7 +38,7 @@ function mapGitHubUser(user) {
     github_login: user.login,
     github_name: user.name,
     github_avatar_url: user.avatar_url,
-  }
+  };
 }
 
 function mapRemoteInstallation(installation, userId) {
@@ -53,7 +53,7 @@ function mapRemoteInstallation(installation, userId) {
     created_at: installation.created_at,
     suspended_by: installation.suspended_by,
     suspended_at: installation.suspended_at,
-  }
+  };
 }
 
 function mapLocalInstallation(installation, userId) {
@@ -62,12 +62,11 @@ function mapLocalInstallation(installation, userId) {
     user_id: userId,
     html_url: installation.html_url,
     created_at: installation.created_at,
-  }
+  };
 }
 
 function getAuthUrl(state) {
-  if (!state || typeof state !== "string")
-    throw new ServerError("Invalid state parameter", 500)
+  if (!state || typeof state !== "string") throw new ServerError("Invalid state parameter", 500);
 
   return auth.getWebFlowAuthorizationUrl({
     state: state,
@@ -83,13 +82,14 @@ async function refreshAccessToken(userId, userTokens) {
     throw new ServerError("GitHub session expired, please re-link your account", 401);
 
   try {
-    const {authentication} = await auth.refreshToken({
+    const { authentication } = await auth.refreshToken({
       refreshToken: decrypt(userTokens.github_refresh_token),
     });
 
-    const expiresAtIso = authentication.expiresAt instanceof Date
-      ? authentication.expiresAt.toISOString()
-      : String(authentication.expiresAt);
+    const expiresAtIso =
+      authentication.expiresAt instanceof Date
+        ? authentication.expiresAt.toISOString()
+        : String(authentication.expiresAt);
 
     userRepository.update(String(userId), {
       github_access_token: encrypt(authentication.token),
@@ -105,14 +105,13 @@ async function refreshAccessToken(userId, userTokens) {
 
 async function getAccessToken(userId) {
   const userTokens = userRepository.getTokensBy(userId);
-  if (!userTokens)
-    throw new ServerError("User not found", 401);
+  if (!userTokens) throw new ServerError("User not found", 401);
   if (!userTokens.github_id || !userTokens.github_access_token)
     throw new ServerError("User does not have GitHub account linked", 401);
 
   const expiresAt = userTokens.github_expires_at
-      ? new Date(userTokens.github_expires_at).getTime()
-      : null;
+    ? new Date(userTokens.github_expires_at).getTime()
+    : null;
 
   if (!expiresAt || TOKEN_REFRESH_WINDOW_MS > expiresAt - Date.now())
     return await refreshAccessToken(userId, userTokens);
@@ -127,7 +126,7 @@ async function getOctokit(userId) {
 }
 
 async function getProfileFromToken(token) {
-  const octokit = new Octokit({auth: token})
+  const octokit = new Octokit({ auth: token });
 
   try {
     const response = await octokit.rest.users.getAuthenticated();
@@ -145,7 +144,7 @@ async function exchangeCode(code, state) {
   try {
     const response = await auth.createToken({
       code: code,
-      state: state
+      state: state,
     });
 
     const authentication = response.authentication;
@@ -153,7 +152,7 @@ async function exchangeCode(code, state) {
       token: authentication.token,
       refreshToken: authentication.refreshToken,
       expiresAt: authentication.expiresAt,
-    }
+    };
   } catch (error) {
     throw new ServerError("Failed to authenticate with GitHub", 500);
   }
@@ -166,9 +165,7 @@ async function assignUser(userId, token, refreshToken, expiresAt) {
   if (existingUser && String(existingUser.id) !== String(userId))
     throw new ServerError("GitHub account is already linked to another account", 400);
 
-  const expiresAtIso = expiresAt instanceof Date
-    ? expiresAt.toISOString()
-    : String(expiresAt);
+  const expiresAtIso = expiresAt instanceof Date ? expiresAt.toISOString() : String(expiresAt);
 
   userRepository.update(String(userId), {
     github_id: String(profile.github_id),
@@ -181,7 +178,7 @@ async function assignUser(userId, token, refreshToken, expiresAt) {
 async function deleteAuthorization(userId) {
   try {
     const token = await getAccessToken(userId);
-    await auth.deleteAuthorization({token});
+    await auth.deleteAuthorization({ token });
   } catch (e) {
     console.warn("GitHub authorization revocation failed: ", e.message);
   }
@@ -191,7 +188,7 @@ async function deleteAuthorization(userId) {
     github_access_token: null,
     github_refresh_token: null,
     github_expires_at: null,
-  })
+  });
 }
 
 async function getRepositories(userId) {
@@ -206,8 +203,8 @@ async function getRepositories(userId) {
       direction: "desc",
     },
     (response) => {
-      return response.data.map(mapRepository)
-    }
+      return response.data.map(mapRepository);
+    },
   );
 }
 
@@ -215,20 +212,19 @@ async function getRepository(userId, repoId) {
   const octokit = await getOctokit(userId);
 
   try {
-    const {data: repo} = await octokit.request("GET /repositories/{repository_id}", {
-      repository_id: repoId
+    const { data: repo } = await octokit.request("GET /repositories/{repository_id}", {
+      repository_id: repoId,
     });
 
     if (repo.size > 0 && repo.default_branch) {
       try {
-        const {data: refData} = await octokit.rest.git.getRef({
+        const { data: refData } = await octokit.rest.git.getRef({
           owner: repo.owner.login,
           repo: repo.name,
           ref: `heads/${repo.default_branch}`,
         });
         repo.sha = refData.object.sha;
-      } catch (e) {
-      }
+      } catch (e) {}
     }
 
     return mapRepository(repo);
@@ -241,7 +237,7 @@ async function getRepositorySha(userId, owner, repo, branch) {
   const octokit = await getOctokit(userId);
 
   try {
-    const {data: refData} = await octokit.rest.git.getRef({
+    const { data: refData } = await octokit.rest.git.getRef({
       owner,
       repo,
       ref: `heads/${branch}`,
@@ -266,7 +262,7 @@ async function downloadRepository(userId, owner, repo) {
 
 async function syncInstallations(userId) {
   const octokit = await getOctokit(userId);
-  const {data} = await octokit.rest.apps.listInstallationsForAuthenticatedUser();
+  const { data } = await octokit.rest.apps.listInstallationsForAuthenticatedUser();
   const output = [];
 
   for (const installation of data.installations) {
@@ -274,20 +270,23 @@ async function syncInstallations(userId) {
     output.push(mapRemoteInstallation(installation, userId));
   }
 
-  for (const installation of installationsRepository.listBy({values: [String(userId)], column: "user_id"})) {
+  for (const installation of installationsRepository.listBy({
+    values: [String(userId)],
+    column: "user_id",
+  })) {
     if (!data.installations.some((i) => i.id === installation.id))
       installationsRepository.remove(installation.id);
   }
 
   console.log(output);
-  return output
+  return output;
 }
 
 async function syncInstallation(userId, installationId) {
   const octokit = await getOctokit(userId);
   try {
-    const {data: installation} = await octokit.rest.apps.getInstallation({
-      installation_id: installationId
+    const { data: installation } = await octokit.rest.apps.getInstallation({
+      installation_id: installationId,
     });
 
     installationsRepository.upsert({
@@ -319,5 +318,5 @@ module.exports = {
   getRepositorySha,
   downloadRepository,
   syncInstallations,
-  syncInstallation
+  syncInstallation,
 };

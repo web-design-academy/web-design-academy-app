@@ -559,8 +559,7 @@
   color: unset;
   font-family: var(--font-family-mono);
   background-color: color-mix(in srgb, var(--surface-code) 12%, transparent);
-  border: var(--border-width-thin) solid
-    color-mix(in srgb, var(--surface-code) 24%, transparent);
+    border: var(--border-width-thin) solid color-mix(in srgb, var(--surface-code) 24%, transparent);
   padding: 0.05em 0.3em;
   border-radius: var(--radius-sm);
   line-height: inherit;
@@ -733,8 +732,7 @@
   height: 4.25rem;
   flex: 0 0 4.25rem;
   place-items: center;
-  border: 1px solid
-    color-mix(in srgb, var(--status-error-text) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--status-error-text) 25%, transparent);
   border-radius: 50%;
   background: var(--status-error-bg);
   color: var(--status-error-text);

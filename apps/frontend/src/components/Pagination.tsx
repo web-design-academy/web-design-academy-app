@@ -1,11 +1,11 @@
-import {ChevronLeft, ChevronRight} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function Pagination({
   page,
   total,
   pageSize,
   onChange,
-                                     onPageSizeChange,
+  onPageSizeChange,
 }: {
   page: number;
   total: number;

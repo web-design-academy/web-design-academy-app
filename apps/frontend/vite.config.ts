@@ -19,10 +19,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        "@monaco-editor/react": path.resolve(
-          __dirname,
-          "node_modules/@monaco-editor/react",
-        ),
+        "@monaco-editor/react": path.resolve(__dirname, "node_modules/@monaco-editor/react"),
       },
     },
     build: {

@@ -1,9 +1,9 @@
-import {requireOnlineMode} from "@/lib/config/config.ts";
-import type {PaginatedResponse} from "@/lib/api/submissions";
-import {API_BASE} from "@/lib/api/client";
-import {readResponse} from "@/lib/api/readResponse.ts";
-import type {AdminUser} from "@/interfaces/AdminUser.ts";
-import type {Tag} from "@/interfaces/Tag.ts";
+import { requireOnlineMode } from "@/lib/config/config.ts";
+import type { PaginatedResponse } from "@/lib/api/submissions";
+import { API_BASE } from "@/lib/api/client";
+import { readResponse } from "@/lib/api/readResponse.ts";
+import type { AdminUser } from "@/interfaces/AdminUser.ts";
+import type { Tag } from "@/interfaces/Tag.ts";
 
 export interface AdminTag extends Tag {
   user_count: number;
@@ -54,10 +54,7 @@ export async function fetchAdminUsers(
   return readResponse(response, "Failed to fetch users");
 }
 
-export async function addUserTag(
-  userId: string,
-  payload: { tagId?: number | ""; name?: string },
-) {
+export async function addUserTag(userId: string, payload: { tagId?: number | ""; name?: string }) {
   requireOnlineMode("Admin tags");
 
   const response = await fetch(`${API_BASE}/admin/users/${userId}/tags`, {
@@ -66,10 +63,7 @@ export async function addUserTag(
     body: JSON.stringify(payload),
   });
 
-  return readResponse<{ success: true; tag: Tag }>(
-    response,
-    "Failed to add tag",
-  );
+  return readResponse<{ success: true; tag: Tag }>(response, "Failed to add tag");
 }
 
 export async function addTagToUsers(
@@ -84,21 +78,15 @@ export async function addTagToUsers(
     body: JSON.stringify({ ...payload, userIds }),
   });
 
-  return readResponse<{ success: true; tag: Tag }>(
-    response,
-    "Failed to add tag",
-  );
+  return readResponse<{ success: true; tag: Tag }>(response, "Failed to add tag");
 }
 
 export async function removeUserTag(userId: string, tagId: number) {
   requireOnlineMode("Admin tags");
 
-  const response = await fetch(
-    `${API_BASE}/admin/users/${userId}/tags/${tagId}`,
-    {
-      method: "DELETE",
-    },
-  );
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/tags/${tagId}`, {
+    method: "DELETE",
+  });
 
   return readResponse<{ success: true }>(response, "Failed to remove tag");
 }

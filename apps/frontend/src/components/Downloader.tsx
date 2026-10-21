@@ -1,4 +1,4 @@
-import {useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   decodeSlug,
   deleteLessonAsync,
@@ -8,20 +8,20 @@ import {
   saveLessonAsync,
   saveLessonContentAsync,
   saveTasksAsync,
-  type Source
+  type Source,
 } from "@/lib/helpers/db.ts";
-import "@/styles/updater.css"
-import {DownloadCloud} from "lucide-react";
-import {createContext, type ReactNode, useContext, useState} from "react";
+import "@/styles/updater.css";
+import { DownloadCloud } from "lucide-react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
-import {downloadLessonArchive, fetchLesson} from "@/lib/api/lessons.ts";
-import {downloadRepositoryArchive, fetchRepository} from "@/lib/api/github.ts";
-import {parseZipAsync} from "@/lib/helpers/zipHeper.ts";
+import { downloadLessonArchive, fetchLesson } from "@/lib/api/lessons.ts";
+import { downloadRepositoryArchive, fetchRepository } from "@/lib/api/github.ts";
+import { parseZipAsync } from "@/lib/helpers/zipHeper.ts";
 import Modal from "@/components/Modal.tsx";
 import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import "@/styles/downloader.css";
-import type {NewLesson} from "@/interfaces/NewLesson.ts";
-import {useNotifications} from "@/components/Notifications.tsx";
+import type { NewLesson } from "@/interfaces/NewLesson.ts";
+import { useNotifications } from "@/components/Notifications.tsx";
 
 interface ProcessZipResult {
   success: number;
@@ -47,35 +47,35 @@ interface Conflict {
   detectedChanges?: boolean;
 }
 
-export default function DownloaderProvider({children}: { children: ReactNode }) {
-  const {pushNotification} = useNotifications();
+export default function DownloaderProvider({ children }: { children: ReactNode }) {
+  const { pushNotification } = useNotifications();
   const [visible, setVisible] = useState(true);
   const [newLessons, setNewLessons] = useState<NewLesson[]>([]);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
 
-  const {data: updates, isLoading: updatesLoading, refetch: updatesRefetch} = useQuery({
+  const {
+    data: updates,
+    isLoading: updatesLoading,
+    refetch: updatesRefetch,
+  } = useQuery({
     queryKey: ["downloaderUpdates"],
     queryFn: async () => {
-      const lessons = await getLessonsAsync() || [];
+      const lessons = (await getLessonsAsync()) || [];
       const updatable: LessonMeta[] = [];
 
       const remotes = new Map<string, Source>();
       for (const lesson of lessons) {
-        const {source, remote} = decodeSlug(lesson.slug);
-        if (source && remote)
-          remotes.set(remote, source);
+        const { source, remote } = decodeSlug(lesson.slug);
+        if (source && remote) remotes.set(remote, source);
       }
 
       const shas = new Map<string, string>();
       for (const [remote, source] of remotes) {
         try {
           const remoteData =
-            source === "wda"
-              ? await fetchLesson(remote)
-              : await fetchRepository(remote);
+            source === "wda" ? await fetchLesson(remote) : await fetchRepository(remote);
 
-          if (remoteData?.sha)
-            shas.set(remote, remoteData.sha);
+          if (remoteData?.sha) shas.set(remote, remoteData.sha);
         } catch (e) {
           pushNotification({
             type: "error",
@@ -86,11 +86,10 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
       }
 
       for (const lesson of lessons) {
-        const {remote} = decodeSlug(lesson.slug);
+        const { remote } = decodeSlug(lesson.slug);
         if (remote && shas.has(remote)) {
           const latestSha = shas.get(remote);
-          if (latestSha && latestSha !== lesson.sha)
-            updatable.push(lesson);
+          if (latestSha && latestSha !== lesson.sha) updatable.push(lesson);
         }
       }
 
@@ -110,18 +109,22 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
 
       return updatable;
     },
-    staleTime: 60 * 60 * 1000
+    staleTime: 60 * 60 * 1000,
   });
 
   const processZip = async (
     blob: Blob,
     source?: Source,
     remote?: string,
-    sha?: string
+    sha?: string,
   ): Promise<ProcessZipResult> => {
     const existing = await getLessonsAsync();
     const existingMap = new Map(existing.map((l) => [l.slug, l]));
-    const {lessons, errors} = await parseZipAsync(blob, source && remote ? {source, remote} : undefined, sha);
+    const { lessons, errors } = await parseZipAsync(
+      blob,
+      source && remote ? { source, remote } : undefined,
+      sha,
+    );
     const newLessons: NewLesson[] = [];
     const detectedConflicts: Conflict[] = [];
 
@@ -140,7 +143,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
         duration: 15,
       });
 
-      return {success: 0, conflicts: 0, errors: errors};
+      return { success: 0, conflicts: 0, errors: errors };
     }
 
     for (const lesson of lessons) {
@@ -165,19 +168,21 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
       setNewLessons((prev) => [...prev, ...newLessons]);
     }
 
-    return {success: newLessons.length, conflicts: detectedConflicts.length, errors};
+    return {
+      success: newLessons.length,
+      conflicts: detectedConflicts.length,
+      errors,
+    };
   };
 
   const performUpdates = async () => {
-    if (!updates?.length)
-      return;
+    if (!updates?.length) return;
 
     const reposToUpdate = new Map<string, Source>();
     for (const lesson of updates) {
-      const {source, remote} = decodeSlug(lesson.slug);
+      const { source, remote } = decodeSlug(lesson.slug);
 
-      if (source && remote)
-        reposToUpdate.set(remote, source);
+      if (source && remote) reposToUpdate.set(remote, source);
     }
 
     let incompleteUpdates = 0;
@@ -187,14 +192,12 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
           const metadata = await fetchLesson(remote);
           const data = await downloadLessonArchive(remote);
           const result = await processZip(data, "wda", remote, metadata.sha);
-          if (result.conflicts > 0)
-            incompleteUpdates++;
+          if (result.conflicts > 0) incompleteUpdates++;
         } else if (source === "github") {
           const metadata = await fetchRepository(remote);
           const data = await downloadRepositoryArchive(metadata.owner_login, metadata.name);
           const result = await processZip(data, "github", remote, metadata.sha);
-          if (result.conflicts > 0)
-            incompleteUpdates++;
+          if (result.conflicts > 0) incompleteUpdates++;
         } else {
           incompleteUpdates++;
           pushNotification({
@@ -215,8 +218,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
       }
     }
 
-    if (incompleteUpdates === 0)
-      setVisible(false);
+    if (incompleteUpdates === 0) setVisible(false);
   };
 
   const refreshUpdates = async () => {
@@ -237,7 +239,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
     });
 
     emitLessonDraftsChanged();
-  }
+  };
 
   const replaceLesson = async (conflict: Conflict) => {
     await deleteLessonAsync(conflict.original.id);
@@ -265,46 +267,37 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
     <DownloadContext.Provider
       value={{
         refreshUpdates,
-        processZip
+        processZip,
       }}
     >
       {children}
 
       <div
-        className={`updater ${(visible && !updatesLoading && updates?.length && updates.length > 0) ? "" : "hidden"}`}
+        className={`updater ${visible && !updatesLoading && updates?.length && updates.length > 0 ? "" : "hidden"}`}
       >
         <div className="updater-title">
           <h3>Lesson updates available</h3>
-          <button
-            className="btn-ghost modal-close"
-            onClick={() => setVisible(false)}
-          >
+          <button className="btn-ghost modal-close" onClick={() => setVisible(false)}>
             &times;
           </button>
         </div>
 
         <div className="updater-body">
-          {updates && updates.map((l) => (
-            <div key={l.id} className="updater-lesson">
-              <div
-                className="course-icon"
-                style={{background: l.color}}
-                aria-hidden="true"
-              >
-                <LucideIcon name={l.icon} size={20}/>
-              </div>
+          {updates &&
+            updates.map((l) => (
+              <div key={l.id} className="updater-lesson">
+                <div className="course-icon" style={{ background: l.color }} aria-hidden="true">
+                  <LucideIcon name={l.icon} size={20} />
+                </div>
 
-              <h4>{l.title}</h4>
-            </div>
-          ))}
+                <h4>{l.title}</h4>
+              </div>
+            ))}
         </div>
 
         <div className="updater-body">
-          <button
-            className="updater-button btn-primary"
-            onClick={() => performUpdates()}
-          >
-            <DownloadCloud size="1em" className="icon-margin-right"/>
+          <button className="updater-button btn-primary" onClick={() => performUpdates()}>
+            <DownloadCloud size="1em" className="icon-margin-right" />
             Update
           </button>
         </div>
@@ -317,31 +310,44 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
           setNewLessons([]);
           setConflicts([]);
         }}
-        children={(
+        children={
           <div className={"downloader-conflicts"}>
             {conflicts.map((conflict) => (
               <div key={conflict.original.id} className={"downloader-conflict-item"}>
-                <LessonIcon name={conflict.original.icon} size={24} color={conflict.original.color}/>
+                <LessonIcon
+                  name={conflict.original.icon}
+                  size={24}
+                  color={conflict.original.color}
+                />
 
                 <div className={"downloader-conflict-info"}>
                   <h4>
-                    <span>{conflict.original.title}</span> {"->"} <span>{conflict.newLesson.lesson.title}</span>
+                    <span>{conflict.original.title}</span> {"->"}{" "}
+                    <span>{conflict.newLesson.lesson.title}</span>
                   </h4>
 
                   <div className={"downloader-conflict-details"}>
                     <div className={"downloader-conflict-content"}>
-                      <div style={{color: conflict.detectedChanges ? "orange" : "green"}}>
+                      <div
+                        style={{
+                          color: conflict.detectedChanges ? "orange" : "green",
+                        }}
+                      >
                         {conflict.detectedChanges ? "Changes detected" : "No changes detected"}
                       </div>
 
-                      <div className={"downloader-conflict-text"}>{conflict.newLesson.lesson.description}</div>
+                      <div className={"downloader-conflict-text"}>
+                        {conflict.newLesson.lesson.description}
+                      </div>
                     </div>
 
                     <button
                       className={"btn-ghost"}
                       onClick={async () => {
-                        setConflicts((prev) => prev.filter((c) => c.original.id !== conflict.original.id));
-                        await replaceLesson(conflict)
+                        setConflicts((prev) =>
+                          prev.filter((c) => c.original.id !== conflict.original.id),
+                        );
+                        await replaceLesson(conflict);
                       }}
                     >
                       Replace
@@ -350,8 +356,10 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
                     <button
                       className={"btn-ghost"}
                       onClick={async () => {
-                        setConflicts((prev) => prev.filter((c) => c.original.id !== conflict.original.id));
-                        await keepBothLessons(conflict)
+                        setConflicts((prev) =>
+                          prev.filter((c) => c.original.id !== conflict.original.id),
+                        );
+                        await keepBothLessons(conflict);
                       }}
                     >
                       Keep
@@ -363,7 +371,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
 
             {newLessons.map((lesson) => (
               <div key={lesson.lesson.id} className={"downloader-conflict-item"}>
-                <LessonIcon name={lesson.lesson.icon} size={24} color={lesson.lesson.color}/>
+                <LessonIcon name={lesson.lesson.icon} size={24} color={lesson.lesson.color} />
 
                 <div className={"downloader-conflict-info"}>
                   <h4>{lesson.lesson.title}</h4>
@@ -376,8 +384,10 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
                     <button
                       className={"btn-ghost"}
                       onClick={async () => {
-                        setNewLessons((prev) => prev.filter((l) => l.lesson.id !== lesson.lesson.id));
-                        await saveLesson(lesson)
+                        setNewLessons((prev) =>
+                          prev.filter((l) => l.lesson.id !== lesson.lesson.id),
+                        );
+                        await saveLesson(lesson);
                       }}
                     >
                       Save
@@ -387,7 +397,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
               </div>
             ))}
           </div>
-        )}
+        }
       />
     </DownloadContext.Provider>
   );
@@ -396,8 +406,7 @@ export default function DownloaderProvider({children}: { children: ReactNode }) 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useDownloader() {
   const context = useContext(DownloadContext);
-  if (!context)
-    throw new Error("useDownloader must be used within a DownloaderProvider");
+  if (!context) throw new Error("useDownloader must be used within a DownloaderProvider");
 
   return context;
 }

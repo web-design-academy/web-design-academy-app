@@ -1,9 +1,9 @@
-import {Dexie, type EntityTable, type Table} from "dexie";
-import type {TaskCode} from "@/lib/helpers/tasks.ts";
+import { Dexie, type EntityTable, type Table } from "dexie";
+import type { TaskCode } from "@/lib/helpers/tasks.ts";
 
 const SOURCES = ["github", "wda"] as const;
 
-export type Source = typeof SOURCES[number];
+export type Source = (typeof SOURCES)[number];
 
 function isSource(value: string): value is Source {
   return SOURCES.includes(value as Source);
@@ -40,14 +40,14 @@ export type LessonMeta = {
   icon: string;
   visualPreview?: boolean;
   visualEditor?: boolean;
-  slug: string; // slug:source:id or slug
+  slug: string;
   sha?: string;
+  isDirty?: boolean;
 
   order: number;
   taskCount: number;
   deleted?: boolean;
 };
-
 
 /**
  * Converts a given title string into a URL-friendly slug by:
@@ -76,14 +76,17 @@ export function buildSlug(slug: string, source?: Source, remoteId?: string): str
 
   if (source && remoteId) {
     const normalizedRemoteId = slugifyTitle(remoteId);
-    if (normalizedRemoteId)
-      return `${normalizedSlug}:${source}:${normalizedRemoteId}`;
+    if (normalizedRemoteId) return `${normalizedSlug}:${source}:${normalizedRemoteId}`;
   }
 
   return normalizedSlug;
 }
 
-export function decodeSlug(slug: string): { slug: string; source?: Source; remote?: string } {
+export function decodeSlug(slug: string): {
+  slug: string;
+  source?: Source;
+  remote?: string;
+} {
   const parts = slug.split(":");
 
   if (parts.length === 3) {
@@ -97,12 +100,12 @@ export function decodeSlug(slug: string): { slug: string; source?: Source; remot
     }
   }
 
-  return {slug: slugifyTitle(slug) || slug};
+  return { slug: slugifyTitle(slug) || slug };
 }
 
 const db = new Dexie("WDA") as Dexie & {
   lessons: EntityTable<LessonMeta, "id">;
-  content: EntityTable<LessonContent, "lessonId">
+  content: EntityTable<LessonContent, "lessonId">;
   tasks: EntityTable<LessonTasks, "lessonId">;
   progress: Table<UserLessonProgress, [string, string]>;
 };
@@ -111,7 +114,7 @@ db.version(1).stores({
   lessons: "id, order",
   tasks: "lessonId",
   progress: "[userId+lessonId], userId, lessonId",
-  content: "lessonId"
+  content: "lessonId",
 });
 
 export { db };
@@ -195,7 +198,7 @@ export async function deleteMarkedAsync(): Promise<void> {
     for (const lesson of deletedLessons) {
       await deleteLessonAsync(lesson.id);
     }
-  })
+  });
 }
 
 export async function getTasksAsync(id: string): Promise<Partial<TaskCode>[]> {
@@ -208,10 +211,7 @@ export async function getTasksCountAsync(id: string): Promise<number> {
   return tasks.length;
 }
 
-export async function saveTasksAsync(
-  lessonId: string,
-  tasks: Partial<TaskCode>[],
-): Promise<void> {
+export async function saveTasksAsync(lessonId: string, tasks: Partial<TaskCode>[]): Promise<void> {
   await db.transaction("rw", [db.lessons, db.tasks], async () => {
     await db.tasks.put({
       lessonId,
@@ -234,14 +234,14 @@ export async function deleteTasksAsync(id: string): Promise<void> {
 }
 
 export async function getContentAsync(id: string): Promise<string> {
-  const content = await db.content.get(id)
+  const content = await db.content.get(id);
   return content?.content ?? "";
 }
 
 export async function saveLessonContentAsync(lessonId: string, content: string) {
   await db.content.put({
     lessonId,
-    content
+    content,
   });
 }
 
@@ -268,9 +268,6 @@ export async function saveProgressAsync(
   });
 }
 
-export async function deleteProgressAsync(
-  lessonId: string,
-  userId: string,
-): Promise<void> {
+export async function deleteProgressAsync(lessonId: string, userId: string): Promise<void> {
   await db.progress.delete([userId, lessonId]);
 }

@@ -1,8 +1,8 @@
-import {API_BASE} from "@/lib/api/client.ts";
-import {readResponse} from "@/lib/api/readResponse.ts";
-import type {GitHubProfile} from "@/interfaces/GitHubProfile.ts";
-import type {Installation} from "@/interfaces/Installation.ts";
-import type {Repository} from "@/interfaces/Repository.ts";
+import { API_BASE } from "@/lib/api/client.ts";
+import { readResponse } from "@/lib/api/readResponse.ts";
+import type { GitHubProfile } from "@/interfaces/GitHubProfile.ts";
+import type { Installation } from "@/interfaces/Installation.ts";
+import type { Repository } from "@/interfaces/Repository.ts";
 
 export async function fetchProfile() {
   const response = await fetch(`${API_BASE}/github/me`, {
@@ -11,7 +11,7 @@ export async function fetchProfile() {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    credentials: "include"
+    credentials: "include",
   });
 
   return readResponse<GitHubProfile>(response, "Failed to fetch GitHub profile");
@@ -24,7 +24,7 @@ export async function fetchRepositories() {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    credentials: "include"
+    credentials: "include",
   });
 
   return readResponse<Repository[]>(response, "Failed to fetch repositories");
@@ -37,7 +37,7 @@ export async function fetchRepository(repoId: string) {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    credentials: "include"
+    credentials: "include",
   });
 
   return readResponse<Repository>(response, "Failed to fetch repository");
@@ -52,8 +52,8 @@ export async function fetchRepositorySha(owner: string, name: string, branch: st
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      credentials: "include"
-    }
+      credentials: "include",
+    },
   );
 
   return readResponse<string>(response, "Failed to fetch repository SHA");
@@ -68,8 +68,8 @@ export async function downloadRepositoryArchive(owner: string, name: string) {
         "Content-Type": "application/json",
         Accept: "application/zip",
       },
-      credentials: "include"
-    }
+      credentials: "include",
+    },
   );
 
   if (!response.ok) {
@@ -89,7 +89,7 @@ export async function fetchInstallations() {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    credentials: "include"
+    credentials: "include",
   });
 
   return readResponse<Installation[]>(response, "Failed to fetch installations");
@@ -104,9 +104,8 @@ export async function unlinkAccount() {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    credentials: "include"
+    credentials: "include",
   });
 
   return readResponse(response, "Failed to unlink GitHub account");
 }
-

@@ -1,6 +1,6 @@
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const environment = require("../config/env");
 const ServerError = require("../errors/ServerError");
 

@@ -1,63 +1,70 @@
-const {db} = require("../config/db");
+const { db } = require("../config/db");
 
-const searchableColumns = new Set(['id', 'user_id', 'html_url']);
-const updatableColumns = new Set(['html_url']);
+const searchableColumns = new Set(["id", "user_id", "html_url"]);
+const updatableColumns = new Set(["html_url"]);
 
 function getBy(value, column = "id") {
-  if (!searchableColumns.has(column))
-    return undefined;
+  if (!searchableColumns.has(column)) return undefined;
 
-  return db.prepare(`
+  return db
+    .prepare(
+      `
       SELECT *
       FROM installations
       WHERE ${column} = ?
       LIMIT 1
-  `).get(value);
+  `,
+    )
+    .get(value);
 }
 
-function listBy({
-                  values = undefined,
-                  column = "user_id",
-                } = {}) {
+function listBy({ values = undefined, column = "user_id" } = {}) {
   const params = [];
-  const conditions = []
+  const conditions = [];
 
   if (values) {
-    if (column && !searchableColumns.has(column))
-      return [];
+    if (column && !searchableColumns.has(column)) return [];
 
     params.push(...values);
     conditions.push(`${column} IN (${values.map(() => "?").join(",")})`);
   }
 
-  return db.prepare(`
+  return db
+    .prepare(
+      `
       SELECT DISTINCT *
       FROM installations ${conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""}
-  `).all(...params);
+  `,
+    )
+    .all(...params);
 }
 
 function count() {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
       SELECT COUNT(*) as count
       FROM installations
-  `).get().count;
+  `,
+    )
+    .get().count;
 }
 
-function upsert({
-                  id,
-                  user_id,
-                  html_url
-                }) {
-  return db.prepare(`
+function upsert({ id, user_id, html_url }) {
+  return db
+    .prepare(
+      `
       INSERT INTO installations (id, user_id, html_url)
       VALUES (@id, @user_id, @html_url)
       ON CONFLICT(id) DO UPDATE SET html_url = excluded.html_url
       RETURNING *
-  `).get({
-    id,
-    user_id,
-    html_url
-  });
+  `,
+    )
+    .get({
+      id,
+      user_id,
+      html_url,
+    });
 }
 
 function update(userId, updates) {
@@ -67,23 +74,31 @@ function update(userId, updates) {
     const set = fields.map((field) => `${field} = ?`).join(", ");
     const values = fields.map((field) => updates[field]);
 
-    return db.prepare(`
+    return db
+      .prepare(
+        `
         UPDATE installations
         SET ${set}
         WHERE id = ?
         RETURNING *
-    `).get(...values, userId);
+    `,
+      )
+      .get(...values, userId);
   }
 
   return undefined;
 }
 
 function remove(id) {
-  return db.prepare(`
+  return db
+    .prepare(
+      `
       DELETE
       FROM installations
       WHERE id = ?
-  `).run(id);
+  `,
+    )
+    .run(id);
 }
 
 module.exports = {
@@ -92,5 +107,5 @@ module.exports = {
   count,
   upsert,
   update,
-  remove
+  remove,
 };

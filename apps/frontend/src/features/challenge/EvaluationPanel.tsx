@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Lightbulb,
-  LoaderCircle,
-  X,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, Lightbulb, LoaderCircle, X } from "lucide-react";
 import type { AnalysisIssue, EvaluationResult } from "@wda/css-analysis";
 import type { CssEvaluationConfig } from "@/lib/helpers/tasks";
 
@@ -41,9 +35,7 @@ export default function EvaluationPanel({
           (candidate) => candidate.level === "error",
         );
         const failedCheck = config.checks.find((check) =>
-          result?.teacherIssues.some(
-            (candidate) => candidate.checkId === check.id,
-          ),
+          result?.teacherIssues.some((candidate) => candidate.checkId === check.id),
         );
         setHint(
           failedCheck?.studentHint ||
@@ -65,9 +57,7 @@ export default function EvaluationPanel({
   if (!config) return null;
 
   const visibleIssues = result?.results ?? liveIssues;
-  const failedCheckIds = new Set(
-    (result?.teacherIssues ?? []).map((issue) => issue.checkId),
-  );
+  const failedCheckIds = new Set((result?.teacherIssues ?? []).map((issue) => issue.checkId));
 
   return (
     <section className="challenge-evaluation" aria-live="polite">
@@ -84,17 +74,13 @@ export default function EvaluationPanel({
                 : "Live CSS feedback"}
           </span>
           {result && isStale && (
-            <span className="challenge-stale-result">
-              Code changed since this evaluation
-            </span>
+            <span className="challenge-stale-result">Code changed since this evaluation</span>
           )}
         </div>
         {isEvaluating ? (
           <LoaderCircle className="challenge-spin" size={22} />
         ) : result ? (
-          <div
-            className={`challenge-score ${result.passed ? "is-pass" : "is-fail"}`}
-          >
+          <div className={`challenge-score ${result.passed ? "is-pass" : "is-fail"}`}>
             {result.score}%
           </div>
         ) : null}
@@ -121,9 +107,7 @@ export default function EvaluationPanel({
         <div className="challenge-evaluation-section">
           <div className="challenge-evaluation-section-heading">
             <strong>Requirements</strong>
-            <span>
-              {config.checks.filter((check) => check.studentHint).length}
-            </span>
+            <span>{config.checks.filter((check) => check.studentHint).length}</span>
           </div>
           <ul className="challenge-checklist">
             {config.checks
@@ -132,10 +116,7 @@ export default function EvaluationPanel({
                 const failed = result ? failedCheckIds.has(check.id) : false;
                 const complete = result ? !failed : false;
                 return (
-                  <li
-                    key={check.id}
-                    className={failed ? "is-fail" : complete ? "is-pass" : ""}
-                  >
+                  <li key={check.id} className={failed ? "is-fail" : complete ? "is-pass" : ""}>
                     {failed ? (
                       <AlertCircle size={16} />
                     ) : complete ? (
@@ -159,9 +140,7 @@ export default function EvaluationPanel({
           </div>
           <ul className="challenge-issues">
             {visibleIssues.slice(0, 12).map((issue, index) => (
-              <li
-                key={`${issue.category}-${issue.lineNumber}-${issue.messageCode}-${index}`}
-              >
+              <li key={`${issue.category}-${issue.lineNumber}-${issue.messageCode}-${index}`}>
                 <button type="button" onClick={() => onIssueClick?.(issue)}>
                   {issue.level === "recommendation" ? (
                     <Lightbulb size={15} />
@@ -187,11 +166,7 @@ export default function EvaluationPanel({
         <div className="challenge-hint">
           <Lightbulb size={16} />
           <span>{hint}</span>
-          <button
-            type="button"
-            aria-label="Dismiss hint"
-            onClick={() => setHint(null)}
-          >
+          <button type="button" aria-label="Dismiss hint" onClick={() => setHint(null)}>
             <X size={14} />
           </button>
         </div>

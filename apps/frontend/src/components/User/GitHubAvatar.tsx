@@ -1,5 +1,5 @@
-import {type CSSProperties, useState} from "react";
-import {User} from "lucide-react";
+import { type CSSProperties, useState } from "react";
+import { User } from "lucide-react";
 
 interface UserAvatarProps {
   url?: string | null;
@@ -16,9 +16,7 @@ export default function GitHubAvatar({
 }: UserAvatarProps) {
   const [hasError, setHasError] = useState(false);
 
-  const sizedUrl = url
-    ? `${url}${url.includes("?") ? "&" : "?"}s=${imageSize * 2}`
-    : null;
+  const sizedUrl = url ? `${url}${url.includes("?") ? "&" : "?"}s=${imageSize * 2}` : null;
 
   if (!sizedUrl || hasError) {
     return (
@@ -32,7 +30,7 @@ export default function GitHubAvatar({
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          ...style
+          ...style,
         }}
         aria-label="GitHub Avatar"
       >
@@ -55,7 +53,7 @@ export default function GitHubAvatar({
         borderRadius: "50%",
         objectFit: "cover",
         flexShrink: 0,
-        ...style
+        ...style,
       }}
       className={className}
     />

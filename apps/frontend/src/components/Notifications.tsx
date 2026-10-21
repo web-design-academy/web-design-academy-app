@@ -1,4 +1,4 @@
-import {createContext, type ReactNode, useCallback, useContext, useEffect, useState} from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import Modal from "@/components/Modal.tsx";
 import "@/styles/notifications.css";
 import InfoBanner from "@/components/InfoBanner.tsx";
@@ -24,7 +24,7 @@ interface NotificationsContextType {
 
 const NotificationsContext = createContext<NotificationsContextType | null>(null);
 
-export default function NotificationsProvider({children}: { children: ReactNode }) {
+export default function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<ExpiringNotification[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -33,7 +33,7 @@ export default function NotificationsProvider({children}: { children: ReactNode 
     const newNotification: ExpiringNotification = {
       ...notification,
       remainingDuration: duration,
-      duration: duration
+      duration: duration,
     };
     setNotifications((prev) => [...prev, newNotification]);
   }, []);
@@ -56,28 +56,25 @@ export default function NotificationsProvider({children}: { children: ReactNode 
   }, []);
 
   const hasExpiring = notifications.some(
-    (n) => n.remainingDuration !== undefined && n.remainingDuration > 0
+    (n) => n.remainingDuration !== undefined && n.remainingDuration > 0,
   );
 
   useEffect(() => {
-    if (!hasExpiring)
-      return;
+    if (!hasExpiring) return;
 
     const timer = setInterval(() => {
       setNotifications((prev) =>
-        prev
-          .map((item) => {
-            if (item.remainingDuration === undefined)
-              return item;
+        prev.map((item) => {
+          if (item.remainingDuration === undefined) return item;
 
-            const newRemainingDuration = item.remainingDuration - 1;
+          const newRemainingDuration = item.remainingDuration - 1;
 
-            return {
-              ...item,
-              duration: newRemainingDuration === 0 ? 0 : item.duration,
-              remainingDuration: newRemainingDuration,
-            };
-          })
+          return {
+            ...item,
+            duration: newRemainingDuration === 0 ? 0 : item.duration,
+            remainingDuration: newRemainingDuration,
+          };
+        }),
       );
     }, 1000);
 
@@ -96,20 +93,22 @@ export default function NotificationsProvider({children}: { children: ReactNode 
       {children}
 
       <div className={"notification-container"}>
-        {notifications.map((notification, index) =>
-            (notification.remainingDuration === undefined || notification.remainingDuration > 0) && (
-            <div
-              className={`notification ${notification.remainingDuration === 1 ? "slide-out" : ""}`}
-            >
-              <InfoBanner
-                key={index}
-                type={notification.type}
-                message={notification.message}
-                duration={notification.duration ? notification.duration - 1 : undefined}
-                closeAction={() => closeNotification(index)}
-              />
-            </div>
-            )
+        {notifications.map(
+          (notification, index) =>
+            (notification.remainingDuration === undefined ||
+              notification.remainingDuration > 0) && (
+              <div
+                className={`notification ${notification.remainingDuration === 1 ? "slide-out" : ""}`}
+              >
+                <InfoBanner
+                  key={index}
+                  type={notification.type}
+                  message={notification.message}
+                  duration={notification.duration ? notification.duration - 1 : undefined}
+                  closeAction={() => closeNotification(index)}
+                />
+              </div>
+            ),
         )}
       </div>
 
@@ -119,9 +118,9 @@ export default function NotificationsProvider({children}: { children: ReactNode 
         onClose={() => {
           setIsModalOpen(false);
         }}
-        children={(
+        children={
           <div>
-            {notifications.map((notification, index) =>
+            {notifications.map((notification, index) => (
               <InfoBanner
                 key={index}
                 type={notification.type}
@@ -129,9 +128,9 @@ export default function NotificationsProvider({children}: { children: ReactNode 
                 duration={notification.duration ? notification.duration - 1 : undefined}
                 closeAction={() => closeNotification(index)}
               />
-            )}
+            ))}
           </div>
-        )}
+        }
       />
     </NotificationsContext.Provider>
   );
@@ -139,8 +138,7 @@ export default function NotificationsProvider({children}: { children: ReactNode 
 
 export function useNotifications() {
   const context = useContext(NotificationsContext);
-  if (!context)
-    throw new Error("useNotifications must be used within a NotificationProvider");
+  if (!context) throw new Error("useNotifications must be used within a NotificationProvider");
 
   return context;
 }

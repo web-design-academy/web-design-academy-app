@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import {ensureReadonlyBlockSpacing} from "./readonlyBlocks";
+import { ensureReadonlyBlockSpacing } from "./readonlyBlocks";
 import {
   buildSlug,
   decodeSlug,
@@ -9,8 +9,8 @@ import {
   type LessonMeta,
   type Source,
 } from "@/lib/helpers/db.ts";
-import type {TaskCode} from "@/lib/helpers/tasks.ts";
-import type {NewLesson} from "@/interfaces/NewLesson.ts";
+import type { TaskCode } from "@/lib/helpers/tasks.ts";
+import type { NewLesson } from "@/interfaces/NewLesson.ts";
 
 const OMIT_KEYS = new Set(["id", "order", "taskCount", "deleted", "tasks"]);
 
@@ -25,8 +25,7 @@ function packLessonAsync(
 ): void {
   const slug = decodeSlug(course.slug).slug;
   const courseFolder = zip.folder(slug);
-  if (!courseFolder)
-    throw new Error("Failed to create zip folder");
+  if (!courseFolder) throw new Error("Failed to create zip folder");
 
   const jsonContent = JSON.stringify(
     course,
@@ -42,8 +41,7 @@ function packLessonAsync(
     .forEach((task, index) => {
       const taskId = (index + 1).toString();
       const taskFolder = courseFolder.folder(taskId);
-      if (!taskFolder)
-        return;
+      if (!taskFolder) return;
 
       const addFile = (name: string, fileContent?: string) => {
         if (fileContent !== undefined && fileContent.trim() !== "")
@@ -51,22 +49,13 @@ function packLessonAsync(
       };
 
       if (task.html !== undefined) {
-        taskFolder.file(
-          "index.html",
-          ensureReadonlyBlockSpacing(task.html, "html"),
-        );
+        taskFolder.file("index.html", ensureReadonlyBlockSpacing(task.html, "html"));
       }
       if (task.css !== undefined) {
-        taskFolder.file(
-          "styles.css",
-          ensureReadonlyBlockSpacing(task.css, "css"),
-        );
+        taskFolder.file("styles.css", ensureReadonlyBlockSpacing(task.css, "css"));
       }
       if (task.js !== undefined) {
-        taskFolder.file(
-          "script.js",
-          ensureReadonlyBlockSpacing(task.js, "js"),
-        );
+        taskFolder.file("script.js", ensureReadonlyBlockSpacing(task.js, "js"));
       }
 
       addFile("solution.html", task.solutionHtml);
@@ -74,10 +63,7 @@ function packLessonAsync(
       addFile("solution.js", task.solutionJs);
 
       if (task.evaluation) {
-        taskFolder.file(
-          "evaluation.json",
-          `${JSON.stringify(task.evaluation, null, 2)}\n`,
-        );
+        taskFolder.file("evaluation.json", `${JSON.stringify(task.evaluation, null, 2)}\n`);
       }
     });
 }
@@ -87,9 +73,11 @@ async function downloadZipAsync(zip: JSZip, suggestedName: string): Promise<void
 
   if ("showSaveFilePicker" in window) {
     try {
-      const handle = await (window as unknown as {
-        showSaveFilePicker: (options: unknown) => Promise<FileSystemFileHandle>;
-      }).showSaveFilePicker({
+      const handle = await (
+        window as unknown as {
+          showSaveFilePicker: (options: unknown) => Promise<FileSystemFileHandle>;
+        }
+      ).showSaveFilePicker({
         suggestedName,
         types: [
           {
@@ -103,8 +91,7 @@ async function downloadZipAsync(zip: JSZip, suggestedName: string): Promise<void
       await writable.close();
       return;
     } catch (error) {
-      if ((error as DOMException)?.name === "AbortError")
-        return;
+      if ((error as DOMException)?.name === "AbortError") return;
     }
   }
 
@@ -124,21 +111,20 @@ export async function packLessonsZipAsync(
 ): Promise<void> {
   const zip = new JSZip();
   for (const course of courses) {
-    packLessonAsync(
-      zip,
-      course,
-      await getContentAsync(course.id),
-      await getTasksAsync(course.id),
-    );
+    packLessonAsync(zip, course, await getContentAsync(course.id), await getTasksAsync(course.id));
   }
 
   await downloadZipAsync(zip, suggestedName);
 }
 
-function validateMeta(meta: Partial<LessonMeta>, slugComponents?: {
-  source: Source;
-  remote: string
-}, sha?: string): LessonMeta {
+function validateMeta(
+  meta: Partial<LessonMeta>,
+  slugComponents?: {
+    source: Source;
+    remote: string;
+  },
+  sha?: string,
+): LessonMeta {
   if (!meta.title || !meta.color || !meta.icon || !meta.slug)
     throw new Error("Lesson metadata is missing required fields");
 
@@ -162,7 +148,12 @@ function validateMeta(meta: Partial<LessonMeta>, slugComponents?: {
   };
 }
 
-function addTaskFileToMap(tasksMap: Map<number, TaskCode>, taskId: number, fileName: string, fileContent: string) {
+function addTaskFileToMap(
+  tasksMap: Map<number, TaskCode>,
+  taskId: number,
+  fileName: string,
+  fileContent: string,
+) {
   if (!tasksMap.has(taskId)) {
     tasksMap.set(taskId, {
       html: "",
@@ -203,7 +194,7 @@ function addTaskFileToMap(tasksMap: Map<number, TaskCode>, taskId: number, fileN
 export async function parseZipAsync(
   file: Blob,
   slugComponents?: { source: Source; remote: string },
-  sha?: string
+  sha?: string,
 ): Promise<{ lessons: NewLesson[]; errors: string[] }> {
   const lessons: NewLesson[] = [];
   const errors: string[] = [];
@@ -211,8 +202,7 @@ export async function parseZipAsync(
 
   const metadataEntries = zip
     .file(/\.wdal\.json$/i)
-    .filter((entry) => !entry.name.startsWith("__MACOSX/") && !entry.name.includes("/.DS_Store")
-    );
+    .filter((entry) => !entry.name.startsWith("__MACOSX/") && !entry.name.includes("/.DS_Store"));
 
   for (const entry of metadataEntries) {
     try {
@@ -227,11 +217,12 @@ export async function parseZipAsync(
 
       const tasksMap = new Map<number, TaskCode>();
 
-      const lessonFiles = Object.values(zip.files).filter((file) =>
-        !file.dir &&
-        file.name.startsWith(folder) &&
-        !file.name.startsWith("__MACOSX/") &&
-        !file.name.includes("/.DS_Store")
+      const lessonFiles = Object.values(zip.files).filter(
+        (file) =>
+          !file.dir &&
+          file.name.startsWith(folder) &&
+          !file.name.startsWith("__MACOSX/") &&
+          !file.name.includes("/.DS_Store"),
       );
 
       for (const file of lessonFiles) {
@@ -243,15 +234,17 @@ export async function parseZipAsync(
             lesson.content = await file.async("text");
           } else if (splitPath.length >= 2) {
             const taskId = parseInt(splitPath[0], 10);
-            if (isNaN(taskId))
-              continue;
+            if (isNaN(taskId)) continue;
 
             const fileName = splitPath[splitPath.length - 1];
             addTaskFileToMap(tasksMap, taskId, fileName, await file.async("text"));
           }
         } catch (error) {
-          console.error(`Error parsing file ${file.name} for lesson ${lesson.lesson.title}:`, error);
-          errors.push(`Error parsing file ${file.name} for lesson ${lesson.lesson.title}: ${error}`);
+          console.error(
+            `Error parsing file ${file.name} for lesson ${lesson.lesson.title}:`,
+            error,
+          );
+          // errors.push(`Error parsing file ${file.name} for lesson ${lesson.lesson.title}: ${error}`);
         }
       }
 
@@ -262,9 +255,9 @@ export async function parseZipAsync(
       lessons.push(lesson);
     } catch (err) {
       console.error(`Error parsing ${entry.name}:`, err);
-      errors.push(`Error parsing ${entry.name}: ${err}`);
+      // errors.push(`Error parsing ${entry.name}: ${err}`);
     }
   }
 
-  return {lessons, errors};
+  return { lessons, errors };
 }

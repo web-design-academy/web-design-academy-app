@@ -86,9 +86,7 @@ export function mergeLegacyEditableSource(
   if (lastEndIndex < 0) return editableSource;
 
   const protectedPrefix = defaultSource.slice(0, lastEndIndex + end.length);
-  const remainingDefault = defaultSource
-    .slice(lastEndIndex + end.length)
-    .trim();
+  const remainingDefault = defaultSource.slice(lastEndIndex + end.length).trim();
 
   const merged = remainingDefault
     ? `${protectedPrefix}\n${editableSource.replace(/^\s+/, "")}`
@@ -103,8 +101,7 @@ export function normalizeTaskCode(
 ): Partial<TaskCode> {
   const normalized: Partial<TaskCode> = {};
 
-  if (task.solutionHtml !== undefined)
-    normalized.solutionHtml = task.solutionHtml;
+  if (task.solutionHtml !== undefined) normalized.solutionHtml = task.solutionHtml;
   if (task.solutionCss !== undefined) normalized.solutionCss = task.solutionCss;
   if (task.solutionJs !== undefined) normalized.solutionJs = task.solutionJs;
   if (task.evaluation !== undefined) normalized.evaluation = task.evaluation;
@@ -112,10 +109,7 @@ export function normalizeTaskCode(
 
   (["html", "css", "js"] as const).forEach((language) => {
     if (task[language] !== undefined) {
-      normalized[language] = ensureReadonlyBlockSpacing(
-        task[language],
-        language,
-      );
+      normalized[language] = ensureReadonlyBlockSpacing(task[language], language);
       return;
     }
 
@@ -135,10 +129,7 @@ export function normalizeTaskCode(
     if (protectedSource) {
       const { start, end } = getReadonlyMarkers(language);
       normalized[language] = ensureReadonlyBlockSpacing(
-        [
-          `${start}\n${protectedSource.replace(/\s+$/, "")}\n${end}`,
-          editable?.replace(/^\s+/, ""),
-        ]
+        [`${start}\n${protectedSource.replace(/\s+$/, "")}\n${end}`, editable?.replace(/^\s+/, "")]
           .filter((source): source is string => source !== undefined)
           .join("\n"),
         language,
@@ -146,11 +137,7 @@ export function normalizeTaskCode(
       return;
     }
 
-    normalized[language] = mergeLegacyEditableSource(
-      fallback[language],
-      editable ?? "",
-      language,
-    );
+    normalized[language] = mergeLegacyEditableSource(fallback[language], editable ?? "", language);
   });
 
   return normalized;

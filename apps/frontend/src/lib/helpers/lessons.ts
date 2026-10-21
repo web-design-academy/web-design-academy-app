@@ -1,6 +1,4 @@
-import {
-  type LessonMeta,
-  } from "@/lib/helpers/db.ts";
+import { type LessonMeta } from "@/lib/helpers/db.ts";
 
 /**
  * Represents the possible statuses of a lesson draft.

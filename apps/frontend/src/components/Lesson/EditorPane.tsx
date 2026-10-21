@@ -1,15 +1,15 @@
-import {Editor, type OnMount} from "@monaco-editor/react";
-import type {AnalysisIssue, CssEvaluationConfig} from "@wda/css-analysis";
-import {type ComponentType, useEffect, useMemo, useRef, useState,} from "react";
-import {useAuth} from "@/lib/ctx/useAuth.ts";
-import {AlertTriangle, CheckCircle2, Clock3, LoaderCircle, Play,} from "lucide-react";
+import { Editor, type OnMount } from "@monaco-editor/react";
+import type { AnalysisIssue, CssEvaluationConfig } from "@wda/css-analysis";
+import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/lib/ctx/useAuth.ts";
+import { AlertTriangle, CheckCircle2, Clock3, LoaderCircle, Play } from "lucide-react";
 import SubmitButton from "./SubmitButton.tsx";
 import LoadingSpinner from "../LoadingSpinner.tsx";
 import "@/styles/editor.css";
-import {useTheme} from "@/lib/ctx/useTheme.ts";
-import {useUiPreferences} from "@/lib/ctx/useUiPreferences.ts";
-import {canApplyStudentEdit, parseReadonlyRanges,} from "@/lib/helpers/readonlyBlocks.ts";
-import type {TaskCode} from "@/lib/helpers/tasks.ts";
+import { useTheme } from "@/lib/ctx/useTheme.ts";
+import { useUiPreferences } from "@/lib/ctx/useUiPreferences.ts";
+import { canApplyStudentEdit, parseReadonlyRanges } from "@/lib/helpers/readonlyBlocks.ts";
+import type { TaskCode } from "@/lib/helpers/tasks.ts";
 
 interface VisualEditorProps {
   html: string;
@@ -86,22 +86,18 @@ export default function EditorPane({
   visualEditorSupported = false,
   onGenerateEvaluation,
 }: EditorPaneProps) {
-  const [activeTab, setActiveTab] = useState<Tab>(() =>
-    getFirstPreferredTab(task),
-  );
+  const [activeTab, setActiveTab] = useState<Tab>(() => getFirstPreferredTab(task));
   const [evaluationDraft, setEvaluationDraft] = useState(() =>
     JSON.stringify(task.evaluation ?? defaultEvaluation, null, 2),
   );
   const editorRef = useRef<MountedEditor | null>(null);
   const monacoRef = useRef<MountedMonaco | null>(null);
-  const decorationsRef = useRef<ReturnType<
-    MountedEditor["createDecorationsCollection"]
-  > | null>(null);
+  const decorationsRef = useRef<ReturnType<MountedEditor["createDecorationsCollection"]> | null>(
+    null,
+  );
   const lastValidValueRef = useRef("");
   const isRestoringRef = useRef(false);
-  const readonlyRangesRef = useRef<{ startLine: number; endLine: number }[]>(
-    [],
-  );
+  const readonlyRangesRef = useRef<{ startLine: number; endLine: number }[]>([]);
   const editorStateRef = useRef({
     activeTab,
     isAdmin: false,
@@ -169,10 +165,7 @@ export default function EditorPane({
 
   useEffect(() => {
     if (showVisualEditor) {
-      Promise.all([
-        import("@wda/visual-editor"),
-        import("@wda/visual-editor/style.css"),
-      ])
+      Promise.all([import("@wda/visual-editor"), import("@wda/visual-editor/style.css")])
         .then(([module]) => {
           setVisualEditorComponent(() => module.VisualEditor);
         })
@@ -184,9 +177,7 @@ export default function EditorPane({
 
   useEffect(() => {
     setActiveTab(preferredTab);
-    setEvaluationDraft(
-      JSON.stringify(task.evaluation ?? defaultEvaluation, null, 2),
-    );
+    setEvaluationDraft(JSON.stringify(task.evaluation ?? defaultEvaluation, null, 2));
   }, [currentIndex, preferredTab, task.evaluation]);
 
   useEffect(() => {
@@ -195,14 +186,7 @@ export default function EditorPane({
     if (activeTab === "js" && (isAdmin || hasJsSource)) return;
     if (activeTab === "evaluation" && isAdmin) return;
     setActiveTab(preferredTab);
-  }, [
-    activeTab,
-    hasHtmlSource,
-    hasCssSource,
-    hasJsSource,
-    isAdmin,
-    preferredTab,
-  ]);
+  }, [activeTab, hasHtmlSource, hasCssSource, hasJsSource, isAdmin, preferredTab]);
 
   const content = useMemo(() => {
     if (activeTab === "evaluation") return evaluationDraft;
@@ -281,10 +265,7 @@ export default function EditorPane({
             startColumn: 1,
             endLineNumber: Math.max(1, issue.lineNumber || 1),
             endColumn: model.getLineMaxColumn(
-              Math.min(
-                model.getLineCount(),
-                Math.max(1, issue.lineNumber || 1),
-              ),
+              Math.min(model.getLineCount(), Math.max(1, issue.lineNumber || 1)),
             ),
             severity:
               issue.level === "error"
@@ -365,11 +346,7 @@ export default function EditorPane({
         currentIsAdmin ||
         (!isReadonly &&
           !touchesReadonlyLine &&
-          canApplyStudentEdit(
-            lastValidValueRef.current,
-            nextValue,
-            currentTab,
-          ));
+          canApplyStudentEdit(lastValidValueRef.current, nextValue, currentTab));
 
       if (!editIsAllowed) {
         const attemptedPosition = editor.getPosition();
@@ -410,8 +387,7 @@ export default function EditorPane({
           glyphMarginClassName: "readonly-glyph",
           inlineClassName: "locked-text-inline",
           glyphMarginHoverMessage: { value: "This section is read-only" },
-          stickiness:
-            monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+          stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
         },
       })),
     );
@@ -425,9 +401,7 @@ export default function EditorPane({
             className={`tab ${activeTab === "html" ? "active" : ""}`}
             onClick={() => setActiveTab("html")}
             disabled={isHtmlTabDisabled}
-            style={
-              isHtmlTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
+            style={isHtmlTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}}
           >
             index.html
           </button>
@@ -435,9 +409,7 @@ export default function EditorPane({
             className={`tab ${activeTab === "css" ? "active" : ""}`}
             onClick={() => setActiveTab("css")}
             disabled={isCssTabDisabled}
-            style={
-              isCssTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
+            style={isCssTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}}
           >
             styles.css
           </button>
@@ -445,9 +417,7 @@ export default function EditorPane({
             className={`tab ${activeTab === "js" ? "active" : ""}`}
             onClick={() => setActiveTab("js")}
             disabled={isJsTabDisabled}
-            style={
-              isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}
-            }
+            style={isJsTabDisabled ? { opacity: 0.3, cursor: "not-allowed" } : {}}
           >
             script.js
           </button>
@@ -527,8 +497,7 @@ export default function EditorPane({
                 width: "100%",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor:
-                  theme === "dark" ? "var(--color-bg)" : "var(--color-card)",
+                backgroundColor: theme === "dark" ? "var(--color-bg)" : "var(--color-card)",
               }}
             >
               <LoadingSpinner />
@@ -539,18 +508,10 @@ export default function EditorPane({
             key={`${activeTab}-${currentIndex}`}
             height="100%"
             defaultLanguage={
-              activeTab === "js"
-                ? "javascript"
-                : activeTab === "evaluation"
-                  ? "json"
-                  : activeTab
+              activeTab === "js" ? "javascript" : activeTab === "evaluation" ? "json" : activeTab
             }
             language={
-              activeTab === "js"
-                ? "javascript"
-                : activeTab === "evaluation"
-                  ? "json"
-                  : activeTab
+              activeTab === "js" ? "javascript" : activeTab === "evaluation" ? "json" : activeTab
             }
             value={content}
             onMount={handleEditorMount}
@@ -574,9 +535,7 @@ export default function EditorPane({
           <AutosaveIcon
             size={14}
             aria-hidden="true"
-            className={
-              autosaveStatus === "saving" ? "autosave-spin-icon" : undefined
-            }
+            className={autosaveStatus === "saving" ? "autosave-spin-icon" : undefined}
           />
           <span>{autosaveMeta.label}</span>
         </div>

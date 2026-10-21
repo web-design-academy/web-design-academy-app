@@ -7,11 +7,7 @@ function validateSubmissionPayload(payload) {
 
   const { lessonSlug, taskId, html, css, js, evaluation } = payload;
 
-  if (
-    !lessonSlug ||
-    typeof lessonSlug !== "string" ||
-    !lessonSlugPattern.test(lessonSlug)
-  ) {
+  if (!lessonSlug || typeof lessonSlug !== "string" || !lessonSlugPattern.test(lessonSlug)) {
     return "Invalid lessonSlug";
   }
 
@@ -39,9 +35,7 @@ function validateSubmissionPayload(payload) {
       !evaluation ||
       typeof evaluation !== "object" ||
       evaluation.version !== 1 ||
-      !["error", "success_with_warning", "success_perfect"].includes(
-        evaluation.status,
-      ) ||
+      !["error", "success_with_warning", "success_perfect"].includes(evaluation.status) ||
       !Number.isFinite(evaluation.score) ||
       evaluation.score < 0 ||
       evaluation.score > 100 ||

@@ -1,16 +1,16 @@
-import {StrictMode} from "react";
-import {createRoot} from "react-dom/client";
-import {RouterProvider} from "react-router";
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {GoogleOAuthProvider} from "@react-oauth/google";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { RouterProvider } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
-import {router} from "@/lib/config/router.tsx";
-import {googleClientId, isGoogleAuthEnabled, isOnlineMode,} from "@/lib/config/config.ts";
+import { router } from "@/lib/config/router.tsx";
+import { googleClientId, isGoogleAuthEnabled, isOnlineMode } from "@/lib/config/config.ts";
 import "@wda/ui-styles/tokens.css";
 import "@/styles/system/base.css";
-import {ThemeProvider} from "./lib/ctx/ThemeContext";
-import {AuthProvider} from "./lib/ctx/AuthContext";
-import {UiPreferencesProvider} from "./lib/ctx/UiPreferencesContext";
+import { ThemeProvider } from "./lib/ctx/ThemeContext";
+import { AuthProvider } from "./lib/ctx/AuthContext";
+import { UiPreferencesProvider } from "./lib/ctx/UiPreferencesContext";
 import DownloaderProvider from "@/components/Downloader.tsx";
 import NotificationsProvider from "@/components/Notifications.tsx";
 
@@ -29,7 +29,7 @@ const app = (
         <UiPreferencesProvider>
           <AuthProvider>
             <DownloaderProvider>
-              <RouterProvider router={router}/>
+              <RouterProvider router={router} />
             </DownloaderProvider>
           </AuthProvider>
         </UiPreferencesProvider>

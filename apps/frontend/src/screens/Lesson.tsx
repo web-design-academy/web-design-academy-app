@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useRef, useState} from "react";
-import {Navigate, useParams, useSearchParams} from "react-router";
-import {Resizable, type ResizeCallback} from "re-resizable";
-import {CheckCircle2, ChevronDown, ChevronUp, Plus, RotateCcw, Trash2,} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Navigate, useParams, useSearchParams } from "react-router";
+import { Resizable, type ResizeCallback } from "re-resizable";
+import { CheckCircle2, ChevronDown, ChevronUp, Plus, RotateCcw, Trash2 } from "lucide-react";
 
 import "@/styles/lesson.css";
 import EditorPane from "@/components/Lesson/EditorPane.tsx";
@@ -10,21 +10,21 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
 import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
 import RuntimeMdx from "@/components/Lesson/RuntimeMdx.tsx";
-import {getStudentLessonDraft, saveStudentLessonDraft,} from "@/lib/helpers/studentDrafts";
-import {useMutation, useQuery} from "@tanstack/react-query";
+import { getStudentLessonDraft, saveStudentLessonDraft } from "@/lib/helpers/studentDrafts";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   fetchLatestLessonSubmissions,
   fetchSubmissionById,
   type SubmissionPayload,
   submitSolution,
 } from "@/lib/api/submissions";
-import {useAuth} from "@/lib/ctx/useAuth";
-import {useUiPreferences} from "@/lib/ctx/useUiPreferences";
-import {isOnlineMode} from "@/lib/config/config.ts";
-import {API_BASE} from "@/lib/api/client";
+import { useAuth } from "@/lib/ctx/useAuth";
+import { useUiPreferences } from "@/lib/ctx/useUiPreferences";
+import { isOnlineMode } from "@/lib/config/config.ts";
+import { API_BASE } from "@/lib/api/client";
 import EvaluationPanel from "@/features/challenge/EvaluationPanel";
-import {useTaskEvaluation} from "@/features/challenge/useTaskEvaluation";
-import type {AnalysisIssue} from "@wda/css-analysis";
+import { useTaskEvaluation } from "@/features/challenge/useTaskEvaluation";
+import type { AnalysisIssue } from "@wda/css-analysis";
 
 import {
   getContentAsync,
@@ -33,7 +33,11 @@ import {
   type LessonMeta,
   saveTasksAsync,
 } from "@/lib/helpers/db.ts";
-import {mergeLegacyEditableSource, normalizeTaskCode, type TaskCode} from "@/lib/helpers/tasks.ts";
+import {
+  mergeLegacyEditableSource,
+  normalizeTaskCode,
+  type TaskCode,
+} from "@/lib/helpers/tasks.ts";
 
 type TaskFileState = Pick<Partial<TaskCode>, "html" | "css" | "js">;
 
@@ -92,13 +96,13 @@ export default function Lesson() {
     queryKey: ["submission", submissionId],
     queryFn: () => fetchSubmissionById(submissionId!),
     // enabled: !!submissionId && isOnlineMode,
-    enabled: false
+    enabled: false,
   });
 
   const { data: latestLessonSubmissions } = useQuery({
     queryKey: ["latest-lesson-submissions", slug],
     queryFn: () => fetchLatestLessonSubmissions(slug!),
-    enabled: false
+    enabled: false,
     // !!slug && !submissionId && isOnlineMode && isAuthenticated && !isEditMode,
   });
 
@@ -108,8 +112,7 @@ export default function Lesson() {
   const [editorPercent, setEditorPercent] = useState(45);
   const [topRowPercent, setTopRowPercent] = useState(60);
   const [isLessonContentHidden, setIsLessonContentHidden] = useState(false);
-  const [isLessonContentAnimating, setIsLessonContentAnimating] =
-    useState(false);
+  const [isLessonContentAnimating, setIsLessonContentAnimating] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 900 : false,
   );
@@ -118,30 +121,24 @@ export default function Lesson() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetTaskIndex, setResetTaskIndex] = useState(0);
-  const [autosaveStatus, setAutosaveStatus] = useState<
-    "saved" | "saving" | "pending" | "error"
-  >("saved");
+  const [autosaveStatus, setAutosaveStatus] = useState<"saved" | "saving" | "pending" | "error">(
+    "saved",
+  );
   const [autosaveRevision, setAutosaveRevision] = useState(0);
-  const [submissionBaselines, setSubmissionBaselines] = useState<
-    Record<string, TaskFileState>
-  >({});
+  const [submissionBaselines, setSubmissionBaselines] = useState<Record<string, TaskFileState>>({});
   const [editorFocusRequest, setEditorFocusRequest] = useState<{
     line: number;
     nonce: number;
   } | null>(null);
 
   const lessonContentRef = useRef<HTMLDivElement | null>(null);
-  const lessonContentAnimationTimeoutRef = useRef<number | undefined>(
-    undefined,
-  );
+  const lessonContentAnimationTimeoutRef = useRef<number | undefined>(undefined);
   const lastAutoFocusKeyRef = useRef("");
   const tasksRef = useRef<Partial<TaskCode>[]>([]);
   const taskStatesRef = useRef<Partial<TaskCode>[]>([]);
   const persistAutosaveDraftRef = useRef<() => void>(() => {});
   const autosaveRevisionRef = useRef(0);
-  const autosaveStatusRef = useRef<"saved" | "saving" | "pending" | "error">(
-    "saved",
-  );
+  const autosaveStatusRef = useRef<"saved" | "saving" | "pending" | "error">("saved");
 
   const persistAutosaveDraft = useCallback(() => {
     if (!slug || loadedSubmission) return;
@@ -226,9 +223,7 @@ export default function Lesson() {
           (task) => isEditMode || !task.deleted,
         );
         const studentDraft =
-          !isEditMode && !submissionId
-            ? getStudentLessonDraft(slug, user?.userId)
-            : null;
+          !isEditMode && !submissionId ? getStudentLessonDraft(slug, user?.userId) : null;
         const nextTaskStates = localTasks.map((task, index) => {
           if (isEditMode) return { ...task };
 
@@ -250,9 +245,7 @@ export default function Lesson() {
         markAutosaveSaved();
       } catch (error) {
         if (cancelled) return;
-        setLessonLoadError(
-          error instanceof Error ? error.message : "Failed to load lesson",
-        );
+        setLessonLoadError(error instanceof Error ? error.message : "Failed to load lesson");
         setIsNew(false);
       }
     };
@@ -290,16 +283,9 @@ export default function Lesson() {
     if (loadedSubmission && tasks.length > 0) {
       const targetTaskIndex = parseInt(loadedSubmission.task_id) - 1;
 
-      if (
-        !isNaN(targetTaskIndex) &&
-        targetTaskIndex >= 0 &&
-        targetTaskIndex < tasks.length
-      ) {
+      if (!isNaN(targetTaskIndex) && targetTaskIndex >= 0 && targetTaskIndex < tasks.length) {
         setCurrentTaskIndex(targetTaskIndex);
-        const submittedTaskState = getSubmittedTaskState(
-          tasks[targetTaskIndex],
-          loadedSubmission,
-        );
+        const submittedTaskState = getSubmittedTaskState(tasks[targetTaskIndex], loadedSubmission);
         setSubmissionBaselines({
           [loadedSubmission.task_id]: submittedTaskState,
         });
@@ -330,10 +316,7 @@ export default function Lesson() {
       Object.fromEntries(
         submissions.map((submission) => {
           const taskIndex = Number.parseInt(submission.task_id, 10) - 1;
-          return [
-            submission.task_id,
-            getSubmittedTaskState(tasks[taskIndex] ?? {}, submission),
-          ];
+          return [submission.task_id, getSubmittedTaskState(tasks[taskIndex] ?? {}, submission)];
         }),
       ),
     );
@@ -368,11 +351,7 @@ export default function Lesson() {
 
     const latestTaskIndex = parseInt(submissions[0].task_id, 10) - 1;
 
-    if (
-      !Number.isNaN(latestTaskIndex) &&
-      latestTaskIndex >= 0 &&
-      latestTaskIndex < tasks.length
-    ) {
+    if (!Number.isNaN(latestTaskIndex) && latestTaskIndex >= 0 && latestTaskIndex < tasks.length) {
       setCurrentTaskIndex(latestTaskIndex);
     }
   }, [latestLessonSubmissions, slug, submissionId, tasks, user?.userId]);
@@ -440,10 +419,7 @@ export default function Lesson() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      if (
-        autosaveRevisionRef.current > 0 &&
-        autosaveStatusRef.current !== "saved"
-      ) {
+      if (autosaveRevisionRef.current > 0 && autosaveStatusRef.current !== "saved") {
         flushDraft();
       }
       window.removeEventListener("pagehide", flushDraft);
@@ -477,8 +453,7 @@ export default function Lesson() {
       if (!container) return false;
 
       const heading = Array.from(container.querySelectorAll("h1, h2, h3")).find(
-        (node) =>
-          node.textContent?.trim().toLowerCase() === "task instructions",
+        (node) => node.textContent?.trim().toLowerCase() === "task instructions",
       );
 
       let list: HTMLOListElement | null = null;
@@ -508,9 +483,7 @@ export default function Lesson() {
         return true;
       }
 
-      taskItems.forEach((item) =>
-        item.classList.remove("task-instruction-focus"),
-      );
+      taskItems.forEach((item) => item.classList.remove("task-instruction-focus"));
       target.classList.add("task-instruction-focus");
       target.scrollIntoView({ behavior: "smooth", block: "nearest" });
       lastAutoFocusKeyRef.current = focusKey;
@@ -551,22 +524,16 @@ export default function Lesson() {
 
   const evaluationTask = tasks[currentTaskIndex]
     ? {
-      ...tasks[currentTaskIndex],
-      ...taskStates[currentTaskIndex],
-    }
+        ...tasks[currentTaskIndex],
+        ...taskStates[currentTaskIndex],
+      }
     : undefined;
   const lessonVisualPreviewEnabled = Boolean(lessonMeta?.visualPreview);
   const lessonVisualEditorEnabled = Boolean(lessonMeta?.visualEditor);
   const taskSupportsVisualPreview = !evaluationTask?.js;
   const visualPreviewActive =
-    lessonVisualPreviewEnabled &&
-    taskSupportsVisualPreview &&
-    visualPreviewEnabled;
-  const taskEvaluation = useTaskEvaluation(
-    evaluationTask,
-    visualPreviewActive,
-    currentTaskIndex,
-  );
+    lessonVisualPreviewEnabled && taskSupportsVisualPreview && visualPreviewEnabled;
+  const taskEvaluation = useTaskEvaluation(evaluationTask, visualPreviewActive, currentTaskIndex);
   const [evaluationViewRequest, setEvaluationViewRequest] = useState(0);
 
   useEffect(() => {
@@ -620,9 +587,7 @@ export default function Lesson() {
     ...currentTask,
     ...currentTaskState,
   };
-  const previewTask: Partial<TaskCode> = effectiveTask.deleted
-    ? {}
-    : effectiveTask;
+  const previewTask: Partial<TaskCode> = effectiveTask.deleted ? {} : effectiveTask;
   const visualPreviewSupported = lessonVisualPreviewEnabled && !previewTask.js;
   const currentStudentBaseline =
     submissionBaselines[currentTaskId] ?? getTaskFileState(currentTask);
@@ -630,15 +595,12 @@ export default function Lesson() {
     getTaskFileState(currentTaskState),
     currentStudentBaseline,
   );
-  const needsPassingEvaluation =
-    visualPreviewActive && Boolean(effectiveTask.evaluation);
+  const needsPassingEvaluation = visualPreviewActive && Boolean(effectiveTask.evaluation);
   const hasPassingEvaluation =
     taskEvaluation.result?.passed === true && !taskEvaluation.isResultStale;
 
   const isSubmitDisabled =
-    isEditMode ||
-    !hasStudentTaskChanges ||
-    (needsPassingEvaluation && !hasPassingEvaluation);
+    isEditMode || !hasStudentTaskChanges || (needsPassingEvaluation && !hasPassingEvaluation);
 
   const submitDisabledTitle =
     needsPassingEvaluation && !hasPassingEvaluation
@@ -696,17 +658,12 @@ export default function Lesson() {
 
   const updateTask = (field: keyof TaskCode, value: string) => {
     updateTaskStatesSnapshot((prev) =>
-      prev.map((s, idx) =>
-        idx === currentTaskIndex ? { ...s, [field]: value } : s,
-      ),
+      prev.map((s, idx) => (idx === currentTaskIndex ? { ...s, [field]: value } : s)),
     );
     markAutosaveChanged();
   };
 
-  const updateTaskMetadata = <K extends keyof TaskCode>(
-    field: K,
-    value: TaskCode[K],
-  ) => {
+  const updateTaskMetadata = <K extends keyof TaskCode>(field: K, value: TaskCode[K]) => {
     updateTaskStatesSnapshot((prev) =>
       prev.map((state, index) =>
         index === currentTaskIndex ? { ...state, [field]: value } : state,
@@ -722,15 +679,13 @@ export default function Lesson() {
     const resetTaskState = isEditMode
       ? { ...currentTasks[taskIndex] }
       : {
-        ...currentStates[taskIndex],
-        html: currentTasks[taskIndex]?.html,
-        css: currentTasks[taskIndex]?.css,
-        js: currentTasks[taskIndex]?.js,
-      };
+          ...currentStates[taskIndex],
+          html: currentTasks[taskIndex]?.html,
+          css: currentTasks[taskIndex]?.css,
+          js: currentTasks[taskIndex]?.js,
+        };
 
-    const updated = currentStates.map((s, idx) =>
-      idx === taskIndex ? resetTaskState : s,
-    );
+    const updated = currentStates.map((s, idx) => (idx === taskIndex ? resetTaskState : s));
 
     setTaskStatesSnapshot(updated);
 
@@ -813,12 +768,12 @@ export default function Lesson() {
       evaluation:
         visualPreviewActive && evaluationResult
           ? {
-            version: effectiveTask.evaluation?.version ?? 1,
-            status: evaluationResult.status,
-            score: evaluationResult.score,
-            passed: evaluationResult.passed,
-            issues: evaluationResult.results,
-          }
+              version: effectiveTask.evaluation?.version ?? 1,
+              status: evaluationResult.status,
+              score: evaluationResult.score,
+              passed: evaluationResult.passed,
+              issues: evaluationResult.results,
+            }
           : undefined,
     });
 
@@ -857,9 +812,7 @@ export default function Lesson() {
   };
 
   return (
-    <main
-      className={`lesson-container ${isMobileLayout ? "lesson-container-mobile" : ""}`}
-    >
+    <main className={`lesson-container ${isMobileLayout ? "lesson-container-mobile" : ""}`}>
       <div className="lesson-shell">
         <aside className="lesson-sidebar">
           <div className="lesson-sidebar-heading">
@@ -870,7 +823,7 @@ export default function Lesson() {
                   style={{ background: lessonMeta.color }}
                   aria-hidden="true"
                 >
-                  <LucideIcon name={lessonMeta.icon} size={20}/>
+                  <LucideIcon name={lessonMeta.icon} size={20} />
                 </span>
               ) : null}
               <strong>{lessonMeta?.title ?? slug}</strong>
@@ -883,9 +836,7 @@ export default function Lesson() {
                 const taskId = (index + 1).toString();
                 const isActive = index === currentTaskIndex;
                 const isCompleted = completedTasks.has(taskId);
-                const isDeleted = Boolean(
-                  taskStates[index]?.deleted ?? task.deleted,
-                );
+                const isDeleted = Boolean(taskStates[index]?.deleted ?? task.deleted);
 
                 return (
                   <div
@@ -938,11 +889,7 @@ export default function Lesson() {
             </nav>
 
             {isEditMode && (
-              <button
-                type="button"
-                className="lesson-add-task-button"
-                onClick={addTask}
-              >
+              <button type="button" className="lesson-add-task-button" onClick={addTask}>
                 <Plus size={16} />
                 Add new task
               </button>
@@ -1030,14 +977,10 @@ export default function Lesson() {
                       : taskEvaluation.liveIssues
                   }
                   focusRequest={editorFocusRequest}
-                  onEvaluationChange={(evaluation) =>
-                    updateTaskMetadata("evaluation", evaluation)
-                  }
+                  onEvaluationChange={(evaluation) => updateTaskMetadata("evaluation", evaluation)}
                   onEvaluate={handleEvaluate}
                   isEvaluating={taskEvaluation.isEvaluating}
-                  evaluationEnabled={
-                    visualPreviewActive && Boolean(effectiveTask.evaluation)
-                  }
+                  evaluationEnabled={visualPreviewActive && Boolean(effectiveTask.evaluation)}
                   visualEditorSupported={lessonVisualEditorEnabled}
                   onGenerateEvaluation={async () => {
                     const analyzer = await import("@wda/css-analysis");
@@ -1077,9 +1020,7 @@ export default function Lesson() {
               className={`lesson-top-row ${isLessonContentHidden ? "is-expanded" : ""} ${isLessonContentAnimating ? "is-animating" : ""}`}
               size={{
                 width: "100%",
-                height: isLessonContentHidden
-                  ? "calc(100% - 2.25rem)"
-                  : `${topRowPercent}%`,
+                height: isLessonContentHidden ? "calc(100% - 2.25rem)" : `${topRowPercent}%`,
               }}
               enable={{ bottom: !isLessonContentHidden }}
               minHeight={isLessonContentHidden ? 0 : 100}
@@ -1126,9 +1067,7 @@ export default function Lesson() {
                     }
                     onEvaluate={handleEvaluate}
                     isEvaluating={taskEvaluation.isEvaluating}
-                    evaluationEnabled={
-                      visualPreviewActive && Boolean(effectiveTask.evaluation)
-                    }
+                    evaluationEnabled={visualPreviewActive && Boolean(effectiveTask.evaluation)}
                     visualEditorSupported={lessonVisualEditorEnabled}
                     onGenerateEvaluation={async () => {
                       const analyzer = await import("@wda/css-analysis");
@@ -1141,10 +1080,7 @@ export default function Lesson() {
                   />
                 </Resizable>
 
-                <div
-                  className="lesson-preview"
-                  style={{ width: `${100 - editorPercent}%` }}
-                >
+                <div className="lesson-preview" style={{ width: `${100 - editorPercent}%` }}>
                   <PreviewPane
                     html={srcDoc}
                     visualHtml={previewTask.html}
@@ -1157,9 +1093,7 @@ export default function Lesson() {
                     onSelectSelector={(selector) => {
                       const line = (previewTask.css ?? "")
                         .split("\n")
-                        .findIndex((sourceLine) =>
-                          sourceLine.includes(selector),
-                        );
+                        .findIndex((sourceLine) => sourceLine.includes(selector));
                       setEditorFocusRequest({
                         line: line >= 0 ? line + 1 : 1,
                         nonce: Date.now(),
@@ -1199,10 +1133,8 @@ export default function Lesson() {
               isMobileLayout
                 ? undefined
                 : {
-                  height: isLessonContentHidden
-                    ? "0%"
-                    : `${100 - topRowPercent}%`,
-                }
+                    height: isLessonContentHidden ? "0%" : `${100 - topRowPercent}%`,
+                  }
             }
           >
             {isNew ? (
@@ -1218,9 +1150,7 @@ export default function Lesson() {
                 </p>
               </div>
             ) : (
-              <>
-                {lessonContent ? <RuntimeMdx source={lessonContent} /> : null}
-              </>
+              <>{lessonContent ? <RuntimeMdx source={lessonContent} /> : null}</>
             )}
           </div>
         </section>
@@ -1244,10 +1174,7 @@ export default function Lesson() {
         onClose={() => setShowResetModal(false)}
         actions={
           <>
-            <button
-              className="btn-ghost"
-              onClick={() => setShowResetModal(false)}
-            >
+            <button className="btn-ghost" onClick={() => setShowResetModal(false)}>
               Cancel
             </button>
             <button
@@ -1263,8 +1190,7 @@ export default function Lesson() {
         }
       >
         <p>
-          Are you sure you want to reset task {resetTaskIndex + 1}? All your
-          changes will be lost.
+          Are you sure you want to reset task {resetTaskIndex + 1}? All your changes will be lost.
         </p>
       </Modal>
     </main>

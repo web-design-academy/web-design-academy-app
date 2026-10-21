@@ -1,5 +1,5 @@
-import {useEffect, useState} from "react";
-import {useNavigate, useSearchParams} from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 
 export default function GitHubCallback() {
   const [searchParams] = useSearchParams();
@@ -15,22 +15,24 @@ export default function GitHubCallback() {
           type: "GITHUB_CALLBACK",
           error: error || null,
         },
-        window.location.origin
+        window.location.origin,
       );
 
-      if (error)
-        setError(error);
-      else
-        window.close();
+      if (error) setError(error);
+      else window.close();
     } else {
-      navigate("/settings", {replace: true});
+      navigate("/settings", { replace: true });
     }
   }, [searchParams, navigate]);
 
   return (
-    <div style={{textAlign: "center", padding: "2rem"}}>
+    <div style={{ textAlign: "center", padding: "2rem" }}>
       <h1>GitHub Account Linking</h1>
-      {error ? <p style={{color: "red"}}>{error}</p> : <p>GitHub account linking done. Closing window...</p>}
+      {error ? (
+        <p style={{ color: "red" }}>{error}</p>
+      ) : (
+        <p>GitHub account linking done. Closing window...</p>
+      )}
     </div>
   );
 }

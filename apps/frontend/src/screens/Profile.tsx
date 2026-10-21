@@ -1,14 +1,14 @@
-import {useAuth} from "@/lib/ctx/useAuth.ts";
+import { useAuth } from "@/lib/ctx/useAuth.ts";
 import GitHubIcon from "@/components/User/GitHubIcon.tsx";
 import GitHubAvatar from "@/components/User/GitHubAvatar.tsx";
-import {useCallback, useEffect, useState} from "react";
-import {Link, useNavigate} from "react-router";
-import "@/styles/profile.css"
-import {DownloadCloud, ExternalLink, Pencil, Plus, Settings} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import "@/styles/profile.css";
+import { DownloadCloud, ExternalLink, Pencil, Plus, Settings } from "lucide-react";
 import Modal from "@/components/Modal.tsx";
 import Pagination from "@/components/Pagination.tsx";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
-import {useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import RepositoryBanner from "@/components/Dashboard/RepositoryBanner.tsx";
 import {
   downloadRepositoryArchive,
@@ -18,24 +18,24 @@ import {
   fetchRepositorySha,
   linkUrl,
   newInstallationUrl,
-  unlinkAccount
+  unlinkAccount,
 } from "@/lib/api/github.ts";
-import type {Repository} from "@/interfaces/Repository.ts";
+import type { Repository } from "@/interfaces/Repository.ts";
 import InstallationBanner from "@/components/Dashboard/InstallationBanner.tsx";
-import {useNotifications} from "@/components/Notifications.tsx";
+import { useNotifications } from "@/components/Notifications.tsx";
 import InfoBanner from "@/components/InfoBanner.tsx";
-import {useDownloader} from "@/components/Downloader.tsx";
+import { useDownloader } from "@/components/Downloader.tsx";
 
 type Modals = "unlink" | "installations" | "none";
 
 const sideWindow = (
-  url: string, target: string,
-  onSuccess: () => void = () => {
-  },
-  onError: (error: Error) => void = () => {
-  },
-  width: number = 600, height: number = 700,
-  messageType: string = "GITHUB_CALLBACK"
+  url: string,
+  target: string,
+  onSuccess: () => void = () => {},
+  onError: (error: Error) => void = () => {},
+  width: number = 600,
+  height: number = 700,
+  messageType: string = "GITHUB_CALLBACK",
 ) => {
   const left = window.screenX + (window.outerWidth - width) / 2;
   const top = window.screenY + (window.outerHeight - height) / 2;
@@ -43,26 +43,22 @@ const sideWindow = (
   const popup = window.open(
     url,
     target,
-    `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`
+    `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`,
   );
 
   const handleMessage = async (event: MessageEvent) => {
-    if (event.origin !== window.location.origin)
-      return;
+    if (event.origin !== window.location.origin) return;
 
     if (event.data?.type === messageType) {
       cleanup();
 
-      if (event.data?.error)
-        onError(new Error(event.data.error));
-      else
-        onSuccess();
+      if (event.data?.error) onError(new Error(event.data.error));
+      else onSuccess();
     }
   };
 
   const timer = setInterval(async () => {
-    if (popup?.closed)
-      cleanup();
+    if (popup?.closed) cleanup();
   }, 500);
 
   const cleanup = () => {
@@ -71,12 +67,12 @@ const sideWindow = (
   };
 
   window.addEventListener("message", handleMessage);
-}
+};
 
 export default function Profile() {
-  const {user, isLoading, refresh} = useAuth();
-  const {pushNotification} = useNotifications();
-  const {processZip} = useDownloader();
+  const { user, isLoading, refresh } = useAuth();
+  const { pushNotification } = useNotifications();
+  const { processZip } = useDownloader();
   const navigate = useNavigate();
   const [openModal, setOpenModal] = useState<Modals>("none");
 
@@ -106,14 +102,15 @@ export default function Profile() {
         pushNotification({
           type: "success",
           message: "GitHub account linked successfully",
-          duration: 5
+          duration: 5,
         });
       },
-      (error) => pushNotification({
-        type: "error",
-        message: error.message || "Failed to link GitHub account",
-        duration: 5
-      })
+      (error) =>
+        pushNotification({
+          type: "error",
+          message: error.message || "Failed to link GitHub account",
+          duration: 5,
+        }),
     );
   };
 
@@ -122,8 +119,9 @@ export default function Profile() {
       if (installations && installations?.length > 0)
         pushNotification({
           type: "warning",
-          message: "You have installations linked to your account. Be sure to uninstall them in GitHub settings.",
-          duration: 10
+          message:
+            "You have installations linked to your account. Be sure to uninstall them in GitHub settings.",
+          duration: 10,
         });
 
       await unlinkAccount();
@@ -131,18 +129,18 @@ export default function Profile() {
       pushNotification({
         type: "success",
         message: "GitHub account unlinked successfully",
-        duration: 5
+        duration: 5,
       });
     } catch (error) {
       pushNotification({
         type: "error",
         message: (error as Error).message || "Failed to unlink GitHub account",
-        duration: 5
+        duration: 5,
       });
     } finally {
       handlePopUpClose();
     }
-  }
+  };
 
   const addInstallation = () => {
     sideWindow(
@@ -156,10 +154,10 @@ export default function Profile() {
         pushNotification({
           type: "error",
           message: (error as Error).message || "Failed to add installation",
-          duration: 5
+          duration: 5,
         });
         handlePopUpClose();
-      }
+      },
     );
   };
 
@@ -167,7 +165,7 @@ export default function Profile() {
     pushNotification({
       type: "info",
       message: `Downloading repository ${repo.owner_login}/${repo.name}...`,
-      duration: 5
+      duration: 5,
     });
 
     try {
@@ -178,35 +176,27 @@ export default function Profile() {
       pushNotification({
         type: "success",
         message: `Repository ${repo.owner_login}/${repo.name} downloaded successfully`,
-        duration: 5
+        duration: 5,
       });
     } catch (error) {
       pushNotification({
         type: "error",
         message: `Failed to download repository ${repo.owner_login}/${repo.name}: ${(error as Error).message}`,
-        duration: 15
+        duration: 15,
       });
     }
-  }
+  };
 
   const linkButton = () => (
-    <button
-      type="button"
-      className="btn-primary signin-button"
-      onClick={() => linkGitHub()}
-    >
+    <button type="button" className="btn-primary signin-button" onClick={() => linkGitHub()}>
       <GitHubIcon size={18} />
       Link GitHub
     </button>
   );
 
   const manageButton = () => (
-    <button
-      type="button"
-      className="btn-ghost"
-      onClick={() => setOpenModal("installations")}
-    >
-      <GitHubIcon size="1em" className="icon-margin-right"/>
+    <button type="button" className="btn-ghost" onClick={() => setOpenModal("installations")}>
+      <GitHubIcon size="1em" className="icon-margin-right" />
       Manage
     </button>
   );
@@ -215,18 +205,20 @@ export default function Profile() {
     data: installations,
     isLoading: installationsLoading,
     error: installationsError,
-    refetch: installationsRefetch
+    refetch: installationsRefetch,
   } = useQuery({
     queryKey: ["installations"],
     queryFn: async () => await fetchInstallations(),
-    enabled: Boolean(!isLoading && user?.githubId && (openModal === "installations" || openModal === "unlink")),
+    enabled: Boolean(
+      !isLoading && user?.githubId && (openModal === "installations" || openModal === "unlink"),
+    ),
     staleTime: 1000 * 60 * 60 * 5,
   });
 
   const {
     data: repositories,
     isLoading: repositoriesLoading,
-    error: repositoriesError
+    error: repositoriesError,
   } = useQuery({
     queryKey: ["repositories"],
     queryFn: async () => await fetchRepositories(),
@@ -238,7 +230,7 @@ export default function Profile() {
     data: profile,
     isLoading: profileLoading,
     error: profileError,
-    refetch: profileRefetch
+    refetch: profileRefetch,
   } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => await fetchProfile(),
@@ -255,8 +247,8 @@ export default function Profile() {
 
     addEventListener("keypress", handlePress);
     return () => {
-      removeEventListener("keypress", handlePress)
-    }
+      removeEventListener("keypress", handlePress);
+    };
   }, [handlePopUpClose]);
 
   useEffect(() => {
@@ -264,7 +256,7 @@ export default function Profile() {
       pushNotification({
         type: "error",
         message: (installationsError as Error).message || "Failed to fetch installations",
-        duration: 5
+        duration: 5,
       });
       handlePopUpClose();
     }
@@ -275,7 +267,7 @@ export default function Profile() {
       pushNotification({
         type: "error",
         message: (repositoriesError as Error).message || "Failed to fetch repositories",
-        duration: 5
+        duration: 5,
       });
       handlePopUpClose();
     }
@@ -286,22 +278,28 @@ export default function Profile() {
       pushNotification({
         type: "error",
         message: (profileError as Error).message || "Failed to fetch profile",
-        duration: 5
+        duration: 5,
       });
       handlePopUpClose();
     }
   }, [handlePopUpClose, profileError, pushNotification]);
 
   const installationsStart = (installationsPage - 1) * installationsPageSize;
-  const installationsShown = installations?.slice(installationsStart, installationsStart + installationsPageSize) ?? [];
+  const installationsShown =
+    installations?.slice(installationsStart, installationsStart + installationsPageSize) ?? [];
   const repositoriesStart = (repositoriesPage - 1) * repositoriesPageSize;
-  const repositoriesShown = repositories?.slice(repositoriesStart, repositoriesStart + repositoriesPageSize) ?? [];
+  const repositoriesShown =
+    repositories?.slice(repositoriesStart, repositoriesStart + repositoriesPageSize) ?? [];
 
   return (
     <main className="profile-page">
       <section className="profile-header">
         {user?.githubId && profile && (
-          <GitHubAvatar className="profile-header-avatar" imageSize={72} url={profile.github_avatar_url}/>
+          <GitHubAvatar
+            className="profile-header-avatar"
+            imageSize={72}
+            url={profile.github_avatar_url}
+          />
         )}
 
         <div>
@@ -313,7 +311,7 @@ export default function Profile() {
           <h2 className="italic">{user?.role === "admin" ? "Admin" : "Student"}</h2>
           {user?.role === "admin" && (
             <Link to="/admin" className="btn-ghost">
-              <Settings size={18} className="icon-margin-right"/>
+              <Settings size={18} className="icon-margin-right" />
               Admin Panel
             </Link>
           )}
@@ -325,12 +323,14 @@ export default function Profile() {
           <h2>Account information</h2>
 
           {isLoading || profileLoading ? (
-            <LoadingSpinner/>
+            <LoadingSpinner />
           ) : user?.githubId && profile ? (
             <div className="profile-information">
               <div className="profile-panel-item">
                 <span>GitHub Name:</span>
-                <strong>{profile.github_name} <span className="italic">({profile.github_login})</span></strong>
+                <strong>
+                  {profile.github_name} <span className="italic">({profile.github_login})</span>
+                </strong>
               </div>
 
               <div className="profile-panel-item">
@@ -346,11 +346,7 @@ export default function Profile() {
             </div>
           )}
 
-          {user?.githubId && (
-            <div className="profile-panel-item end">
-              {manageButton()}
-            </div>
-          )}
+          {user?.githubId && <div className="profile-panel-item end">{manageButton()}</div>}
         </div>
 
         <div className="profile-section profile-larger">
@@ -366,10 +362,10 @@ export default function Profile() {
             ) : (
               <div className="profile-repositories">
                 {repositoriesLoading ? (
-                  <LoadingSpinner/>
+                  <LoadingSpinner />
                 ) : (
                   <>
-                    {(!repositories || repositories.length === 0) ? (
+                    {!repositories || repositories.length === 0 ? (
                       <div className="profile-section-info big">
                         <p>You have no tracked remote repositories</p>
 
@@ -383,54 +379,56 @@ export default function Profile() {
                               aria-label={"Create and publish lesson"}
                               title="Create and publish a new lesson"
                             >
-                              <Plus size={16} className="icon-margin-right"/>
+                              <Plus size={16} className="icon-margin-right" />
                               Create and publish lesson
                             </Link>
                           </>
                         )}
                       </div>
-                    ) : repositoriesShown.map((repo: Repository) => (
-                      <RepositoryBanner
-                        key={repo.id}
-                        repo={repo}
-                        actions={
-                          <>
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              aria-label={`Download repository ${repo.owner_login}/${repo.name}`}
-                              title={`Download repository ${repo.owner_login}/${repo.name}`}
-                              onClick={() => downloadRepo(repo)}
-                            >
-                              <DownloadCloud
-                                size={"1em"}
-                                className={user?.githubId ? "" : "icon-margin-right"}
-                              />
-                            </button>
+                    ) : (
+                      repositoriesShown.map((repo: Repository) => (
+                        <RepositoryBanner
+                          key={repo.id}
+                          repo={repo}
+                          actions={
+                            <>
+                              <button
+                                type="button"
+                                className="btn-primary"
+                                aria-label={`Download repository ${repo.owner_login}/${repo.name}`}
+                                title={`Download repository ${repo.owner_login}/${repo.name}`}
+                                onClick={() => downloadRepo(repo)}
+                              >
+                                <DownloadCloud
+                                  size={"1em"}
+                                  className={user?.githubId ? "" : "icon-margin-right"}
+                                />
+                              </button>
 
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              aria-label={`Edit repository ${repo.owner_login}/${repo.name}`}
-                              title={`Edit repository ${repo.owner_login}/${repo.name}`}
-                            >
-                              <Pencil size={"1em"}/>
-                            </button>
+                              <button
+                                type="button"
+                                className="btn-ghost"
+                                aria-label={`Edit repository ${repo.owner_login}/${repo.name}`}
+                                title={`Edit repository ${repo.owner_login}/${repo.name}`}
+                              >
+                                <Pencil size={"1em"} />
+                              </button>
 
-                            <Link
-                              to={repo.html_url}
-                              target={"_blank"}
-                              type="button"
-                              className="btn-ghost"
-                              aria-label={`Open repository ${repo.owner_login}/${repo.name} in GitHub`}
-                              title={`Open repository ${repo.owner_login}/${repo.name} in GitHub`}
-                            >
-                              <ExternalLink size={"1em"}/>
-                            </Link>
-                          </>
-                        }
-                      />
-                    ))}
+                              <Link
+                                to={repo.html_url}
+                                target={"_blank"}
+                                type="button"
+                                className="btn-ghost"
+                                aria-label={`Open repository ${repo.owner_login}/${repo.name} in GitHub`}
+                                title={`Open repository ${repo.owner_login}/${repo.name} in GitHub`}
+                              >
+                                <ExternalLink size={"1em"} />
+                              </Link>
+                            </>
+                          }
+                        />
+                      ))
+                    )}
                   </>
                 )}
               </div>
@@ -469,11 +467,15 @@ export default function Profile() {
         children={
           <div>
             <h3>Are you sure?</h3>
-            <p>You will <strong>no longer</strong> be able to upload lessons to repositories and access your private
-              repositories from WDA.</p>
+            <p>
+              You will <strong>no longer</strong> be able to upload lessons to repositories and
+              access your private repositories from WDA.
+            </p>
             <p>You will still be able to download lessons in public repositories.</p>
             <p>Remote repositories and locally saved lessons will not be removed.</p>
-            <p>You can link your account or a different one <strong>again anytime you want.</strong></p>
+            <p>
+              You can link your account or a different one <strong>again anytime you want.</strong>
+            </p>
 
             {installations && installations.length > 0 && (
               <>
@@ -493,56 +495,53 @@ export default function Profile() {
         title="Remote repositories"
         isOpen={openModal === "installations"}
         onClose={handlePopUpClose}
-        children={installationsLoading ? <LoadingSpinner/> : (
-          <div className="profile-section">
-            <div className="profile-section-actions">
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={addInstallation}
-              >
-                <Plus size="1em" className="icon-margin-right"/>
-                Add installation
-              </button>
+        children={
+          installationsLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <div className="profile-section">
+              <div className="profile-section-actions">
+                <button type="button" className="btn-ghost" onClick={addInstallation}>
+                  <Plus size="1em" className="icon-margin-right" />
+                  Add installation
+                </button>
 
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => {
-                  setOpenModal("unlink")
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    setOpenModal("unlink");
+                  }}
+                >
+                  <GitHubIcon size="1em" className="icon-margin-right" />
+                  Unlink
+                </button>
+              </div>
+
+              <div className="profile-repositories">
+                {installations?.length === 0 ? (
+                  <div className="profile-section-info">
+                    <p>No installations found.</p>
+                  </div>
+                ) : (
+                  installationsShown.map((i) => <InstallationBanner key={i.id} installation={i} />)
+                )}
+              </div>
+
+              <Pagination
+                page={installationsPage}
+                pageSize={installationsPageSize}
+                total={installations?.length || 0}
+                onChange={(page) => setInstallationsPage(page)}
+                onPageSizeChange={(size) => {
+                  setInstallationsPageSize(size);
+                  setInstallationsPage(1);
                 }}
-              >
-                <GitHubIcon size="1em" className="icon-margin-right"/>
-                Unlink
-              </button>
+              />
             </div>
-
-            <div className="profile-repositories">
-              {installations?.length === 0 ? (
-                <div className="profile-section-info">
-                  <p>No installations found.</p>
-                </div>
-              ) : installationsShown.map((i) => (
-                <InstallationBanner
-                  key={i.id}
-                  installation={i}
-                />
-              ))}
-            </div>
-
-            <Pagination
-              page={installationsPage}
-              pageSize={installationsPageSize}
-              total={installations?.length || 0}
-              onChange={(page) => setInstallationsPage(page)}
-              onPageSizeChange={(size) => {
-                setInstallationsPageSize(size);
-                setInstallationsPage(1);
-              }}
-            />
-          </div>
-        )}
+          )
+        }
       />
     </main>
-  )
+  );
 }

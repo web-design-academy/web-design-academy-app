@@ -1,7 +1,7 @@
-import {Resizable, type ResizeCallback} from "re-resizable";
-import {type ComponentType, type ReactNode, useEffect, useRef, useState,} from "react";
+import { Resizable, type ResizeCallback } from "re-resizable";
+import { type ComponentType, type ReactNode, useEffect, useRef, useState } from "react";
 
-import {useUiPreferences} from "@/lib/ctx/useUiPreferences.ts";
+import { useUiPreferences } from "@/lib/ctx/useUiPreferences.ts";
 
 import "@/styles/preview.css";
 
@@ -51,15 +51,11 @@ export default function PreviewPane({
   const { visualPreviewEnabled } = useUiPreferences();
   const [VisualPreviewComponent, setVisualPreviewComponent] =
     useState<ComponentType<VisualPreviewProps> | null>(null);
-  const canUseVisualPreview =
-    visualPreviewEnabled && visualPreviewSupported && Boolean(visualHtml);
+  const canUseVisualPreview = visualPreviewEnabled && visualPreviewSupported && Boolean(visualHtml);
 
   useEffect(() => {
     if (canUseVisualPreview) {
-      Promise.all([
-        import("@wda/css-analysis"),
-        import("@wda/css-analysis/style.css"),
-      ])
+      Promise.all([import("@wda/css-analysis"), import("@wda/css-analysis/style.css")])
         .then(([module]) => {
           setVisualPreviewComponent(() => module.PreviewPane);
         })
@@ -99,9 +95,7 @@ export default function PreviewPane({
     showOverlay();
   };
 
-  const handleHeightChange: React.ChangeEventHandler<HTMLInputElement> = (
-    e,
-  ) => {
+  const handleHeightChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const h = Number(e.target.value);
     setSize((prev) => ({ ...prev, height: h }));
     showOverlay();
@@ -127,12 +121,7 @@ export default function PreviewPane({
   return (
     <div className="preview-inner">
       <div className="preview-selector">
-        <select
-          aria-label="Mode"
-          className="form-select-control"
-          value={mode}
-          onChange={onSelect}
-        >
+        <select aria-label="Mode" className="form-select-control" value={mode} onChange={onSelect}>
           <option value="default">Default view</option>
           <option value="mobile">Mobile view</option>
         </select>

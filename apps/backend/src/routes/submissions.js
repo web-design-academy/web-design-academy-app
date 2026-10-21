@@ -1,4 +1,4 @@
-const router = require('express').Router();
+const router = require("express").Router();
 const { authenticateToken } = require("../middleware/auth");
 const crypto = require("crypto");
 const { lessonSlugPattern } = require("../services/submissions");
@@ -22,10 +22,7 @@ router.post("/", async (req, res) => {
     }
 
     const evaluationConfigHash = task.evaluation
-      ? crypto
-        .createHash("sha256")
-        .update(JSON.stringify(task.evaluation))
-        .digest("hex")
+      ? crypto.createHash("sha256").update(JSON.stringify(task.evaluation)).digest("hex")
       : null;
     const result = db
       .prepare(
@@ -65,9 +62,7 @@ router.get("/:id", (req, res) => {
     return res.status(400).json({ error: "Invalid submission id" });
   }
 
-  const submission = db
-    .prepare("SELECT * FROM submissions WHERE id = ?")
-    .get(req.params.id);
+  const submission = db.prepare("SELECT * FROM submissions WHERE id = ?").get(req.params.id);
 
   if (!submission) return res.status(404).json({ error: "Not found" });
 
@@ -79,31 +74,30 @@ router.get("/:id", (req, res) => {
 });
 
 router.get("/latest/:lessonSlug", (req, res) => {
-    if (!lessonSlugPattern.test(req.params.lessonSlug)) {
-      return res.status(400).json({ error: "Invalid lesson slug" });
-    }
+  if (!lessonSlugPattern.test(req.params.lessonSlug)) {
+    return res.status(400).json({ error: "Invalid lesson slug" });
+  }
 
-    const rows = db
-      .prepare(
-        `
+  const rows = db
+    .prepare(
+      `
       SELECT *
       FROM submissions
       WHERE user_id = ? AND lesson_slug = ?
       ORDER BY timestamp DESC, id DESC
     `,
-      )
-      .all(req.user.sub, req.params.lessonSlug);
+    )
+    .all(req.user.sub, req.params.lessonSlug);
 
-    const latestByTaskId = new Map();
+  const latestByTaskId = new Map();
 
-    rows.forEach((row) => {
-      if (!latestByTaskId.has(row.task_id)) {
-        latestByTaskId.set(row.task_id, row);
-      }
-    });
+  rows.forEach((row) => {
+    if (!latestByTaskId.has(row.task_id)) {
+      latestByTaskId.set(row.task_id, row);
+    }
+  });
 
-    res.json({ items: Array.from(latestByTaskId.values()) });
-  },
-);
+  res.json({ items: Array.from(latestByTaskId.values()) });
+});
 
 module.exports = router;

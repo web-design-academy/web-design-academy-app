@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
 import { UiPreferencesContext } from "./useUiPreferences";
 
@@ -19,9 +19,5 @@ export function UiPreferencesProvider({ children }: { children: ReactNode }) {
     [visualEditorAvailable, visualEditorEnabled, visualPreviewEnabled],
   );
 
-  return (
-    <UiPreferencesContext.Provider value={value}>
-      {children}
-    </UiPreferencesContext.Provider>
-  );
+  return <UiPreferencesContext.Provider value={value}>{children}</UiPreferencesContext.Provider>;
 }

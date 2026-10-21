@@ -1,6 +1,6 @@
-import {createContext, useContext} from "react";
-import type {GoogleLoginPayload} from "../api/auth";
-import type {User} from "@/interfaces/User.ts";
+import { createContext, useContext } from "react";
+import type { GoogleLoginPayload } from "../api/auth";
+import type { User } from "@/interfaces/User.ts";
 
 interface AuthContextType {
   user: User | null;

@@ -1,21 +1,19 @@
-import {type ReactNode, useCallback, useEffect, useState} from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
   fetchSession,
   type GoogleLoginPayload,
   loginWithGoogle as apiLoginWithGoogle,
   logoutSession,
 } from "@/lib/api/auth";
-import {isOnlineMode} from "@/lib/config/config.ts";
-import {AuthContext} from "./useAuth";
-import type {User} from "@/interfaces/User.ts";
+import { isOnlineMode } from "@/lib/config/config.ts";
+import { AuthContext } from "./useAuth";
+import type { User } from "@/interfaces/User.ts";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const login = async (
-    payload: GoogleLoginPayload,
-  ): Promise<User> => {
+  const login = async (payload: GoogleLoginPayload): Promise<User> => {
     if (!isOnlineMode) {
       throw new Error("Authentication is available only in online mode.");
     }
@@ -38,8 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refresh = useCallback(async () => {
-    if (!isOnlineMode)
-      return;
+    if (!isOnlineMode) return;
 
     try {
       const data = await fetchSession();
@@ -79,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         loginWithGoogle: login,
         logout,
-        refresh
+        refresh,
       }}
     >
       {children}

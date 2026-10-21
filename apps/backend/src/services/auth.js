@@ -1,5 +1,5 @@
 const environment = require("../config/env");
-const {OAuth2Client} = require("google-auth-library");
+const { OAuth2Client } = require("google-auth-library");
 const ServerError = require("../errors/ServerError");
 
 const client = new OAuth2Client(environment.googleClientId);
@@ -19,14 +19,11 @@ async function getGoogleUserFromAccessToken(accessToken) {
     throw new ServerError("Invalid token audience", 401);
   }
 
-  const userInfoResponse = await fetch(
-    "https://www.googleapis.com/oauth2/v3/userinfo",
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+  const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
     },
-  );
+  });
 
   if (!userInfoResponse.ok) {
     throw new ServerError("Failed to fetch Google profile", 401);
@@ -62,12 +59,10 @@ async function getGoogleUser({ idToken, accessToken }) {
 }
 
 function isAllowedUniversityEmail(email) {
-  if (environment.allowedDomains.size === 0)
-    return true;
+  if (environment.allowedDomains.size === 0) return true;
 
   const domain = email.split("@")[1]?.toLowerCase();
-  if (!domain)
-    return false;
+  if (!domain) return false;
 
   for (const allowedDomain of environment.allowedDomains) {
     if (domain === allowedDomain || domain.endsWith(`.${allowedDomain}`)) {
@@ -81,5 +76,5 @@ function isAllowedUniversityEmail(email) {
 module.exports = {
   cookieOptions,
   getGoogleUser,
-  isAllowedUniversityEmail
+  isAllowedUniversityEmail,
 };

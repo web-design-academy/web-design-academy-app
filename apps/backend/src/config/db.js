@@ -8,8 +8,7 @@ const dbPath = environment.dbPath;
 const storageDir = path.dirname(dbPath);
 
 // Creating storage directory if it doesn't exist
-if (!fs.existsSync(storageDir))
-  fs.mkdirSync(storageDir, {recursive: true});
+if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
 
 // Opening database connection
 const db = new Database(dbPath);
@@ -18,7 +17,8 @@ db.pragma("foreign_keys = ON");
 
 const initDb = () => {
   const migration = db.transaction(() => {
-    db.prepare(`
+    db.prepare(
+      `
         CREATE TABLE IF NOT EXISTS users
         (
             id                   TEXT PRIMARY KEY,
@@ -31,15 +31,19 @@ const initDb = () => {
             github_expires_at    DATETIME,
             created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE UNIQUE INDEX IF NOT EXISTS idx_users_github_id
             ON users (github_id)
             WHERE github_id IS NOT NULL
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE TABLE IF NOT EXISTS installations
         (
             id           INTEGER PRIMARY KEY,
@@ -48,14 +52,18 @@ const initDb = () => {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE INDEX IF NOT EXISTS idx_installations_user_id
             ON installations (user_id)
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE TABLE IF NOT EXISTS submissions
         (
             id                     INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,28 +82,36 @@ const initDb = () => {
             timestamp              DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE INDEX IF NOT EXISTS idx_submissions_user_id
             ON submissions (user_id)
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE TABLE IF NOT EXISTS tags
         (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             name       TEXT UNIQUE NOT NULL COLLATE NOCASE,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_name
             ON tags (name)
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE TABLE IF NOT EXISTS user_tags
         (
             user_id    TEXT    NOT NULL,
@@ -105,17 +121,22 @@ const initDb = () => {
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
             FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
         )
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE INDEX IF NOT EXISTS idx_user_tags_tag_id
             ON user_tags (tag_id)
-    `).run();
+    `,
+    ).run();
 
-    db.prepare(`
+    db.prepare(
+      `
         CREATE INDEX IF NOT EXISTS idx_submissions_user_timestamp
             ON submissions (user_id, timestamp DESC)
-    `).run();
+    `,
+    ).run();
   });
 
   migration();
@@ -124,5 +145,5 @@ const initDb = () => {
 
 module.exports = {
   db,
-  initDb
+  initDb,
 };

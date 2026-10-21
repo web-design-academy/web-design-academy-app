@@ -1,7 +1,7 @@
-import type {ComponentType} from "react";
-import {useEffect, useState} from "react";
-import {evaluate} from "@mdx-js/mdx";
-import {MDXProvider, useMDXComponents} from "@mdx-js/react";
+import type { ComponentType } from "react";
+import { useEffect, useState } from "react";
+import { evaluate } from "@mdx-js/mdx";
+import { MDXProvider, useMDXComponents } from "@mdx-js/react";
 import * as runtime from "react/jsx-runtime";
 import C from "./C.tsx";
 import LoadingSpinner from "../LoadingSpinner.tsx";
@@ -42,9 +42,7 @@ export default function RuntimeMdx({ source }: { source: string }) {
       .catch((reason: unknown) => {
         if (cancelled) return;
         setError(
-          reason instanceof Error
-            ? reason
-            : new Error("Lesson content could not be rendered"),
+          reason instanceof Error ? reason : new Error("Lesson content could not be rendered"),
         );
       });
 

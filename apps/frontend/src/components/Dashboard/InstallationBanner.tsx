@@ -1,12 +1,12 @@
-import type {Installation} from "@/interfaces/Installation.ts";
-import {Settings} from "lucide-react";
-import {Link} from "react-router";
+import type { Installation } from "@/interfaces/Installation.ts";
+import { Settings } from "lucide-react";
+import { Link } from "react-router";
 
 interface Props {
   installation: Installation;
 }
 
-export default function InstallationBanner({installation}: Props) {
+export default function InstallationBanner({ installation }: Props) {
   return (
     <div key={installation.id} className="profile-repository">
       <div className="profile-repository-info">
@@ -24,13 +24,10 @@ export default function InstallationBanner({installation}: Props) {
           title="Open installation settings in new tab"
           aria-label="Open installation settings in new tab"
         >
-          <Settings
-            size={16}
-            className="icon-margin-right"
-          />
+          <Settings size={16} className="icon-margin-right" />
           Manage
         </Link>
       </div>
     </div>
-  )
+  );
 }
