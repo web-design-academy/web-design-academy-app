@@ -4,14 +4,20 @@ import "@/styles/notifications.css";
 import InfoBanner from "@/components/InfoBanner.tsx";
 
 export type NotificationType = "info" | "success" | "warning" | "error";
+let idCounter = 0;
 
 interface Notification {
   message: string;
   type: NotificationType;
   duration: number | undefined; // in seconds
+  actions?: {
+    label: string;
+    onClick: () => void;
+  }[];
 }
 
 interface ExpiringNotification extends Notification {
+  id: number;
   remainingDuration: number | undefined;
 }
 
@@ -32,6 +38,7 @@ export default function NotificationsProvider({ children }: { children: ReactNod
     const duration = notification.duration ? notification.duration + 1 : undefined;
     const newNotification: ExpiringNotification = {
       ...notification,
+      id: idCounter++,
       remainingDuration: duration,
       duration: duration,
     };
@@ -47,6 +54,14 @@ export default function NotificationsProvider({ children }: { children: ReactNod
       const newNotifications = [...prev];
       newNotifications[index].remainingDuration = 0;
       newNotifications[index].duration = 0;
+      return newNotifications;
+    });
+  }, []);
+
+  const removeNotification = useCallback((index: number) => {
+    setNotifications((prev) => {
+      const newNotifications = [...prev];
+      newNotifications.splice(index, 1);
       return newNotifications;
     });
   }, []);
@@ -99,6 +114,7 @@ export default function NotificationsProvider({ children }: { children: ReactNod
               notification.remainingDuration > 0) && (
               <div
                 className={`notification ${notification.remainingDuration === 1 ? "slide-out" : ""}`}
+                key={notification.id}
               >
                 <InfoBanner
                   key={index}
@@ -106,6 +122,18 @@ export default function NotificationsProvider({ children }: { children: ReactNod
                   message={notification.message}
                   duration={notification.duration ? notification.duration - 1 : undefined}
                   closeAction={() => closeNotification(index)}
+                  actions={notification.actions?.map((action) => (
+                    <button
+                      key={action.label}
+                      className={"btn-ghost"}
+                      onClick={() => {
+                        action.onClick();
+                        closeNotification(index);
+                      }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
                 />
               </div>
             ),
@@ -113,23 +141,49 @@ export default function NotificationsProvider({ children }: { children: ReactNod
       </div>
 
       <Modal
-        title={"Notifications"}
+        title={"Notification history"}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
         }}
         children={
-          <div>
-            {notifications.map((notification, index) => (
-              <InfoBanner
-                key={index}
-                type={notification.type}
-                message={notification.message}
-                duration={notification.duration ? notification.duration - 1 : undefined}
-                closeAction={() => closeNotification(index)}
-              />
-            ))}
+          <div className={`notification-history`}>
+            {notifications.length === 0 ? (
+              <p className={`center`}>All good, no notifications yet</p>
+            ) : (
+              notifications.map((notification, index) => (
+                <InfoBanner
+                  key={index}
+                  type={notification.type}
+                  message={notification.message}
+                  duration={notification.duration ? notification.duration - 1 : undefined}
+                  closeAction={() => removeNotification(index)}
+                  className={`notification-history-item`}
+                  actions={notification.actions?.map((action) => (
+                    <button
+                      key={action.label}
+                      className={"btn-ghost"}
+                      onClick={() => {
+                        action.onClick();
+                      }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                />
+              ))
+            )}
           </div>
+        }
+        actions={
+          <button
+            className={"btn-ghost"}
+            onClick={() => {
+              clearNotifications();
+            }}
+          >
+            Clear All
+          </button>
         }
       />
     </NotificationsContext.Provider>

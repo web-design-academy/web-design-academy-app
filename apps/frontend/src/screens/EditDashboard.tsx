@@ -13,12 +13,11 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   buildSlug,
-  deleteMarkedAsync,
+  changeDeleted,
+  deleteMarkedLessonsAsync,
   generateId,
   getLessonsAsync,
   type LessonMeta,
-  markLessonDeletedAsync,
-  markLessonRestoredAsync,
   saveLessonAsync,
   saveTasksAsync,
 } from "@/lib/helpers/db.ts";
@@ -467,12 +466,12 @@ export default function EditDashboard() {
   };
 
   const handleDeleteLessonDraft = async (lesson: LessonMeta) => {
-    await markLessonDeletedAsync(lesson.id);
+    await changeDeleted(lesson.id);
     setLessons(await getLessonsAsync());
   };
 
   const handleRestoreLessonDraft = async (lesson: LessonMeta) => {
-    await markLessonRestoredAsync(lesson.id);
+    await changeDeleted(lesson.id);
     setLessons(await getLessonsAsync());
   };
 
@@ -532,7 +531,7 @@ export default function EditDashboard() {
   const handleDiscardLessonChanges = async () => {
     if (isDownloadingLessonChanges) return;
 
-    await deleteMarkedAsync();
+    await deleteMarkedLessonsAsync();
     setLessons(await getLessonsAsync());
 
     pushNotification({

@@ -24,8 +24,8 @@ class Environment {
    * Email domains allowed for registration, separated by commas.
    * @type {string[]}
    */
-  static allowedDomainsArray = this.parseToLowerCase(process.env.EMAIL_DOMAINS, "/") ?? [];
-  static allowedDomains = new Set(this.allowedDomainsArray);
+  static emailDomainsArray = this.parseToLowerCase(process.env.EMAIL_DOMAINS) ?? [];
+  static emailDomains = new Set(this.emailDomainsArray);
   /**
    * Emails used to identify admin users, separated by commas.
    * @type {string[]}
@@ -151,8 +151,8 @@ class Environment {
     if (!this.jwtExpiration) {
       throw new Error("JWT_EXPIRATION is not set");
     }
-    if (!this.encryptionKey || this.encryptionKey.length < 32) {
-      throw new Error("ENCRYPTION_KEY is not set or too short (minimum 32 characters)");
+    if (!this.encryptionKey || !/^[0-9a-fA-F]{64}$/.test(this.encryptionKey)) {
+      throw new Error("ENCRYPTION_KEY must be a 64-character hex string (32 bytes)");
     }
     if (!this.corsOrigins || this.corsOrigins.size === 0) {
       throw new Error("CORS_ORIGINS is not set");

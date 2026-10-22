@@ -8,6 +8,7 @@ interface Props {
   duration?: number; // seconds
   closeAction?: () => void;
   actions?: ReactNode;
+  className?: string;
 }
 
 export default function InfoBanner({
@@ -16,11 +17,12 @@ export default function InfoBanner({
   duration,
   closeAction,
   actions,
+  className,
 }: Props) {
   const iconSize = "1.2em";
 
   return (
-    <div className={`info-banner ${type}`}>
+    <div className={`info-banner ${type} ${className || ""}`}>
       <div
         className={`info-banner-header ${type} ${duration ? "has-timer" : ""}`}
         style={duration ? ({ "--duration": `${duration}s` } as CSSProperties) : {}}

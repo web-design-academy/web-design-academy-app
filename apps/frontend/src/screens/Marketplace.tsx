@@ -25,14 +25,34 @@ export default function Marketplace() {
   });
 
   const downloadDefault = async (id: string) => {
-    const data = await downloadLessonArchive(id);
-    const metadata = await fetchLesson(id);
-    await processZip(data, "wda", id, metadata.sha);
-    pushNotification({
-      type: "success",
-      message: `Lesson ${metadata.title} downloaded successfully`,
-      duration: 3,
-    });
+    try {
+      const data = await downloadLessonArchive(id);
+      if (!data || data.size === 0) {
+        throw new Error("Failed to download lesson archive");
+      }
+      const metadata = await fetchLesson(id);
+      if (!metadata) {
+        throw new Error("Failed to fetch lesson metadata");
+      }
+
+      const result = await processZip(data, "wda", id, metadata.sha);
+      if (result.errors.length > 0 || (result.success === 0 && result.conflicts === 0)) {
+        return;
+      }
+
+      pushNotification({
+        type: "success",
+        message: `Lesson ${metadata.title} downloaded successfully`,
+        duration: 3,
+      });
+    } catch (e) {
+      pushNotification({
+        type: "error",
+        message: (e as Error).message || "Failed to download lesson",
+        duration: 15,
+      });
+      return;
+    }
   };
 
   useEffect(() => {

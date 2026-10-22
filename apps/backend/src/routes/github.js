@@ -112,8 +112,8 @@ router.get(
   "/repositories/sha/:owner/:repo/:branch",
   asyncHandler(async (req, res) => {
     const { owner, repo, branch } = req.params;
-    const sha = await getRepositorySha(req.user.sub, owner, repo, branch);
-    res.json(sha);
+    const shas = await getRepositorySha(req.user.sub, owner, repo, branch);
+    res.json(shas);
   }),
 );
 
@@ -132,7 +132,6 @@ router.get(
   "/installations",
   asyncHandler(async (req, res) => {
     const installations = await syncInstallations(req.user.sub);
-    console.log(installations);
     res.json(installations);
   }),
 );

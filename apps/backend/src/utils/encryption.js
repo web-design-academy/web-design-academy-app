@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { ServerError } = require("../errors/ServerError");
+const ServerError = require("../errors/ServerError");
 
 const ALGORITHM = "aes-256-GCM";
 const IV_LENGTH = 12;

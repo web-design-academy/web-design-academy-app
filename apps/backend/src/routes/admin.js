@@ -43,10 +43,12 @@ router.post("/users/tags", (req, res) => {
     throw new ServerError(resolved.error, resolved.status || 400);
   }
 
-  const existingUsers = userRepository.listBy(userIds);
+  const existingUsers = userRepository.listBy({ values: userIds });
+  const existingIds = new Set(existingUsers.map((user) => String(user.id)));
+  const missingIds = userIds.filter((id) => !existingIds.has(String(id)));
 
-  if (!existingUsers.length) {
-    throw new ServerError("Users not found", 404);
+  if (missingIds.length > 0) {
+    throw new ServerError(`Users not found: ${missingIds.join(", ")}`, 404);
   }
 
   tagRepository.assignToUsers(userIds, resolved.tag.id);
@@ -114,7 +116,7 @@ router.get("/users", (req, res) => {
   }
 
   const total = userRepository.count(tagId);
-  const users = userRepository.getBy({
+  const users = userRepository.listBy({
     tagId: tagId,
     pageSize: pageSize,
     page: page,

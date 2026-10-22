@@ -14,6 +14,7 @@ const auth = new OAuthApp({
 
 // 5 minutes before expiration, refresh the token
 const TOKEN_REFRESH_WINDOW_MS = 5 * 60 * 1000;
+const refreshPromises = new Map();
 
 function mapRepository(repo) {
   return {
@@ -113,8 +114,16 @@ async function getAccessToken(userId) {
     ? new Date(userTokens.github_expires_at).getTime()
     : null;
 
-  if (!expiresAt || TOKEN_REFRESH_WINDOW_MS > expiresAt - Date.now())
-    return await refreshAccessToken(userId, userTokens);
+  if (!expiresAt || TOKEN_REFRESH_WINDOW_MS > expiresAt - Date.now()) {
+    const key = String(userId);
+    if (!refreshPromises.has(key)) {
+      refreshPromises.set(
+        key,
+        refreshAccessToken(userId, userTokens).finally(() => refreshPromises.delete(key)),
+      );
+    }
+    return await refreshPromises.get(key);
+  }
 
   return decrypt(userTokens.github_access_token);
 }
@@ -218,12 +227,7 @@ async function getRepository(userId, repoId) {
 
     if (repo.size > 0 && repo.default_branch) {
       try {
-        const { data: refData } = await octokit.rest.git.getRef({
-          owner: repo.owner.login,
-          repo: repo.name,
-          ref: `heads/${repo.default_branch}`,
-        });
-        repo.sha = refData.object.sha;
+        repo.sha = await getRepositorySha(userId, repo.owner.login, repo.name, repo.default_branch);
       } catch (e) {}
     }
 
@@ -236,17 +240,13 @@ async function getRepository(userId, repoId) {
 async function getRepositorySha(userId, owner, repo, branch) {
   const octokit = await getOctokit(userId);
 
-  try {
-    const { data: refData } = await octokit.rest.git.getRef({
-      owner,
-      repo,
-      ref: `heads/${branch}`,
-    });
-    return refData.object.sha;
-  } catch (error) {
-    console.log(error);
-    throw new ServerError("Failed to fetch repository reference", 500);
-  }
+  const { data } = await octokit.rest.git.getTree({
+    owner,
+    repo,
+    tree_sha: branch,
+  });
+
+  return data.tree.filter((item) => item.type === "tree").map((item) => [item.path, item.sha]);
 }
 
 async function downloadRepository(userId, owner, repo) {
@@ -277,8 +277,6 @@ async function syncInstallations(userId) {
     if (!data.installations.some((i) => i.id === installation.id))
       installationsRepository.remove(installation.id);
   }
-
-  console.log(output);
   return output;
 }
 

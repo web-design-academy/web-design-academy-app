@@ -38,7 +38,7 @@ export default function Dashboard() {
           progress: user
             ? ((await getProgressAsync(lesson.id, user.userId))?.completedTasks.length ?? 0)
             : 0,
-          taskCount: lesson.taskCount ?? 0,
+          taskCount: lesson.taskCount,
         })),
       );
     },
@@ -131,7 +131,7 @@ export default function Dashboard() {
                           <div
                             className="course-progress-bar-fill"
                             style={{
-                              width: `${lesson.progress}%`,
+                              width: `${(lesson.progress / lesson.taskCount) * 100}%`,
                               background: lesson.color,
                             }}
                           />

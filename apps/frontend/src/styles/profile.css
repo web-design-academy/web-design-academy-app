@@ -56,6 +56,14 @@
     background: var(--color-card);
 }
 
+.profile-section-header {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: space-between;
+}
+
 .profile-section-actions {
     display: flex;
     flex-flow: row nowrap;

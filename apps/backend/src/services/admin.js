@@ -111,18 +111,22 @@ function parseUserIdList(value) {
 
 function resolveTagFromPayload(payload) {
   let tagId = Number.parseInt(String(payload.tagId ?? ""), 10);
+  const name = normalizeTagName(payload.name);
+  let tag = null;
 
   if (!Number.isFinite(tagId) || tagId < 1) {
-    const name = normalizeTagName(payload.name);
-
     if (!name) {
       return { error: "Invalid tag name" };
     }
 
-    tagRepository.create(name);
+    tag = tagRepository.getBy(name);
+    if (!tag) {
+      tag = tagRepository.create(name);
+    }
+  } else {
+    tag = tagRepository.getBy(tagId);
   }
 
-  const tag = tagRepository.getBy(tagId);
   if (!tag) {
     return { error: "Tag not found", status: 404 };
   }

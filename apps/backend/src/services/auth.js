@@ -59,12 +59,12 @@ async function getGoogleUser({ idToken, accessToken }) {
 }
 
 function isAllowedUniversityEmail(email) {
-  if (environment.allowedDomains.size === 0) return true;
+  if (environment.emailDomains.size === 0) return true;
 
   const domain = email.split("@")[1]?.toLowerCase();
   if (!domain) return false;
 
-  for (const allowedDomain of environment.allowedDomains) {
+  for (const allowedDomain of environment.emailDomains) {
     if (domain === allowedDomain || domain.endsWith(`.${allowedDomain}`)) {
       return true;
     }

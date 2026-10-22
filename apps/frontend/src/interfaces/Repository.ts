@@ -7,8 +7,12 @@ export interface Repository {
   html_url: string;
   private: boolean;
   default_branch: string;
-  sha: string;
+  sha: Map<string, string>;
   created_at: string;
   pushed_at: string;
   updated_at: string;
+}
+
+export interface RawRepository extends Omit<Repository, "sha"> {
+  sha: [string, string][];
 }

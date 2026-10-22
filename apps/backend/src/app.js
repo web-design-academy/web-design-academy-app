@@ -6,6 +6,7 @@ const adminRouter = require("./routes/admin");
 const authRouter = require("./routes/auth");
 const githubRouter = require("./routes/github");
 const lessonsRouter = require("./routes/lessons");
+const frontendRouter = require("./routes/frontend");
 
 const errorHandler = require("./middleware/error");
 const ServerError = require("./errors/ServerError");
@@ -14,6 +15,7 @@ const {
   corsMiddleware,
   helmetMiddleware,
   verifyOrigin,
+  authLimiter,
   apiLimiter,
 } = require("./middleware/security");
 const logger = require("./middleware/logger");
@@ -31,7 +33,7 @@ app.use(cookieParser());
 
 app.use("/api", [verifyOrigin, apiLimiter]);
 
-app.use("/api/auth", authRouter);
+app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/github", githubRouter);
 app.use("/api/lessons", lessonsRouter);
@@ -46,9 +48,7 @@ app.all("/api", (req, res, next) => {
 });
 
 if (environment.isProduction) {
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-  });
+  app.use("/*splat", frontendRouter);
 }
 
 app.use(errorHandler);

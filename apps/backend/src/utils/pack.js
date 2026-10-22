@@ -8,7 +8,8 @@ const chokidar = require("chokidar");
 
 async function packLesson(sourcePath, outputPath) {
   const lessonName = path.basename(sourcePath);
-  const output = fs.createWriteStream(outputPath);
+  const tempPath = `${outputPath}.tmp`;
+  const tempOutput = fs.createWriteStream(tempPath);
   const hash = crypto.createHash("sha256");
   const archive = new ZipArchive("zip", {
     zlib: 9,
@@ -26,12 +27,12 @@ async function packLesson(sourcePath, outputPath) {
     console.warn("Lesson packing error: " + error);
   });
 
-  archive.pipe(output);
+  archive.pipe(tempOutput);
   archive.directory(sourcePath, lessonName);
 
-  await Promise.all([archive.finalize(), finished(output)]);
-
   try {
+    await Promise.all([archive.finalize(), finished(tempOutput)]);
+
     const targetJsonPath = outputPath.replace(/\.zip$/i, ".json");
     const sourceBuffer = await fsAsync.readFile(path.join(sourcePath, `${lessonName}.wdal.json`));
     const metadata = JSON.parse(sourceBuffer.toString());
@@ -41,8 +42,10 @@ async function packLesson(sourcePath, outputPath) {
     metadata.slug = splitPath[splitPath.length - 1];
 
     await fsAsync.writeFile(targetJsonPath, JSON.stringify(metadata));
-  } catch (err) {
-    console.error(`Copy error: ${err.message}`);
+    await fsAsync.rename(tempPath, outputPath);
+  } catch (error) {
+    await fsAsync.rm(tempPath, { force: true }).catch(() => {});
+    throw error;
   }
 }
 
@@ -56,7 +59,12 @@ async function packLessons(sourceDir, outputDir) {
   for (const directory of directories) {
     const currentPath = path.join(sourceDir, directory.name);
     const destination = path.join(outputDir, `${directory.name}.zip`);
-    await packLesson(currentPath, destination);
+
+    try {
+      await packLesson(currentPath, destination);
+    } catch (error) {
+      console.error(`Failed to pack lesson ${directory.name}:`, error);
+    }
   }
 
   console.log("Successfully packed all lessons");
@@ -88,11 +96,7 @@ function watchLessons(sourceDir, outputDir, debounceMs = 500) {
       const destination = path.join(outputDir, `${lessonName}`);
 
       try {
-        const stat = await fsAsync.stat(sourcePath);
-        if (stat.isDirectory()) {
-          await packLesson(sourcePath, `${destination}.zip`);
-          console.log(`Repacked lesson ${lessonName}`);
-        }
+        await fsAsync.stat(sourcePath);
       } catch {
         try {
           await fsAsync.rm(`${destination}.zip`);
@@ -102,6 +106,14 @@ function watchLessons(sourceDir, outputDir, debounceMs = 500) {
           await fsAsync.rm(`${destination}.json`);
         } catch (e) {}
         console.log(`Deleted lesson ${lessonName}`);
+        return;
+      }
+
+      try {
+        await packLesson(sourcePath, `${destination}.zip`);
+        console.log(`Repacked lesson ${lessonName}`);
+      } catch (error) {
+        console.error(`Failed to repack lesson ${lessonName}:`, error);
       }
     }, debounceMs);
 

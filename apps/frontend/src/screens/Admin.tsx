@@ -659,11 +659,7 @@ export default function Admin() {
 
       <section className="admin-workspace">
         {error && (
-          <InfoBanner
-            type="error"
-            icon={<X />}
-            message={error?.message ?? "An unknown error occurred"}
-          />
+          <InfoBanner type="error" message={error?.message ?? "An unknown error occurred"} />
         )}
 
         {activeSection === "users" && (

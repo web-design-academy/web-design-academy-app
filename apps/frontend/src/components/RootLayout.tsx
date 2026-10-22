@@ -72,7 +72,7 @@ function GoogleSignInButton({ onAuthenticated, onError }: GoogleSignInButtonProp
 
 export default function Root() {
   const { user, logout, isAuthenticated } = useAuth();
-  const { showNotifications } = useNotifications();
+  const { showNotifications, notifications } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
@@ -203,7 +203,10 @@ export default function Root() {
             <GoogleSignInButton onAuthenticated={handleAuthenticated} onError={handleAuthError} />
           ) : null}
 
-          <button className={"btn-ghost"} onClick={() => showNotifications()}>
+          <button
+            className={notifications.length > 0 ? "btn-primary" : "btn-ghost"}
+            onClick={() => showNotifications()}
+          >
             <BellIcon size={"1.2em"} />
           </button>
 

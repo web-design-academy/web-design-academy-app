@@ -118,6 +118,7 @@
     display: flex;
     justify-content: end;
     align-items: center;
+    border-top: var(--border-width-thin) solid var(--color-border);
     gap: var(--space-2);
     padding: var(--space-2);
 }
@@ -144,4 +145,12 @@
     background-color: var(--status-error-bg);
     color: var(--status-error-text);
     border-color: var(--status-error-border);
+}
+
+.notification-history {
+    overflow: scroll
+}
+
+.notification-history-item:not(:last-child) {
+    margin-bottom: var(--space-2);
 }

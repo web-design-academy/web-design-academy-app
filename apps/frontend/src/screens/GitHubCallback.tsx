@@ -5,6 +5,7 @@ export default function GitHubCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string>("GitHub account linking done. Closing window...");
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -21,18 +22,18 @@ export default function GitHubCallback() {
       if (error) setError(error);
       else window.close();
     } else {
-      navigate("/settings", { replace: true });
+      if (error) {
+        setError(error);
+      } else {
+        setMessage("GitHub account linking done. You can close this window now...");
+      }
     }
   }, [searchParams, navigate]);
 
   return (
     <div style={{ textAlign: "center", padding: "2rem" }}>
       <h1>GitHub Account Linking</h1>
-      {error ? (
-        <p style={{ color: "red" }}>{error}</p>
-      ) : (
-        <p>GitHub account linking done. Closing window...</p>
-      )}
+      {error ? <p style={{ color: "red" }}>{error}</p> : <p>{message}</p>}
     </div>
   );
 }

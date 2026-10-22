@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  buildSlug,
   decodeSlug,
   deleteLessonAsync,
   emitLessonDraftsChanged,
@@ -11,9 +12,15 @@ import {
   type Source,
 } from "@/lib/helpers/db.ts";
 import "@/styles/updater.css";
-import { DownloadCloud } from "lucide-react";
-import { createContext, type ReactNode, useContext, useState } from "react";
-import LucideIcon from "@/components/Lesson/LucideIcon.tsx";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { downloadLessonArchive, fetchLesson } from "@/lib/api/lessons.ts";
 import { downloadRepositoryArchive, fetchRepository } from "@/lib/api/github.ts";
 import { parseZipAsync } from "@/lib/helpers/zipHeper.ts";
@@ -22,6 +29,7 @@ import LessonIcon from "@/components/Lesson/LessonIcon.tsx";
 import "@/styles/downloader.css";
 import type { NewLesson } from "@/interfaces/NewLesson.ts";
 import { useNotifications } from "@/components/Notifications.tsx";
+import InfoBanner from "@/components/InfoBanner.tsx";
 
 interface ProcessZipResult {
   success: number;
@@ -32,10 +40,11 @@ interface ProcessZipResult {
 interface DownloadContextType {
   refreshUpdates: () => Promise<void>;
   processZip: (
-    lesson: Blob,
+    archive: Blob,
     source?: Source,
     remoteId?: string,
     sha?: string,
+    shas?: Map<string, string>,
   ) => Promise<ProcessZipResult>;
 }
 
@@ -49,7 +58,6 @@ interface Conflict {
 
 export default function DownloaderProvider({ children }: { children: ReactNode }) {
   const { pushNotification } = useNotifications();
-  const [visible, setVisible] = useState(true);
   const [newLessons, setNewLessons] = useState<NewLesson[]>([]);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
 
@@ -70,41 +78,38 @@ export default function DownloaderProvider({ children }: { children: ReactNode }
       }
 
       const shas = new Map<string, string>();
-      for (const [remote, source] of remotes) {
-        try {
-          const remoteData =
-            source === "wda" ? await fetchLesson(remote) : await fetchRepository(remote);
+      await Promise.all(
+        Array.from(remotes.entries()).map(async ([remote, source]) => {
+          try {
+            const remoteData =
+              source === "wda" ? await fetchLesson(remote) : await fetchRepository(remote);
 
-          if (remoteData?.sha) shas.set(remote, remoteData.sha);
-        } catch (e) {
-          pushNotification({
-            type: "error",
-            message: `Failed to fetch updates for ${remote} (${source}): ${e}`,
-            duration: 10,
-          });
-        }
-      }
+            if (remoteData?.sha) {
+              if (source === "wda") {
+                shas.set(remote, remoteData.sha as string);
+              } else if (source === "github") {
+                for (const [lesson, sha] of remoteData.sha as Map<string, string>) {
+                  shas.set(buildSlug(lesson, source, remote), sha);
+                }
+              }
+            }
+          } catch (e) {
+            console.log(`Failed to fetch remote data for ${remote} from ${source}:`, e);
+          }
+        }),
+      );
 
       for (const lesson of lessons) {
-        const { remote } = decodeSlug(lesson.slug);
-        if (remote && shas.has(remote)) {
-          const latestSha = shas.get(remote);
-          if (latestSha && latestSha !== lesson.sha) updatable.push(lesson);
-        }
-      }
+        const { remote, source } = decodeSlug(lesson.slug);
+        if (remote) {
+          let search = remote;
+          if (source === "github") search = lesson.slug;
 
-      if (updatable.length === 0) {
-        pushNotification({
-          type: "success",
-          message: "All lessons are up to date",
-          duration: 3,
-        });
-      } else {
-        pushNotification({
-          type: "info",
-          message: `${updatable.length} lesson${updatable.length > 1 ? "s have" : " has"} updates available`,
-          duration: 5,
-        });
+          if (shas.has(search)) {
+            const latestSha = shas.get(search);
+            if (latestSha && latestSha !== lesson.sha) updatable.push(lesson);
+          }
+        }
       }
 
       return updatable;
@@ -112,116 +117,132 @@ export default function DownloaderProvider({ children }: { children: ReactNode }
     staleTime: 60 * 60 * 1000,
   });
 
-  const processZip = async (
-    blob: Blob,
-    source?: Source,
-    remote?: string,
-    sha?: string,
-  ): Promise<ProcessZipResult> => {
-    const existing = await getLessonsAsync();
-    const existingMap = new Map(existing.map((l) => [l.slug, l]));
-    const { lessons, errors } = await parseZipAsync(
-      blob,
-      source && remote ? { source, remote } : undefined,
-      sha,
-    );
-    const newLessons: NewLesson[] = [];
-    const detectedConflicts: Conflict[] = [];
+  const processZip = useCallback(
+    async (
+      blob: Blob,
+      source?: Source,
+      remote?: string,
+      sha?: string,
+      shas?: Map<string, string>,
+    ): Promise<ProcessZipResult> => {
+      const existing = await getLessonsAsync();
+      const existingMap = new Map(existing.map((l) => [l.slug, l]));
+      const { lessons, errors } = await parseZipAsync(
+        blob,
+        source && remote ? { source, remote } : undefined,
+        sha,
+        shas,
+      );
+      const newLessons: NewLesson[] = [];
+      const detectedConflicts: Conflict[] = [];
 
-    if (errors.length > 0) {
-      pushNotification({
-        type: "error",
-        message: `Several errors occurred while processing the archive, check the console for details`,
-        duration: 15,
-      });
-    }
-
-    if (lessons.length === 0) {
-      pushNotification({
-        type: "warning",
-        message: "No valid lessons found in the zip file",
-        duration: 15,
-      });
-
-      return { success: 0, conflicts: 0, errors: errors };
-    }
-
-    for (const lesson of lessons) {
-      const existingLesson = existingMap.get(lesson.lesson.slug);
-
-      if (existingLesson) {
-        detectedConflicts.push({
-          original: existingLesson,
-          newLesson: lesson,
-          detectedChanges: existingLesson.sha !== lesson.lesson.sha,
-        });
-      } else {
-        newLessons.push(lesson);
-      }
-    }
-
-    if (detectedConflicts.length > 0) {
-      setConflicts((prev) => [...prev, ...detectedConflicts]);
-    }
-
-    if (newLessons.length > 0) {
-      setNewLessons((prev) => [...prev, ...newLessons]);
-    }
-
-    return {
-      success: newLessons.length,
-      conflicts: detectedConflicts.length,
-      errors,
-    };
-  };
-
-  const performUpdates = async () => {
-    if (!updates?.length) return;
-
-    const reposToUpdate = new Map<string, Source>();
-    for (const lesson of updates) {
-      const { source, remote } = decodeSlug(lesson.slug);
-
-      if (source && remote) reposToUpdate.set(remote, source);
-    }
-
-    let incompleteUpdates = 0;
-    for (const [remote, source] of reposToUpdate) {
-      try {
-        if (source === "wda") {
-          const metadata = await fetchLesson(remote);
-          const data = await downloadLessonArchive(remote);
-          const result = await processZip(data, "wda", remote, metadata.sha);
-          if (result.conflicts > 0) incompleteUpdates++;
-        } else if (source === "github") {
-          const metadata = await fetchRepository(remote);
-          const data = await downloadRepositoryArchive(metadata.owner_login, metadata.name);
-          const result = await processZip(data, "github", remote, metadata.sha);
-          if (result.conflicts > 0) incompleteUpdates++;
-        } else {
-          incompleteUpdates++;
-          pushNotification({
-            type: "error",
-            message: `Updates from ${source} are not supported for ${remote} yet`,
-            duration: 10,
-          });
-        }
-      } catch (e) {
-        incompleteUpdates++;
-        const message = e instanceof Error ? e.message : String(e);
+      if (errors.length > 0) {
         pushNotification({
           type: "error",
-          message: `Failed to update ${remote} from ${source}: ${message}`,
-          duration: 10,
+          message: `Several errors occurred while processing the archive, check the console for details`,
+          duration: 15,
         });
-        console.error(`Failed to update repo ${remote}:`, e);
       }
-    }
 
-    if (incompleteUpdates === 0) setVisible(false);
-  };
+      if (lessons.length === 0) {
+        pushNotification({
+          type: "warning",
+          message: "No valid lessons found in the archive",
+          duration: 15,
+        });
+
+        return { success: 0, conflicts: 0, errors: errors };
+      }
+
+      for (const lesson of lessons) {
+        const existingLesson = existingMap.get(lesson.lesson.slug);
+
+        if (existingLesson) {
+          const detectedChanges = existingLesson.sha !== lesson.lesson.sha;
+          if (detectedChanges) {
+            detectedConflicts.push({
+              original: existingLesson,
+              newLesson: lesson,
+              detectedChanges: detectedChanges,
+            });
+          }
+        } else {
+          newLessons.push(lesson);
+        }
+      }
+
+      if (detectedConflicts.length > 0) {
+        setConflicts((prev) => [...prev, ...detectedConflicts]);
+      }
+
+      if (newLessons.length > 0) {
+        setNewLessons((prev) => [...prev, ...newLessons]);
+      }
+
+      return {
+        success: newLessons.length,
+        conflicts: detectedConflicts.length,
+        errors,
+      };
+    },
+    [pushNotification],
+  );
+
+  const performUpdates = useCallback(
+    async (updates: LessonMeta[]) => {
+      if (!updates?.length)
+        pushNotification({
+          type: "info",
+          message: "No updates available",
+          duration: 3,
+        });
+
+      const reposToUpdate = new Map<string, Source>();
+      for (const lesson of updates) {
+        const { source, remote } = decodeSlug(lesson.slug);
+
+        if (source && remote) reposToUpdate.set(remote, source);
+      }
+
+      await Promise.all(
+        Array.from(reposToUpdate.entries()).map(async ([remote, source]) => {
+          try {
+            if (source === "wda") {
+              const metadata = await fetchLesson(remote);
+              const data = await downloadLessonArchive(remote);
+              await processZip(data, "wda", remote, metadata.sha);
+            } else if (source === "github") {
+              const metadata = await fetchRepository(remote);
+              const data = await downloadRepositoryArchive(metadata.owner_login, metadata.name);
+              await processZip(data, "github", remote, undefined, metadata.sha);
+            } else {
+              pushNotification({
+                type: "error",
+                message: `Updates from ${source} are not supported for ${remote} yet`,
+                duration: 10,
+              });
+            }
+          } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            pushNotification({
+              type: "error",
+              message: `Failed to update ${remote} from ${source}: ${message}`,
+              duration: 10,
+            });
+            console.error(`Failed to update repo ${remote}:`, e);
+          }
+        }),
+      );
+    },
+    [processZip, pushNotification],
+  );
 
   const refreshUpdates = async () => {
+    pushNotification({
+      type: "info",
+      message: "Checking for lesson updates...",
+      duration: 3,
+    });
     await updatesRefetch();
   };
 
@@ -244,24 +265,46 @@ export default function DownloaderProvider({ children }: { children: ReactNode }
   const replaceLesson = async (conflict: Conflict) => {
     await deleteLessonAsync(conflict.original.id);
     await saveLesson(conflict.newLesson);
-
-    pushNotification({
-      type: "success",
-      message: `Lesson "${conflict.original.title}" replaced with "${conflict.newLesson.lesson.title}"`,
-      duration: 3,
-    });
   };
 
   const keepBothLessons = async (conflict: Conflict) => {
-    conflict.newLesson.lesson.title = `${conflict.newLesson.lesson.title} (Copy)`;
-    await saveLesson(conflict.newLesson);
+    const existingTitles = new Set((await getLessonsAsync()).map((l) => l.title));
+    let counter = 0;
+    let newTitle = conflict.newLesson.lesson.title;
 
-    pushNotification({
-      type: "success",
-      message: `Lesson "${conflict.newLesson.lesson.title}" saved as a copy`,
-      duration: 3,
-    });
+    while (existingTitles.has(newTitle)) {
+      counter++;
+      newTitle = `${conflict.newLesson.lesson.title} (Copy${counter > 1 ? ` ${counter}` : ""})`;
+    }
+
+    conflict.newLesson.lesson.title = newTitle;
+
+    await saveLesson(conflict.newLesson);
   };
+
+  const notifiedUpdatesRef = useRef<LessonMeta[] | null>(null);
+
+  useEffect(() => {
+    if (updatesLoading || !updates) return;
+    if (notifiedUpdatesRef.current === updates) return;
+    notifiedUpdatesRef.current = updates;
+
+    if (updates.length > 0) {
+      pushNotification({
+        type: "info",
+        message: `${updates.length} lesson(s) have updates available`,
+        duration: undefined,
+        actions: [
+          {
+            label: "View Updates",
+            onClick: async () => {
+              await performUpdates(updates);
+            },
+          },
+        ],
+      });
+    }
+  }, [updates, updatesLoading, pushNotification, performUpdates]);
 
   return (
     <DownloadContext.Provider
@@ -272,37 +315,6 @@ export default function DownloaderProvider({ children }: { children: ReactNode }
     >
       {children}
 
-      <div
-        className={`updater ${visible && !updatesLoading && updates?.length && updates.length > 0 ? "" : "hidden"}`}
-      >
-        <div className="updater-title">
-          <h3>Lesson updates available</h3>
-          <button className="btn-ghost modal-close" onClick={() => setVisible(false)}>
-            &times;
-          </button>
-        </div>
-
-        <div className="updater-body">
-          {updates &&
-            updates.map((l) => (
-              <div key={l.id} className="updater-lesson">
-                <div className="course-icon" style={{ background: l.color }} aria-hidden="true">
-                  <LucideIcon name={l.icon} size={20} />
-                </div>
-
-                <h4>{l.title}</h4>
-              </div>
-            ))}
-        </div>
-
-        <div className="updater-body">
-          <button className="updater-button btn-primary" onClick={() => performUpdates()}>
-            <DownloadCloud size="1em" className="icon-margin-right" />
-            Update
-          </button>
-        </div>
-      </div>
-
       <Modal
         title={"Download manager"}
         isOpen={conflicts.length > 0 || newLessons.length > 0}
@@ -312,6 +324,13 @@ export default function DownloaderProvider({ children }: { children: ReactNode }
         }}
         children={
           <div className={"downloader-conflicts"}>
+            <InfoBanner
+              type={"info"}
+              message={"Note that replacing lesson removes your progress on that lesson."}
+            />
+
+            {conflicts.length > 0 && <h3>Existing lessons</h3>}
+
             {conflicts.map((conflict) => (
               <div key={conflict.original.id} className={"downloader-conflict-item"}>
                 <LessonIcon
@@ -368,6 +387,8 @@ export default function DownloaderProvider({ children }: { children: ReactNode }
                 </div>
               </div>
             ))}
+
+            {newLessons.length > 0 && <h3>New lessons</h3>}
 
             {newLessons.map((lesson) => (
               <div key={lesson.lesson.id} className={"downloader-conflict-item"}>

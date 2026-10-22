@@ -2,7 +2,7 @@ import { API_BASE } from "@/lib/api/client.ts";
 import { readResponse } from "@/lib/api/readResponse.ts";
 import type { GitHubProfile } from "@/interfaces/GitHubProfile.ts";
 import type { Installation } from "@/interfaces/Installation.ts";
-import type { Repository } from "@/interfaces/Repository.ts";
+import type { RawRepository, Repository } from "@/interfaces/Repository.ts";
 
 export async function fetchProfile() {
   const response = await fetch(`${API_BASE}/github/me`, {
@@ -40,7 +40,11 @@ export async function fetchRepository(repoId: string) {
     credentials: "include",
   });
 
-  return readResponse<Repository>(response, "Failed to fetch repository");
+  const data = await readResponse<RawRepository>(response, "Failed to fetch repository");
+  return {
+    ...data,
+    sha: new Map(data.sha),
+  } as Repository;
 }
 
 export async function fetchRepositorySha(owner: string, name: string, branch: string) {
@@ -56,7 +60,8 @@ export async function fetchRepositorySha(owner: string, name: string, branch: st
     },
   );
 
-  return readResponse<string>(response, "Failed to fetch repository SHA");
+  const parsed = await readResponse<[string, string][]>(response, "Failed to fetch repository SHA");
+  return new Map(parsed);
 }
 
 export async function downloadRepositoryArchive(owner: string, name: string) {

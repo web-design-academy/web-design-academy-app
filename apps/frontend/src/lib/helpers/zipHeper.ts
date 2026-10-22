@@ -195,6 +195,7 @@ export async function parseZipAsync(
   file: Blob,
   slugComponents?: { source: Source; remote: string },
   sha?: string,
+  shas?: Map<string, string>,
 ): Promise<{ lessons: NewLesson[]; errors: string[] }> {
   const lessons: NewLesson[] = [];
   const errors: string[] = [];
@@ -209,9 +210,15 @@ export async function parseZipAsync(
       const slashIndex = entry.name.lastIndexOf("/");
       const folder = slashIndex !== -1 ? entry.name.slice(0, slashIndex + 1) : "";
 
+      const folderParts = folder.split("/").filter(Boolean);
+      if (folderParts.length !== (slugComponents?.source === "github" ? 2 : 1)) {
+        throw new Error(`Lesson must be in a root folder. Found at: ${entry.name}`);
+      }
+
+      const folderName = folderParts[folderParts.length - 1];
       const parsedMeta = JSON.parse(await entry.async("text")) as Partial<LessonMeta>;
       const lesson: NewLesson = {
-        lesson: validateMeta(parsedMeta, slugComponents, sha),
+        lesson: validateMeta(parsedMeta, slugComponents, shas?.get(folderName) ?? sha),
         tasks: [],
       };
 
@@ -236,7 +243,7 @@ export async function parseZipAsync(
             const taskId = parseInt(splitPath[0], 10);
             if (isNaN(taskId)) continue;
 
-            const fileName = splitPath[splitPath.length - 1];
+            const fileName = splitPath.slice(1).join("/");
             addTaskFileToMap(tasksMap, taskId, fileName, await file.async("text"));
           }
         } catch (error) {
@@ -244,7 +251,9 @@ export async function parseZipAsync(
             `Error parsing file ${file.name} for lesson ${lesson.lesson.title}:`,
             error,
           );
-          // errors.push(`Error parsing file ${file.name} for lesson ${lesson.lesson.title}: ${error}`);
+          errors.push(
+            `Error parsing file ${file.name} for lesson ${lesson.lesson.title}: ${error}`,
+          );
         }
       }
 
@@ -255,7 +264,7 @@ export async function parseZipAsync(
       lessons.push(lesson);
     } catch (err) {
       console.error(`Error parsing ${entry.name}:`, err);
-      // errors.push(`Error parsing ${entry.name}: ${err}`);
+      errors.push(`Error parsing ${entry.name}: ${err}`);
     }
   }
 

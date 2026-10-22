@@ -4,7 +4,7 @@ import GitHubAvatar from "@/components/User/GitHubAvatar.tsx";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import "@/styles/profile.css";
-import { DownloadCloud, ExternalLink, Pencil, Plus, Settings } from "lucide-react";
+import { DownloadCloud, ExternalLink, Pencil, Plus, RotateCcw, Settings } from "lucide-react";
 import Modal from "@/components/Modal.tsx";
 import Pagination from "@/components/Pagination.tsx";
 import LoadingSpinner from "@/components/LoadingSpinner.tsx";
@@ -46,6 +46,11 @@ const sideWindow = (
     `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`,
   );
 
+  if (!popup) {
+    onError(new Error("Failed to open popup window"));
+    return;
+  }
+
   const handleMessage = async (event: MessageEvent) => {
     if (event.origin !== window.location.origin) return;
 
@@ -58,7 +63,11 @@ const sideWindow = (
   };
 
   const timer = setInterval(async () => {
-    if (popup?.closed) cleanup();
+    if (popup?.closed) {
+      console.log("Popup closed, cleaning up event listener");
+      onSuccess();
+      cleanup();
+    }
   }, 500);
 
   const cleanup = () => {
@@ -170,8 +179,8 @@ export default function Profile() {
 
     try {
       const blob = await downloadRepositoryArchive(repo.owner_login, repo.name);
-      const sha = await fetchRepositorySha(repo.owner_login, repo.name, repo.default_branch);
-      await processZip(blob, "github", repo.id.toString(), sha);
+      const shas = await fetchRepositorySha(repo.owner_login, repo.name, repo.default_branch);
+      await processZip(blob, "github", repo.id.toString(), undefined, shas);
 
       pushNotification({
         type: "success",
@@ -219,6 +228,7 @@ export default function Profile() {
     data: repositories,
     isLoading: repositoriesLoading,
     error: repositoriesError,
+    refetch: repositoriesRefetch,
   } = useQuery({
     queryKey: ["repositories"],
     queryFn: async () => await fetchRepositories(),
@@ -351,7 +361,16 @@ export default function Profile() {
 
         <div className="profile-section profile-larger">
           <div className="profile-section profile-section-panel">
-            <h2>Repositories</h2>
+            <div className="profile-section-header">
+              <h2>Repositories</h2>
+              {user?.githubId && (
+                <div className={"profile-section-actions"}>
+                  <button type="button" className="btn-ghost" onClick={() => repositoriesRefetch()}>
+                    <RotateCcw size="1em" />
+                  </button>
+                </div>
+              )}
+            </div>
 
             {!user?.githubId ? (
               <div className="profile-section-info border">
@@ -496,50 +515,52 @@ export default function Profile() {
         isOpen={openModal === "installations"}
         onClose={handlePopUpClose}
         children={
-          installationsLoading ? (
-            <LoadingSpinner />
-          ) : (
-            <div className="profile-section">
-              <div className="profile-section-actions">
-                <button type="button" className="btn-ghost" onClick={addInstallation}>
-                  <Plus size="1em" className="icon-margin-right" />
-                  Add installation
-                </button>
+          <div className="profile-section">
+            <div className="profile-section-actions">
+              <button type="button" className="btn-ghost" onClick={addInstallation}>
+                <Plus size="1em" className="icon-margin-right" />
+                Add installation
+              </button>
 
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => {
-                    setOpenModal("unlink");
-                  }}
-                >
-                  <GitHubIcon size="1em" className="icon-margin-right" />
-                  Unlink
-                </button>
-              </div>
+              <button type="button" className="btn-ghost" onClick={() => installationsRefetch()}>
+                <RotateCcw size="1em" />
+              </button>
 
-              <div className="profile-repositories">
-                {installations?.length === 0 ? (
-                  <div className="profile-section-info">
-                    <p>No installations found.</p>
-                  </div>
-                ) : (
-                  installationsShown.map((i) => <InstallationBanner key={i.id} installation={i} />)
-                )}
-              </div>
-
-              <Pagination
-                page={installationsPage}
-                pageSize={installationsPageSize}
-                total={installations?.length || 0}
-                onChange={(page) => setInstallationsPage(page)}
-                onPageSizeChange={(size) => {
-                  setInstallationsPageSize(size);
-                  setInstallationsPage(1);
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => {
+                  setOpenModal("unlink");
                 }}
-              />
+              >
+                <GitHubIcon size="1em" className="icon-margin-right" />
+                Unlink
+              </button>
             </div>
-          )
+
+            <div className="profile-repositories">
+              {installationsLoading ? (
+                <LoadingSpinner />
+              ) : installations?.length === 0 ? (
+                <div className="profile-section-info">
+                  <p>No installations found.</p>
+                </div>
+              ) : (
+                installationsShown.map((i) => <InstallationBanner key={i.id} installation={i} />)
+              )}
+            </div>
+
+            <Pagination
+              page={installationsPage}
+              pageSize={installationsPageSize}
+              total={installations?.length || 0}
+              onChange={(page) => setInstallationsPage(page)}
+              onPageSizeChange={(size) => {
+                setInstallationsPageSize(size);
+                setInstallationsPage(1);
+              }}
+            />
+          </div>
         }
       />
     </main>

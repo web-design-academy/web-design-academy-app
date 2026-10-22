@@ -22,7 +22,7 @@ async function bootstrap() {
   }
 
   await packLessons(environment.lessonsPath, environment.cachePath).catch((error) => {
-    console.log("Error processing lessons: ", error);
+    console.error("Error processing lessons: ", error);
     process.exit(1);
   });
 
