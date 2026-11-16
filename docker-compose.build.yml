@@ -2,8 +2,8 @@ services:
   backend:
     image: dexter.fit.vutbr.cz/webdesignacademy/webdesignacademy-backend
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/backend/Dockerfile
 
   frontend:
     image: dexter.fit.vutbr.cz/webdesignacademy/webdesignacademy-frontend

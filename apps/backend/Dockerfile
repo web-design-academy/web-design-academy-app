@@ -3,20 +3,26 @@ FROM node:22-alpine AS deps
 RUN apk add --no-cache python3 make g++
 RUN npm install -g pnpm
 
-WORKDIR /app
+WORKDIR /workspace
 
-COPY package.json ./
-RUN printf 'allowBuilds:\n  better-sqlite3: true\n' > pnpm-workspace.yaml
-RUN pnpm install --prod
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY packages/visual-editor/package.json ./packages/visual-editor/
+COPY packages/visual-preview/package.json ./packages/visual-preview/
+COPY packages/ui-styles/package.json ./packages/ui-styles/
+
+COPY apps/backend/src ./apps/backend/src
+RUN pnpm --filter @wda/backend deploy --legacy --prod --frozen-lockfile /runtime
 
 FROM node:22-alpine
 
 WORKDIR /app
 
+COPY --from=deps /runtime/package.json ./package.json
+COPY --from=deps /runtime/node_modules ./node_modules
+COPY --from=deps /runtime/src ./src
 RUN mkdir -p storage lessons
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY src/ ./src/
 
 ENV NODE_ENV=production
 ENV PORT=3000

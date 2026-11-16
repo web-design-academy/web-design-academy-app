@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint --fix .",
     "style": "prettier -w .",
-    "ts:check": "tsc --noEmit"
+    "ts:check": "tsc -b --noEmit"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

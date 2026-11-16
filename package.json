@@ -15,5 +15,8 @@
     "lint:frontend": "pnpm --filter @wda/frontend lint",
     "check:frontend": "pnpm --filter @wda/frontend ts:check",
     "style": "pnpm -r --if-present style"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
   }
 }

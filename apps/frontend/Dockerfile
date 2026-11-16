@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @wda/frontend... install --frozen-lockfile
 
 ARG VITE_BASE_URL=/wda
 ARG VITE_APP_MODE=online
