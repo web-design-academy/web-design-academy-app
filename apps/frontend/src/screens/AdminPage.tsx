@@ -751,9 +751,6 @@ export default function AdminPage() {
     };
   }, []);
 
-  useEffect(() => setUserPage(1), [userTagFilter]);
-  useEffect(() => setSubmissionPage(1), [submissionTagFilter]);
-
   const updateUserSort = useCallback((sort: SortState<UserSortKey>) => {
     setUserSort(sort);
     setUserPage(1);
@@ -812,9 +809,11 @@ export default function AdminPage() {
     openTagPopoverUserId,
   ]);
 
-  useEffect(() => {
+  const [previousLessons, setPreviousLessons] = useState(lessons);
+  if (previousLessons !== lessons) {
+    setPreviousLessons(lessons);
     setOrderedLessons(lessons);
-  }, [lessons]);
+  }
 
   const displayedLessons = orderedLessons;
   const lessonIds = useMemo(
@@ -1066,22 +1065,16 @@ export default function AdminPage() {
     setIsModalOpen(true);
   };
 
-  useEffect(() => {
-    setSelectedUserIds((current) => {
-      const visibleUserIdSet = new Set(visibleUserIds);
-      const next = new Set(
-        [...current].filter((userId) => visibleUserIdSet.has(userId)),
-      );
-
-      return next.size === current.size ? current : next;
-    });
-  }, [visibleUserIds]);
-
-  useEffect(() => {
-    if (!selectedVisibleCount) {
-      setIsBulkTagPopoverOpen(false);
-    }
-  }, [selectedVisibleCount]);
+  const visibleUserIdSet = new Set(visibleUserIds);
+  const visibleSelection = new Set(
+    [...selectedUserIds].filter((userId) => visibleUserIdSet.has(userId)),
+  );
+  if (visibleSelection.size !== selectedUserIds.size) {
+    setSelectedUserIds(visibleSelection);
+  }
+  if (!selectedVisibleCount && isBulkTagPopoverOpen) {
+    setIsBulkTagPopoverOpen(false);
+  }
 
   const setVisibleUsersSelected = (checked: boolean) => {
     setSelectedUserIds((current) => {
@@ -1558,7 +1551,10 @@ export default function AdminPage() {
                 </span>
                 <TagFilter
                   value={userTagFilter}
-                  onChange={setUserTagFilter}
+                  onChange={(filter) => {
+                    setUserTagFilter(filter);
+                    setUserPage(1);
+                  }}
                   tags={tags}
                 />
               </div>
@@ -1735,7 +1731,10 @@ export default function AdminPage() {
               </div>
               <TagFilter
                 value={submissionTagFilter}
-                onChange={setSubmissionTagFilter}
+                onChange={(filter) => {
+                  setSubmissionTagFilter(filter);
+                  setSubmissionPage(1);
+                }}
                 tags={tags}
               />
             </div>

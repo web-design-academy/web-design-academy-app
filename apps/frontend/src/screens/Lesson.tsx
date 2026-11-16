@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 import { Resizable, type ResizeCallback } from "re-resizable";
 import {
@@ -80,6 +86,19 @@ const getSubmittedTaskState = (
 });
 
 export default function Lesson() {
+  const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const lessonKey = JSON.stringify([
+    slug,
+    searchParams.get("submissionId"),
+    user?.userId,
+    user?.role,
+  ]);
+  return <LessonContent key={lessonKey} />;
+}
+
+function LessonContent() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const submissionId = searchParams.get("submissionId");
@@ -178,6 +197,11 @@ export default function Lesson() {
     persistAutosaveDraftRef.current = persistAutosaveDraft;
   }, [persistAutosaveDraft]);
 
+  useLayoutEffect(() => {
+    tasksRef.current = tasks;
+    taskStatesRef.current = taskStates;
+  }, [tasks, taskStates]);
+
   const setTasksSnapshot = (nextTasks: Partial<TaskCode>[]) => {
     tasksRef.current = nextTasks;
     setTasks(nextTasks);
@@ -221,12 +245,6 @@ export default function Lesson() {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
-
-    setIsNew(null);
-    setLessonMeta(undefined);
-    setLessonContent("");
-    setLessonLoadError(null);
-    setCurrentTaskIndex(0);
 
     const loadLesson = async () => {
       try {
@@ -306,7 +324,15 @@ export default function Lesson() {
     };
   }, []);
 
-  useEffect(() => {
+  const [appliedSubmission, setAppliedSubmission] = useState({
+    loadedSubmission,
+    tasks,
+  });
+  if (
+    appliedSubmission.loadedSubmission !== loadedSubmission ||
+    appliedSubmission.tasks !== tasks
+  ) {
+    setAppliedSubmission({ loadedSubmission, tasks });
     if (loadedSubmission && tasks.length > 0) {
       const targetTaskIndex = parseInt(loadedSubmission.task_id) - 1;
 
@@ -324,7 +350,7 @@ export default function Lesson() {
           [loadedSubmission.task_id]: submittedTaskState,
         });
 
-        updateTaskStatesSnapshot((prev) =>
+        setTaskStates((prev) =>
           prev.map((s, idx) => {
             if (idx === targetTaskIndex) {
               return {
@@ -337,72 +363,77 @@ export default function Lesson() {
         );
       }
     }
-  }, [loadedSubmission, tasks]);
+  }
 
-  useEffect(() => {
+  const [appliedLatestSubmissions, setAppliedLatestSubmissions] = useState({
+    latestLessonSubmissions,
+    tasks,
+  });
+  if (
+    appliedLatestSubmissions.latestLessonSubmissions !==
+      latestLessonSubmissions ||
+    appliedLatestSubmissions.tasks !== tasks
+  ) {
+    setAppliedLatestSubmissions({ latestLessonSubmissions, tasks });
     const submissions = latestLessonSubmissions?.items ?? [];
 
-    if (submissions.length === 0 || tasks.length === 0 || submissionId) {
-      return;
-    }
+    if (submissions.length > 0 && tasks.length > 0 && !submissionId) {
+      setSubmissionBaselines(
+        Object.fromEntries(
+          submissions.map((submission) => {
+            const taskIndex = Number.parseInt(submission.task_id, 10) - 1;
+            return [
+              submission.task_id,
+              getSubmittedTaskState(tasks[taskIndex] ?? {}, submission),
+            ];
+          }),
+        ),
+      );
 
-    setSubmissionBaselines(
-      Object.fromEntries(
-        submissions.map((submission) => {
-          const taskIndex = Number.parseInt(submission.task_id, 10) - 1;
-          return [
-            submission.task_id,
-            getSubmittedTaskState(tasks[taskIndex] ?? {}, submission),
-          ];
+      setTaskStates((prev) =>
+        prev.map((state, index) => {
+          const savedSubmission = submissions.find(
+            (submission) => submission.task_id === String(index + 1),
+          );
+          const storedDraftTask = slug
+            ? getStudentLessonDraft(slug, user?.userId)?.tasks[index]
+            : undefined;
+          const draftTask = storedDraftTask
+            ? normalizeTaskCode(storedDraftTask, tasks[index])
+            : undefined;
+          const submittedTask = savedSubmission
+            ? getSubmittedTaskState(tasks[index], savedSubmission)
+            : undefined;
+
+          if (!savedSubmission && !draftTask) {
+            return state;
+          }
+
+          return {
+            ...state,
+            html: draftTask?.html ?? submittedTask?.html ?? state.html,
+            css: draftTask?.css ?? submittedTask?.css ?? state.css,
+            js: draftTask?.js ?? submittedTask?.js ?? state.js,
+          };
         }),
-      ),
-    );
+      );
 
-    updateTaskStatesSnapshot((prev) =>
-      prev.map((state, index) => {
-        const savedSubmission = submissions.find(
-          (submission) => submission.task_id === String(index + 1),
-        );
-        const storedDraftTask = slug
-          ? getStudentLessonDraft(slug, user?.userId)?.tasks[index]
-          : undefined;
-        const draftTask = storedDraftTask
-          ? normalizeTaskCode(storedDraftTask, tasks[index])
-          : undefined;
-        const submittedTask = savedSubmission
-          ? getSubmittedTaskState(tasks[index], savedSubmission)
-          : undefined;
+      const latestTaskIndex = parseInt(submissions[0].task_id, 10) - 1;
 
-        if (!savedSubmission && !draftTask) {
-          return state;
-        }
-
-        return {
-          ...state,
-          html: draftTask?.html ?? submittedTask?.html ?? state.html,
-          css: draftTask?.css ?? submittedTask?.css ?? state.css,
-          js: draftTask?.js ?? submittedTask?.js ?? state.js,
-        };
-      }),
-    );
-
-    const latestTaskIndex = parseInt(submissions[0].task_id, 10) - 1;
-
-    if (
-      !Number.isNaN(latestTaskIndex) &&
-      latestTaskIndex >= 0 &&
-      latestTaskIndex < tasks.length
-    ) {
-      setCurrentTaskIndex(latestTaskIndex);
+      if (
+        !Number.isNaN(latestTaskIndex) &&
+        latestTaskIndex >= 0 &&
+        latestTaskIndex < tasks.length
+      ) {
+        setCurrentTaskIndex(latestTaskIndex);
+      }
     }
-  }, [latestLessonSubmissions, slug, submissionId, tasks, user?.userId]);
+  }
 
   useEffect(() => {
     if (!slug || autosaveRevision === 0 || loadedSubmission) {
       return;
     }
-
-    setAutosaveStatusSnapshot("pending");
 
     const timeout = window.setTimeout(() => {
       try {

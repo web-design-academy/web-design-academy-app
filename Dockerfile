@@ -23,7 +23,7 @@ COPY apps/frontend/ ./apps/frontend/
 COPY packages/visual-preview/ ./packages/visual-preview/
 COPY packages/visual-editor/ ./packages/visual-editor/
 COPY packages/ui-styles/ ./packages/ui-styles/
-RUN pnpm --filter web-design-academy build
+RUN pnpm --filter @wda/frontend build
 
 FROM node:22-alpine
 

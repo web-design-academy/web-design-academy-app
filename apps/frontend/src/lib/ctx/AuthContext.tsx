@@ -12,14 +12,11 @@ import { AuthContext, type User } from "./useAuth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(isOnlineMode);
   const [shouldClearLocalData, setShouldClearLocalData] = useState(false);
 
   useEffect(() => {
-    if (!isOnlineMode) {
-      setIsLoading(false);
-      return;
-    }
+    if (!isOnlineMode) return;
 
     fetchSession()
       .then((session) => {

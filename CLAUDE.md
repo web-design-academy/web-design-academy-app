@@ -18,7 +18,7 @@
 ```
 apps/
   backend/    — Express server
-  frontend/   — Vite/React app (name: web-design-academy)
+  frontend/   — Vite/React app (name: @wda/frontend)
 packages/
   visual-preview/          — @wda/css-analysis (workspace:*)
   visual-editor/           — @wda/visual-editor (workspace:*)

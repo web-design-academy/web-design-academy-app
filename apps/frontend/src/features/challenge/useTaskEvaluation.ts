@@ -17,7 +17,7 @@ function formatIssue(
 ): AnalysisIssue {
   if (issue.message) return issue;
 
-  let message = "";
+  let message: string;
   if (issue.messageCode === "ignoredProp") {
     const reason = translate(
       "en",
@@ -53,11 +53,13 @@ export function useTaskEvaluation(
 ) {
   const [liveIssues, setLiveIssues] = useState<AnalysisIssue[]>([]);
   const [result, setResult] = useState<EvaluationResult | null>(null);
-  const [isResultStale, setIsResultStale] = useState(false);
+  const [evaluatedFingerprint, setEvaluatedFingerprint] = useState<
+    string | null
+  >(null);
+  const [resultTaskKey, setResultTaskKey] = useState(taskKey);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const evaluationRunRef = useRef(0);
-  const resultRef = useRef<EvaluationResult | null>(null);
-  const evaluatedFingerprintRef = useRef<string | null>(null);
+  const manualEvaluationRunRef = useRef(0);
   const inputFingerprint = JSON.stringify([
     task?.html ?? "",
     task?.css ?? "",
@@ -67,28 +69,26 @@ export function useTaskEvaluation(
     task?.evaluation ?? null,
   ]);
 
-  useEffect(() => {
-    evaluationRunRef.current += 1;
-    resultRef.current = null;
-    evaluatedFingerprintRef.current = null;
+  if (resultTaskKey !== taskKey) {
+    setResultTaskKey(taskKey);
     setResult(null);
-    setIsResultStale(false);
-  }, [taskKey]);
+    setEvaluatedFingerprint(null);
+    setIsEvaluating(false);
+  }
+  const isResultStale =
+    result !== null && evaluatedFingerprint !== inputFingerprint;
+  const canAnalyze = liveEnabled && task?.evaluation?.engine === "css";
 
   useEffect(() => {
-    if (
-      resultRef.current &&
-      evaluatedFingerprintRef.current !== inputFingerprint
-    ) {
-      setIsResultStale(true);
-    }
-  }, [inputFingerprint]);
+    return () => {
+      manualEvaluationRunRef.current += 1;
+    };
+  }, [taskKey]);
 
   useEffect(() => {
     const runId = ++evaluationRunRef.current;
 
     if (!liveEnabled || !task?.evaluation || task.evaluation.engine !== "css") {
-      setLiveIssues([]);
       return;
     }
 
@@ -112,12 +112,16 @@ export function useTaskEvaluation(
       });
     }, 350);
 
-    return () => window.clearTimeout(timer);
-  }, [liveEnabled, task?.css, task?.evaluation, task?.html]);
+    return () => {
+      window.clearTimeout(timer);
+      evaluationRunRef.current += 1;
+    };
+  }, [liveEnabled, taskKey, task?.css, task?.evaluation, task?.html]);
 
   const evaluate = useCallback(async () => {
     if (!task?.evaluation || task.evaluation.engine !== "css") return null;
 
+    const runId = ++manualEvaluationRunRef.current;
     setIsEvaluating(true);
     try {
       const analyzer = await loadAnalyzer();
@@ -137,25 +141,24 @@ export function useTaskEvaluation(
           formatIssue(issue, analyzer.translateAnalyzerMessage),
         ),
       };
-      resultRef.current = translatedResult;
-      evaluatedFingerprintRef.current = inputFingerprint;
+      if (runId !== manualEvaluationRunRef.current) return null;
+      setEvaluatedFingerprint(inputFingerprint);
       setResult(translatedResult);
-      setIsResultStale(false);
       return translatedResult;
     } finally {
-      setIsEvaluating(false);
+      if (runId === manualEvaluationRunRef.current) setIsEvaluating(false);
     }
   }, [inputFingerprint, task]);
 
   const clearResult = useCallback(() => {
-    resultRef.current = null;
-    evaluatedFingerprintRef.current = null;
+    manualEvaluationRunRef.current += 1;
+    setIsEvaluating(false);
+    setEvaluatedFingerprint(null);
     setResult(null);
-    setIsResultStale(false);
   }, []);
 
   return {
-    liveIssues,
+    liveIssues: canAnalyze ? liveIssues : [],
     result,
     isResultStale,
     isEvaluating,
