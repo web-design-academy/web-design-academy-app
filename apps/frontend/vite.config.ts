@@ -1,13 +1,12 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
 import path from "node:path";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
     base: env.VITE_BASE_URL || "/",
-    plugins: [react(), tsconfigPaths()],
+    plugins: [react()],
     server: {
       host: true,
       proxy: {
@@ -18,9 +17,10 @@ export default defineConfig(({ mode }) => {
       },
     },
     resolve: {
+      tsconfigPaths: true,
       alias: {
         "@monaco-editor/react": path.resolve(
-          __dirname,
+          import.meta.dirname,
           "node_modules/@monaco-editor/react",
         ),
       },

@@ -27,19 +27,19 @@
   },
   "dependencies": {
     "@wda/ui-styles": "workspace:*",
+    "css-tree": "^3.2.1",
     "known-css-properties": "^0.37.0",
-    "lucide-react": "^0.575.0",
-    "react-arborist": "^3.4.3",
-    "css-tree": "^2.3.1"
+    "lucide-react": "^1.73.0",
+    "react-arborist": "^4.0.1"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "~5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^8.3.8"
   }
 }

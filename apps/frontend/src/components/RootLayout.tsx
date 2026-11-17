@@ -82,9 +82,11 @@ export default function Root() {
     typeof window !== "undefined" ? window.innerWidth <= 768 : false,
   );
 
-  useEffect(() => {
+  const [menuPathname, setMenuPathname] = useState(location.pathname);
+  if (menuPathname !== location.pathname) {
+    setMenuPathname(location.pathname);
     setIsMobileMenuOpen(false);
-  }, [location.pathname]);
+  }
 
   useEffect(() => {
     const closeOnWideScreen = () => {
@@ -277,7 +279,9 @@ export default function Root() {
       </div>
 
       <footer className="app-footer">
-        <span>&copy; {new Date().getFullYear()} Web Design Academy contributors</span>
+        <span>
+          &copy; {new Date().getFullYear()} Web Design Academy contributors
+        </span>
         <a href="mailto:support@webdesignacademy.org">
           support@webdesignacademy.org
         </a>

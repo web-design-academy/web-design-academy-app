@@ -11,7 +11,7 @@ COPY packages/visual-editor/package.json ./packages/visual-editor/
 COPY packages/visual-preview/package.json ./packages/visual-preview/
 COPY packages/ui-styles/package.json ./packages/ui-styles/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @wda/frontend... install --frozen-lockfile
 
 COPY apps/frontend/ ./apps/frontend/
 COPY packages/visual-editor/ ./packages/visual-editor/
@@ -24,4 +24,4 @@ ENV PORT=5173
 
 EXPOSE 5173
 
-CMD ["pnpm", "run", "dev", "--", "--host"]
+CMD ["pnpm", "dev"]

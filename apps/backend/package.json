@@ -1,9 +1,10 @@
 {
-  "name": "backend",
+  "name": "@wda/backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "style": "prettier -w ."
   },
@@ -12,18 +13,19 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "better-sqlite3": "^12.5.0",
+    "better-sqlite3": "^13.2.0",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "express-rate-limit": "^7.5.1",
-    "google-auth-library": "^10.6.2",
-    "helmet": "^8.1.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.4",
+    "google-auth-library": "^11.3.4",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.3"
   },
   "devDependencies": {
-    "prettier": "^3.8.1"
-  }
+    "prettier": "^3.10.1"
+  },
+  "private": true
 }

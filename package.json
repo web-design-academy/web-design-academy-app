@@ -1,12 +1,22 @@
 {
-  "name": "e-learning-app",
+  "name": "@wda/workspace",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev:frontend": "pnpm --filter web-design-academy dev",
-    "start:backend": "pnpm --filter backend start",
-    "build:frontend": "pnpm --filter web-design-academy build",
-    "lint:frontend": "pnpm --filter web-design-academy lint",
-    "style": "pnpm -r style"
+    "dev": "pnpm --parallel --filter @wda/backend --filter @wda/frontend dev",
+    "dev:backend": "pnpm --filter @wda/backend dev",
+    "dev:frontend": "pnpm --filter @wda/frontend dev",
+    "start:backend": "pnpm --filter @wda/backend start",
+    "build": "pnpm run build:frontend",
+    "build:frontend": "pnpm --filter @wda/frontend build",
+    "build:packages": "pnpm -r --filter \"./packages/**\" --if-present build",
+    "preview:frontend": "pnpm --filter @wda/frontend preview",
+    "lint": "pnpm run lint:frontend",
+    "lint:frontend": "pnpm --filter @wda/frontend lint",
+    "check:frontend": "pnpm --filter @wda/frontend ts:check",
+    "style": "pnpm -r --if-present style"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
   }
 }

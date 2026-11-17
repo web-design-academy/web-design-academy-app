@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @wda/frontend... install --frozen-lockfile
 
 ARG VITE_BASE_URL=/wda
 ARG VITE_APP_MODE=online
@@ -15,7 +15,7 @@ ENV VITE_BASE_URL=$VITE_BASE_URL
 ENV VITE_APP_MODE=$VITE_APP_MODE
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
-RUN pnpm --filter web-design-academy build
+RUN pnpm --filter @wda/frontend build
 
 FROM nginx:alpine
 RUN apk upgrade --no-cache

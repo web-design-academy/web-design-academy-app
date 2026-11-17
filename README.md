@@ -2,9 +2,9 @@
 
 ## Environment
 
-- Node.js `22.x`
-- pnpm `9+` (or `10+`)
-- Docker Engine/Desktop with Docker Compose
+- Node.js `22.13+` on the 22.x line, or `24+`
+- pnpm
+- Docker Engine/Desktop with Docker Compose (for Docker development)
 
 ## Required env files
 
@@ -14,6 +14,10 @@ Create env files from examples:
 cp apps/frontend/.env.example apps/frontend/.env
 cp apps/backend/.env.example apps/backend/.env
 ```
+
+Generate a secret with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`
+and set `JWT_SECRET` in `apps/backend/.env` to the result. It must contain at
+least 32 characters; copying the example alone leaves it empty.
 
 Minimal variables:
 
@@ -31,30 +35,35 @@ Run pnpm install from the root:
 pnpm install
 ```
 
-Run in separate terminals (or with your preferred runner):
+Start both apps, with backend watch mode:
 
 ```sh
-# Start backend
-pnpm start:backend
+pnpm dev
 ```
 
-```sh
-# Start frontend
-pnpm dev:frontend
-```
+Or run `pnpm dev:backend` and `pnpm dev:frontend` in separate terminals.
+`pnpm start:backend` runs the backend without watching files.
+
+Build with `pnpm build`, lint with `pnpm lint` (auto-fixes), and check types
+with `pnpm check:frontend`.
+
+Package filters use manifest names, for example
+`pnpm --filter @wda/frontend build` or `pnpm --filter @wda/backend start`. Shared packages are
+`@wda/visual-editor`, `@wda/css-analysis` (in `packages/visual-preview`), and
+`@wda/ui-styles`.
 
 Backend runs on `http://localhost:3000`, frontend on `http://localhost:5173`.
 
 ## Docker (dev)
 
+After configuring the env files and cloning the lessons repository below:
+
 ```sh
 docker compose up --build
 ```
 
-This starts:
-
-- backend: `http://localhost:3000`
-- frontend: `http://localhost:5173`
+This starts backend at `http://localhost:3000` and frontend at
+`http://localhost:5173`.
 
 ## Work with lessons
 
@@ -95,8 +104,8 @@ This starts:
   git -C lessons push
   ```
 
-- Host changes are available immediately; containers do not need rebuilding or
-  restarting.
+- Lesson file changes are available immediately; containers do not need
+  rebuilding or restarting.
 
 ## License & Branding
 

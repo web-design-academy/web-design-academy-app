@@ -9,6 +9,8 @@ import {
   useMemo,
   useRef,
   useEffect,
+  useLayoutEffect,
+  useCallback,
   type ComponentType,
 } from "react";
 import { useAuth } from "@/lib/ctx/useAuth";
@@ -200,27 +202,42 @@ export default function EditorPane({
     }
   }, [showVisualEditor]);
 
-  useEffect(() => {
+  const [previousTask, setPreviousTask] = useState({
+    currentIndex,
+    preferredTab,
+    evaluation: task.evaluation,
+  });
+  if (
+    previousTask.currentIndex !== currentIndex ||
+    previousTask.preferredTab !== preferredTab ||
+    previousTask.evaluation !== task.evaluation
+  ) {
+    setPreviousTask({
+      currentIndex,
+      preferredTab,
+      evaluation: task.evaluation,
+    });
     setActiveTab(preferredTab);
     setEvaluationDraft(
       JSON.stringify(task.evaluation ?? defaultEvaluation, null, 2),
     );
-  }, [currentIndex, preferredTab, task.evaluation]);
+  }
 
-  useEffect(() => {
-    if (activeTab === "html" && (isAdmin || hasHtmlSource)) return;
-    if (activeTab === "css" && (isAdmin || hasCssSource)) return;
-    if (activeTab === "js" && (isAdmin || hasJsSource)) return;
-    if (activeTab === "evaluation" && isAdmin) return;
+  const isActiveTabAvailable =
+    (activeTab === "html" && (isAdmin || hasHtmlSource)) ||
+    (activeTab === "css" && (isAdmin || hasCssSource)) ||
+    (activeTab === "js" && (isAdmin || hasJsSource)) ||
+    (activeTab === "evaluation" && isAdmin);
+  if (!isActiveTabAvailable && activeTab !== preferredTab) {
     setActiveTab(preferredTab);
-  }, [
-    activeTab,
-    hasHtmlSource,
-    hasCssSource,
-    hasJsSource,
-    isAdmin,
-    preferredTab,
-  ]);
+  }
+
+  const [previousFocusRequest, setPreviousFocusRequest] =
+    useState(focusRequest);
+  if (previousFocusRequest !== focusRequest) {
+    setPreviousFocusRequest(focusRequest);
+    if (focusRequest) setActiveTab("css");
+  }
 
   const content = useMemo(() => {
     if (activeTab === "evaluation") return evaluationDraft;
@@ -251,18 +268,61 @@ export default function EditorPane({
   const isTaskDeleted = Boolean(task.deleted);
   const isEditorReadonly = isTaskDeleted || hasInvalidReadonlyMarkers;
 
-  readonlyRangesRef.current = readonlyRanges;
-  editorStateRef.current = {
+  useLayoutEffect(() => {
+    readonlyRangesRef.current = readonlyRanges;
+    editorStateRef.current = {
+      activeTab,
+      isAdmin,
+      isReadonly: isEditorReadonly,
+      onTaskChange,
+      onEvaluationChange,
+    };
+  }, [
     activeTab,
     isAdmin,
-    isReadonly: isEditorReadonly,
+    isEditorReadonly,
     onTaskChange,
     onEvaluationChange,
-  };
+    readonlyRanges,
+  ]);
 
   useEffect(() => {
     lastValidValueRef.current = content.replace(/\r\n/g, "\n");
   }, [content]);
+
+  const updateDecorations = useCallback(
+    (
+      editor: MountedEditor,
+      monaco: MountedMonaco,
+      ranges: { startLine: number; endLine: number }[],
+    ) => {
+      const model = editor.getModel();
+      if (!model) {
+        decorationsRef.current?.clear();
+        return;
+      }
+
+      if (!decorationsRef.current) {
+        decorationsRef.current = editor.createDecorationsCollection();
+      }
+
+      decorationsRef.current.set(
+        ranges.map((range) => ({
+          range: new monaco.Range(range.startLine, 1, range.endLine, 1),
+          options: {
+            isWholeLine: true,
+            className: "readonly-line-highlight",
+            glyphMarginClassName: "readonly-glyph",
+            inlineClassName: "locked-text-inline",
+            glyphMarginHoverMessage: { value: "This section is read-only" },
+            stickiness:
+              monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+          },
+        })),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -282,7 +342,7 @@ export default function EditorPane({
     }
 
     updateDecorations(editor, monacoInstance, readonlyRanges);
-  }, [content, readonlyRanges, showVisualEditor]);
+  }, [content, readonlyRanges, showVisualEditor, updateDecorations]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -319,8 +379,7 @@ export default function EditorPane({
 
   useEffect(() => {
     if (!focusRequest) return;
-    setActiveTab("css");
-    window.requestAnimationFrame(() => {
+    const frame = window.requestAnimationFrame(() => {
       const editor = editorRef.current;
       if (!editor) return;
       const lineNumber = Math.max(1, focusRequest.line);
@@ -328,6 +387,7 @@ export default function EditorPane({
       editor.setPosition({ lineNumber, column: 1 });
       editor.focus();
     });
+    return () => window.cancelAnimationFrame(frame);
   }, [focusRequest]);
 
   const handleEditorMount: OnMount = (editor, monacoInstance) => {
@@ -402,37 +462,6 @@ export default function EditorPane({
       lastValidValueRef.current = nextValue;
       commitTaskChange(taskFieldByTab[currentTab], nextValue);
     });
-  };
-
-  const updateDecorations = (
-    editor: MountedEditor,
-    monaco: MountedMonaco,
-    ranges: { startLine: number; endLine: number }[],
-  ) => {
-    const model = editor.getModel();
-    if (!model) {
-      decorationsRef.current?.clear();
-      return;
-    }
-
-    if (!decorationsRef.current) {
-      decorationsRef.current = editor.createDecorationsCollection();
-    }
-
-    decorationsRef.current.set(
-      ranges.map((range) => ({
-        range: new monaco.Range(range.startLine, 1, range.endLine, 1),
-        options: {
-          isWholeLine: true,
-          className: "readonly-line-highlight",
-          glyphMarginClassName: "readonly-glyph",
-          inlineClassName: "locked-text-inline",
-          glyphMarginHoverMessage: { value: "This section is read-only" },
-          stickiness:
-            monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-        },
-      })),
-    );
   };
 
   return (

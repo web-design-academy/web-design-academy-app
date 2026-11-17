@@ -9,6 +9,10 @@ import LoadingSpinner from "./LoadingSpinner";
 const compiledContent = new Map<string, ComponentType>();
 
 export default function RuntimeMdx({ source }: { source: string }) {
+  return <CompiledMdx key={source} source={source} />;
+}
+
+function CompiledMdx({ source }: { source: string }) {
   const [Content, setContent] = useState<ComponentType | null>(
     () => compiledContent.get(source) ?? null,
   );
@@ -18,14 +22,7 @@ export default function RuntimeMdx({ source }: { source: string }) {
     let cancelled = false;
     const cached = compiledContent.get(source);
 
-    if (cached) {
-      setContent(() => cached);
-      setError(null);
-      return;
-    }
-
-    setContent(null);
-    setError(null);
+    if (cached) return;
 
     evaluate(source, {
       ...runtime,

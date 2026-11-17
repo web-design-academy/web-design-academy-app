@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/index.js"),
+      entry: path.resolve(import.meta.dirname, "src/index.js"),
       name: "CssAnalyzer",
       fileName: (format) => `css-analysis.${format}.js`,
     },

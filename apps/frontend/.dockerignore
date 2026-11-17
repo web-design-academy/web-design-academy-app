@@ -1,4 +1,10 @@
-node_modules
-dist
-.env
-*.log
+**/node_modules
+**/dist
+**/storage
+**/.env*
+**/*.log
+.git
+.agents
+.codex
+lessons
+env.prod
