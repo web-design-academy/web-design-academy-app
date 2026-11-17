@@ -5,7 +5,8 @@ import path from "node:path";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    base: env.VITE_BASE_URL || "/",
+    // Vite expects a trailing slash; without it `${BASE_URL}logo.svg` becomes "/wdalogo.svg".
+    base: (env.VITE_BASE_URL || "/").replace(/\/?$/, "/"),
     plugins: [react()],
     server: {
       host: true,
