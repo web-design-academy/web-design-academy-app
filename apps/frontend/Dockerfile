@@ -8,7 +8,7 @@ COPY . .
 
 RUN pnpm --filter @wda/frontend... install --frozen-lockfile
 
-ARG VITE_BASE_URL=/wda
+ARG VITE_BASE_URL=/wda/
 ARG VITE_APP_MODE=online
 ARG VITE_GOOGLE_CLIENT_ID
 ENV VITE_BASE_URL=$VITE_BASE_URL
